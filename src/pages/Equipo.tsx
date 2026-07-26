@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
-import { Alert, Badge, Button, SuccessAlert, TextField, panelClass } from '@/components/ui'
+import { Alert, Button, SuccessAlert, TextField, panelClass } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
@@ -64,11 +64,10 @@ export default function Equipo() {
     <AppShell title="Equipo">
       <div className={cn(panelClass, 'flex w-full flex-col gap-8 p-6 sm:p-8 lg:grid lg:grid-cols-2 lg:gap-10')}>
         <section className="min-w-0 lg:border-r lg:border-line/70 lg:pr-10">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Acceso</p>
-          <h2 className="mt-1 text-base font-bold text-ink">Invitar miembro</h2>
+          <h2 className="text-base font-bold text-ink">Invitar miembro</h2>
           <p className="mt-1 text-sm text-muted">
-            Generá una invitación PENDING con token. El envío de correo y la aceptación quedan para
-            una fase posterior.
+            Generá un enlace de acceso seguro y de un solo uso para añadir un nuevo integrante a tu
+            espacio de trabajo.
           </p>
 
           {!canInvite ? (
@@ -88,7 +87,7 @@ export default function Equipo() {
 
               <div>
                 <p className="mb-2 text-sm font-medium text-ink">
-                  Rol <span className="text-danger">*</span>
+                  Rol <span className="text-danger/45">*</span>
                 </p>
                 <div className="grid gap-2">
                   {ROLES.map((r) => {
@@ -105,12 +104,7 @@ export default function Equipo() {
                             : 'border-line hover:border-ink/25 hover:bg-cream',
                         )}
                       >
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-sm font-semibold text-ink">{r.label}</span>
-                          {active && (
-                            <Badge className="bg-brand-100 text-brand-700">{r.value}</Badge>
-                          )}
-                        </div>
+                        <span className="text-sm font-semibold text-ink">{r.label}</span>
                         <p className="mt-0.5 text-xs leading-relaxed text-muted">{r.desc}</p>
                       </button>
                     )
@@ -120,7 +114,7 @@ export default function Equipo() {
 
               {err && <Alert>{err}</Alert>}
 
-              <div className="flex justify-end pt-1">
+              <div className="pt-1">
                 <Button
                   loading={invite.isPending}
                   onClick={() => invite.mutate()}
@@ -134,23 +128,22 @@ export default function Equipo() {
         </section>
 
         <section className="min-w-0 border-t border-line/70 pt-8 lg:border-t-0 lg:pt-0">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Resultado</p>
-          <h2 className="mt-1 text-base font-bold text-ink">Última invitación</h2>
+          <h2 className="text-base font-bold text-ink">Última invitación</h2>
           <p className="mt-1 text-sm text-muted">
-            El token se muestra una vez. Compartilo por un canal seguro con el invitado.
+            El enlace se muestra una sola vez. Compartilo por un canal seguro con el invitado.
           </p>
 
           {!result ? (
             <div className="mt-6 rounded-2xl border border-dashed border-line px-5 py-10 text-center">
               <p className="text-sm font-medium text-ink">Sin invitaciones recientes</p>
               <p className="mt-1 text-sm text-muted">
-                Cuando crees una, el token aparecerá acá para copiarlo.
+                Cuando crees una, el enlace aparecerá acá para copiarlo.
               </p>
             </div>
           ) : (
             <div className="mt-6 space-y-4">
               <SuccessAlert>
-                Invitación creada ({result.status ?? 'PENDING'})
+                Invitación creada
                 {result.email ? ` · ${result.email}` : ''}
               </SuccessAlert>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -168,7 +161,7 @@ export default function Equipo() {
               {result.token && (
                 <div>
                   <div className="mb-1.5 flex items-center justify-between gap-2">
-                    <p className="text-xs font-medium uppercase tracking-wide text-muted">Token</p>
+                    <p className="text-xs font-medium uppercase tracking-wide text-muted">Enlace</p>
                     <button
                       type="button"
                       onClick={copyToken}

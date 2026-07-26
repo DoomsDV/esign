@@ -141,7 +141,7 @@ export default function Certificado() {
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Estado</p>
           <h2 className="mt-1 text-base font-bold text-ink">Certificado activo</h2>
           <p className="mt-1 text-sm text-muted">
-            El BLOB nunca se expone al panel. Solo metadata (subject, vigencia y estado).
+            Tu certificado actual está almacenado de forma segura.
           </p>
 
           {q.isLoading && <p className="mt-6 text-sm text-muted">Cargando…</p>}
@@ -198,7 +198,8 @@ export default function Certificado() {
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Actualizar</p>
           <h2 className="mt-1 text-base font-bold text-ink">Subir .p12</h2>
           <p className="mt-1 text-sm text-muted">
-            Se envía a Go, que cifra con la master key. El navegador no cifra el archivo.
+            Subí tu archivo .p12 para actualizar las credenciales de facturación. Se transferirá y
+            almacenará cifrado.
           </p>
 
           {!canUpload ? (

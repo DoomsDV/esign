@@ -189,15 +189,29 @@ export function AppShell({
   const { session, logout, environment } = useAuth()
   const navigate = useNavigate()
 
-  const [collapsed, setCollapsed] = useState(false)
+  // Persistido: cada ruta monta su propio AppShell, así que sin esto el estado
+  // colapsado se perdería al navegar (volvería a expandirse).
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem('esign.sidebarCollapsed') === '1',
+  )
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [isDesktop, setIsDesktop] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches,
+  )
 
   useEffect(() => {
-    const onResize = () => {
-      if (window.innerWidth >= 768) setMobileOpen(false)
+    localStorage.setItem('esign.sidebarCollapsed', collapsed ? '1' : '0')
+  }, [collapsed])
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 768px)')
+    const onChange = () => {
+      setIsDesktop(mq.matches)
+      if (mq.matches) setMobileOpen(false)
     }
-    window.addEventListener('resize', onResize)
-    return () => window.removeEventListener('resize', onResize)
+    onChange()
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
   }, [])
 
   // Bloquea scroll del body cuando el drawer móvil está abierto.
@@ -216,12 +230,17 @@ export function AppShell({
   }
 
   function toggleMenu() {
-    if (typeof window !== 'undefined' && window.innerWidth < 768) {
-      setMobileOpen((v) => !v)
-    } else {
+    if (isDesktop) {
       setCollapsed((v) => !v)
+    } else {
+      setMobileOpen((v) => !v)
     }
   }
+
+  // Desktop: siempre hamburguesa (colapsar/expandir). X solo en móvil con drawer abierto
+  // — una X junto a una vista principal se lee como "cerrar modal" y confunde.
+  const menuOpen = isDesktop ? false : mobileOpen
+  const menuHighlighted = isDesktop ? collapsed : mobileOpen
 
   const isTest = environment === 'TEST'
 
@@ -338,12 +357,20 @@ export function AppShell({
                 className={cn(
                   'grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-line bg-white text-ink',
                   'transition-colors duration-150 hover:bg-cream active:bg-cream',
-                  (mobileOpen || collapsed) && 'border-brand-300 bg-brand-50 text-brand-700',
+                  menuHighlighted && 'border-brand-300 bg-brand-50 text-brand-700',
                 )}
-                aria-label={mobileOpen ? 'Cerrar menú' : collapsed ? 'Expandir menú' : 'Colapsar menú'}
-                aria-expanded={mobileOpen || !collapsed}
+                aria-label={
+                  isDesktop
+                    ? collapsed
+                      ? 'Expandir menú'
+                      : 'Colapsar menú'
+                    : mobileOpen
+                      ? 'Cerrar menú'
+                      : 'Abrir menú'
+                }
+                aria-expanded={isDesktop ? !collapsed : mobileOpen}
               >
-                <IconMenu isX={mobileOpen} />
+                <IconMenu isX={menuOpen} />
               </button>
               <div className="min-w-0 flex-1">
                 <div className="flex min-w-0 items-center gap-1.5">
