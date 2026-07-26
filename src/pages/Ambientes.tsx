@@ -49,7 +49,7 @@ export default function Ambientes() {
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
               <h2 className="text-base font-bold text-ink">Timbrado y CSC</h2>
-              <Badge className={isProd ? 'bg-danger/10 text-danger' : 'bg-ok/10 text-ok-strong'}>
+              <Badge className={isProd ? 'bg-danger/10 text-danger' : 'bg-brand-100 text-brand-700'}>
                 {environment}
               </Badge>
             </div>

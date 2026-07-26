@@ -1,0 +1,33 @@
+import { useNavigate } from 'react-router-dom'
+import { Button } from '@/components/ui'
+import { useAuth } from '@/lib/auth'
+
+/** Modal bloqueante cuando el JWT venció o fue rechazado (401). */
+export function SessionExpiredModal() {
+  const { sessionExpired, acknowledgeSessionExpired } = useAuth()
+  const navigate = useNavigate()
+
+  if (!sessionExpired) return null
+
+  function goLogin() {
+    acknowledgeSessionExpired()
+    navigate('/login', { replace: true })
+  }
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="alertdialog" aria-modal="true" aria-labelledby="session-expired-title">
+      <div className="absolute inset-0 bg-ink/50 backdrop-blur-sm" />
+      <div className="relative z-10 w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+        <h2 id="session-expired-title" className="text-lg font-bold text-ink">
+          Sesión finalizada
+        </h2>
+        <p className="mt-2 text-sm leading-relaxed text-muted">
+          Tu sesión expiró o ya no es válida. Para seguir usando el panel, iniciá sesión de nuevo.
+        </p>
+        <div className="mt-6 flex justify-end">
+          <Button onClick={goLogin}>Iniciar sesión</Button>
+        </div>
+      </div>
+    </div>
+  )
+}

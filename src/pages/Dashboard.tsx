@@ -34,7 +34,8 @@ const COLORS = {
   RECHAZADO: '#dc2626',
   FIRMADO: '#d97706',
   OTROS: '#9ca3af',
-  AREA: '#16a34a',
+  /** Serie principal del ambiente TEST (acento de marca, no verde). */
+  AREA: '#f5a94c',
   BAR: '#f5a94c',
 }
 
@@ -98,7 +99,7 @@ interface Kpi {
 }
 
 const deltaToneClass: Record<Kpi['deltaTone'], string> = {
-  up: 'text-ok-strong',
+  up: 'text-brand-700',
   down: 'text-danger-strong',
   warn: 'text-warn',
   neutral: 'text-brand-700',
@@ -240,12 +241,13 @@ export default function Dashboard() {
 
   const hayRechazos = (d?.rechazado ?? 0) > 0
   const hayPendientes = (d?.firmado ?? 0) > 0
+  const toneOk = isTest ? 'bg-brand-100 text-brand-600' : 'bg-ok/10 text-ok'
   const kpis: Kpi[] = [
     {
       label: 'Aprobadas',
       value: d?.aprobado ?? 0,
       icon: <IconCheck />,
-      iconWrap: 'bg-ok/10 text-ok',
+      iconWrap: toneOk,
       delta: tasaAprob != null ? `${tasaAprob}%` : '100%',
       deltaTone: 'up',
       context: 'tasa de aprobación',
@@ -254,7 +256,7 @@ export default function Dashboard() {
       label: 'Rechazadas',
       value: d?.rechazado ?? 0,
       icon: <IconX />,
-      iconWrap: hayRechazos ? 'bg-danger/10 text-danger' : 'bg-ok/10 text-ok',
+      iconWrap: hayRechazos ? 'bg-danger/10 text-danger' : toneOk,
       delta: hayRechazos ? 'Acción' : 'OK',
       deltaTone: hayRechazos ? 'down' : 'up',
       context: hayRechazos ? 'requieren reemisión' : 'sin rechazos',
@@ -263,7 +265,7 @@ export default function Dashboard() {
       label: 'Firmadas',
       value: d?.firmado ?? 0,
       icon: <IconClock />,
-      iconWrap: hayPendientes ? 'bg-warn/10 text-warn' : 'bg-ok/10 text-ok',
+      iconWrap: hayPendientes ? 'bg-warn/10 text-warn' : toneOk,
       delta: hayPendientes ? 'En cola' : 'OK',
       deltaTone: hayPendientes ? 'warn' : 'up',
       context: hayPendientes ? 'reintento automático' : 'todo enviado',
@@ -321,7 +323,7 @@ export default function Dashboard() {
             <span
               className={cn(
                 'rounded-full px-2.5 py-1 text-[11px] font-bold',
-                isTest ? 'bg-ok/10 text-ok' : 'bg-danger/10 text-danger',
+                isTest ? 'bg-brand-100 text-brand-700' : 'bg-danger/10 text-danger',
               )}
             >
               {environment}

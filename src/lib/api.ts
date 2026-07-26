@@ -32,6 +32,46 @@ export interface FetchOptions {
   query?: Record<string, string | number | undefined | null>
 }
 
+/** Callback global para 401 en requests autenticados (sesión vencida). */
+type UnauthorizedHandler = () => void
+let unauthorizedHandler: UnauthorizedHandler | null = null
+
+export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
+  unauthorizedHandler = handler
+}
+
+function notifyUnauthorized(hadToken: boolean, status: number, code: string) {
+  if (!hadToken) return
+  if (status === 401 || code === 'UNAUTHORIZED') {
+    unauthorizedHandler?.()
+  }
+}
+
+/** Lee el claim `exp` (epoch en segundos) de un JWT sin validar la firma. */
+function jwtExpSeconds(token: string): number | null {
+  try {
+    const payload = token.split('.')[1]
+    if (!payload) return null
+    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
+    const claims = JSON.parse(json) as { exp?: number }
+    return typeof claims.exp === 'number' ? claims.exp : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * True si el access token JWT ya venció (con margen de 5s por clock skew).
+ * El backend del panel no siempre traduce el JWT vencido a un 401 limpio
+ * (puede responder 500), así que la detección proactiva vive en el cliente.
+ */
+export function isTokenExpired(token: string | null | undefined): boolean {
+  if (!token) return false
+  const exp = jwtExpSeconds(token)
+  if (exp == null) return false
+  return exp * 1000 <= Date.now() + 5000
+}
+
 function buildQuery(query?: FetchOptions['query']): string {
   if (!query) return ''
   const usp = new URLSearchParams()
@@ -48,6 +88,13 @@ export async function apiFetch<T>(path: string, opts: FetchOptions = {}): Promis
   const base = opts.base ?? ORDS_BASE
   const prefix = opts.prefix ?? '/api/v1'
   const url = `${base}${prefix}${path}${buildQuery(opts.query)}`
+  const hadToken = Boolean(opts.token)
+
+  // Sesión vencida: cortar antes de la red (el backend puede responder 500 en vez de 401).
+  if (hadToken && isTokenExpired(opts.token)) {
+    notifyUnauthorized(true, 401, 'UNAUTHORIZED')
+    throw new ApiError('UNAUTHORIZED', 'Sesión finalizada. Volvé a iniciar sesión.', 401)
+  }
 
   let res: Response
   try {
@@ -68,12 +115,28 @@ export async function apiFetch<T>(path: string, opts: FetchOptions = {}): Promis
   try {
     env = (await res.json()) as ApiEnvelope<T>
   } catch {
+    if (res.status === 401) {
+      notifyUnauthorized(hadToken, 401, 'UNAUTHORIZED')
+      throw new ApiError('UNAUTHORIZED', 'Sesión finalizada. Volvé a iniciar sesión.', 401)
+    }
     throw new ApiError('INVALID_RESPONSE', `Respuesta no válida (HTTP ${res.status})`, res.status)
   }
 
   if (!env.success) {
-    throw new ApiError(env.error?.code ?? 'ERROR', env.error?.message ?? 'Error desconocido', res.status)
+    const code = env.error?.code ?? (res.status === 401 ? 'UNAUTHORIZED' : 'ERROR')
+    const message =
+      env.error?.message ??
+      (code === 'UNAUTHORIZED' ? 'Sesión finalizada. Volvé a iniciar sesión.' : 'Error desconocido')
+    notifyUnauthorized(hadToken, res.status, code)
+    throw new ApiError(code, message, res.status)
   }
+
+  // Envelope success=true pero HTTP 401 (defensa).
+  if (res.status === 401) {
+    notifyUnauthorized(hadToken, 401, 'UNAUTHORIZED')
+    throw new ApiError('UNAUTHORIZED', 'Sesión finalizada. Volvé a iniciar sesión.', 401)
+  }
+
   return env
 }
 

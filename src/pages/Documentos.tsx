@@ -558,7 +558,7 @@ export default function Documentos() {
             <span
               className={cn(
                 'rounded-full px-2.5 py-0.5 text-[11px] font-bold',
-                environment === 'TEST' ? 'bg-ok/10 text-ok-strong' : 'bg-danger/10 text-danger-strong',
+                environment === 'TEST' ? 'bg-brand-100 text-brand-700' : 'bg-danger/10 text-danger-strong',
               )}
             >
               {environment}

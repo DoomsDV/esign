@@ -325,7 +325,7 @@ export function AppShell({
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {/* Franja de ambiente: cue visual sin ocupar una fila de contenido */}
         <div
-          className={cn('h-1 w-full shrink-0', isTest ? 'bg-ok' : 'bg-danger')}
+          className={cn('h-1 w-full shrink-0', isTest ? 'bg-brand-400' : 'bg-danger')}
           aria-hidden
         />
         <header className="shrink-0 border-b border-line bg-white">
@@ -355,7 +355,7 @@ export function AppShell({
                     }
                     className={cn(
                       'inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] font-semibold sm:px-2',
-                      isTest ? 'bg-ok/10 text-ok-strong' : 'bg-danger/10 text-danger-strong',
+                      isTest ? 'bg-brand-100 text-brand-700' : 'bg-danger/10 text-danger-strong',
                     )}
                   >
                     <IconInfo />

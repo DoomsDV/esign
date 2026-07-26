@@ -7,10 +7,11 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
-import { apiData } from './api'
+import { apiData, isTokenExpired, setUnauthorizedHandler } from './api'
 import type { Environment } from './env'
 
 export interface ClientMembership {
@@ -52,6 +53,10 @@ interface AuthContextValue {
   selectClient: (userId: number, client: ClientMembership) => Promise<void>
   register: (input: RegisterInput) => Promise<void>
   logout: () => void
+  /** True cuando una API autenticada respondió 401. */
+  sessionExpired: boolean
+  /** Limpia sesión y cierra el modal de sesión vencida. */
+  acknowledgeSessionExpired: () => void
 }
 
 const SESSION_KEY = 'esign.session'
@@ -70,6 +75,8 @@ function loadSession(): Session | null {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(() => loadSession())
+  const [sessionExpired, setSessionExpired] = useState(false)
+  const expiredRef = useRef(false)
   const [environment, setEnvState] = useState<Environment>(
     () => (localStorage.getItem(ENV_KEY) as Environment) || 'TEST',
   )
@@ -77,6 +84,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session))
     else localStorage.removeItem(SESSION_KEY)
+  }, [session])
+
+  // Registra handler 401: marca expirada sin borrar sesión (evita redirect inmediato).
+  useEffect(() => {
+    setUnauthorizedHandler(() => {
+      if (expiredRef.current) return
+      expiredRef.current = true
+      setSessionExpired(true)
+    })
+    return () => setUnauthorizedHandler(null)
+  }, [])
+
+  // Si al cargar el panel el access token ya venció, mostrar el modal sin esperar
+  // a que falle una request.
+  useEffect(() => {
+    if (session && isTokenExpired(session.accessToken) && !expiredRef.current) {
+      expiredRef.current = true
+      setSessionExpired(true)
+    }
   }, [session])
 
   const setEnvironment = useCallback((env: Environment) => {
@@ -101,6 +127,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       method: 'POST',
       body: { user_id: userId, client_id: client.client_id },
     })
+    expiredRef.current = false
+    setSessionExpired(false)
     setSession({
       accessToken: data.access_token,
       refreshToken: data.refresh_token,
@@ -116,12 +144,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const logout = useCallback(() => {
+    expiredRef.current = false
+    setSessionExpired(false)
+    setSession(null)
+  }, [])
+
+  const acknowledgeSessionExpired = useCallback(() => {
+    expiredRef.current = false
+    setSessionExpired(false)
     setSession(null)
   }, [])
 
   const value = useMemo<AuthContextValue>(
-    () => ({ session, environment, setEnvironment, login, selectClient, register, logout }),
-    [session, environment, setEnvironment, login, selectClient, register, logout],
+    () => ({
+      session,
+      environment,
+      setEnvironment,
+      login,
+      selectClient,
+      register,
+      logout,
+      sessionExpired,
+      acknowledgeSessionExpired,
+    }),
+    [
+      session,
+      environment,
+      setEnvironment,
+      login,
+      selectClient,
+      register,
+      logout,
+      sessionExpired,
+      acknowledgeSessionExpired,
+    ],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
