@@ -64,7 +64,7 @@ export default function Ambientes() {
             <>
               <div className="grid gap-4 sm:grid-cols-2">
                 <TextField
-                  label="Numero de timbrado"
+                  label="Número de timbrado"
                   value={numTimbrado}
                   onChange={(e) => setNumTimbrado(e.target.value)}
                   placeholder={environment === 'TEST' ? '06038964' : '18987010'}

@@ -1,6 +1,9 @@
 // Componentes UI base del panel (estetica calida crema + acento naranja).
 import {
   forwardRef,
+  useEffect,
+  useRef,
+  useState,
   type ButtonHTMLAttributes,
   type InputHTMLAttributes,
   type ReactNode,
@@ -46,10 +49,11 @@ interface FieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
   hint?: ReactNode
   error?: string
+  requiredMark?: boolean
 }
 
 export const TextField = forwardRef<HTMLInputElement, FieldProps>(function TextField(
-  { label, hint, error, className, id, ...rest },
+  { label, hint, error, requiredMark, className, id, ...rest },
   ref,
 ) {
   const inputId = id ?? rest.name
@@ -58,13 +62,14 @@ export const TextField = forwardRef<HTMLInputElement, FieldProps>(function TextF
       {label && (
         <label htmlFor={inputId} className="text-sm font-medium text-ink">
           {label}
+          {requiredMark && <span className="ml-0.5 text-danger">*</span>}
         </label>
       )}
       <input
         ref={ref}
         id={inputId}
         className={cn(
-          'w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink placeholder:text-muted/70 shadow-sm transition-colors focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-200',
+          'w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink placeholder:text-muted/55 placeholder:italic shadow-sm transition-colors focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-200',
           error && 'border-danger focus:border-danger focus:ring-danger/20',
           className,
         )}
@@ -164,6 +169,189 @@ export function Modal({
         </div>
         {children}
       </div>
+    </div>
+  )
+}
+
+/** Panel lateral que entra desde la derecha (side drawer). */
+export function Drawer({
+  open,
+  onClose,
+  title,
+  children,
+  footer,
+  widthClass = 'max-w-lg',
+}: {
+  open: boolean
+  onClose: () => void
+  title?: ReactNode
+  children: ReactNode
+  footer?: ReactNode
+  widthClass?: string
+}) {
+  return (
+    <div
+      className={cn('fixed inset-0 z-50', open ? 'pointer-events-auto' : 'pointer-events-none')}
+      aria-hidden={!open}
+    >
+      <div
+        className={cn(
+          'absolute inset-0 bg-ink/40 backdrop-blur-sm transition-opacity duration-200',
+          open ? 'opacity-100' : 'opacity-0',
+        )}
+        onClick={onClose}
+      />
+      <aside
+        role="dialog"
+        aria-modal={open}
+        className={cn(
+          'absolute inset-y-0 right-0 flex w-full flex-col bg-white shadow-2xl',
+          'transition-transform duration-200 ease-out',
+          open ? 'translate-x-0' : 'translate-x-full',
+          widthClass,
+        )}
+      >
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-5 py-4 sm:px-6">
+          <div className="text-lg font-bold text-ink">{title}</div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-cream hover:text-ink"
+            aria-label="Cerrar"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">{children}</div>
+        {footer && (
+          <div className="shrink-0 border-t border-line bg-white px-5 py-4 sm:px-6">{footer}</div>
+        )}
+      </aside>
+    </div>
+  )
+}
+
+export interface SearchSelectOption {
+  value: string
+  label: string
+}
+
+/** Select con búsqueda interna; útil para catálogos largos (geo, etc.). */
+export function SearchSelect({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder = 'Seleccionar…',
+  searchable = true,
+  requiredMark,
+  error,
+  disabled,
+}: {
+  label?: string
+  value: string
+  onChange: (v: string) => void
+  options: SearchSelectOption[]
+  placeholder?: string
+  searchable?: boolean
+  requiredMark?: boolean
+  error?: string
+  disabled?: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const [q, setQ] = useState('')
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) {
+        setOpen(false)
+        setQ('')
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  const current = options.find((o) => o.value === value)
+  const filtered =
+    searchable && q
+      ? options.filter((o) => o.label.toLowerCase().includes(q.toLowerCase()))
+      : options
+
+  return (
+    <div className="relative w-full" ref={ref}>
+      {label && (
+        <label className="mb-1.5 block text-sm font-medium text-ink">
+          {label}
+          {requiredMark && <span className="ml-0.5 text-danger">*</span>}
+        </label>
+      )}
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => !disabled && setOpen((o) => !o)}
+        className={cn(
+          'flex w-full items-center justify-between gap-2 rounded-xl border border-line bg-white px-4 py-3 text-sm shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-200 disabled:cursor-not-allowed disabled:opacity-60',
+          open && 'border-brand-300 ring-2 ring-brand-200',
+          error && 'border-danger',
+        )}
+      >
+        <span className={cn('truncate text-left', current ? 'text-ink' : 'text-muted/70')}>
+          {current?.label ?? placeholder}
+        </span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className={cn('shrink-0 text-muted transition-transform', open && 'rotate-180')} aria-hidden>
+          <path d="m6 9 6 6 6-6" className="stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute z-40 mt-1.5 w-full rounded-xl border border-line bg-white p-1.5 shadow-xl">
+          {searchable && (
+            <div className="mb-1.5 flex items-center gap-2 rounded-lg bg-cream px-2.5 py-1.5 text-muted">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                <circle cx="11" cy="11" r="7" className="stroke-current" strokeWidth="1.8" />
+                <path d="m20 20-3.2-3.2" className="stroke-current" strokeWidth="1.8" strokeLinecap="round" />
+              </svg>
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Buscar…"
+                autoFocus
+                className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-muted/70"
+              />
+            </div>
+          )}
+          <div className="max-h-56 overflow-auto">
+            {filtered.map((o) => (
+              <button
+                key={o.value}
+                type="button"
+                onClick={() => {
+                  onChange(o.value)
+                  setOpen(false)
+                  setQ('')
+                }}
+                className={cn(
+                  'flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-ink transition-colors hover:bg-cream',
+                  value === o.value && 'bg-cream font-medium',
+                )}
+              >
+                <span>{o.label}</span>
+                {value === o.value && (
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-brand-600" aria-hidden>
+                    <path d="m5 13 4 4L19 7" className="stroke-current" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </button>
+            ))}
+            {filtered.length === 0 && (
+              <p className="px-2.5 py-3 text-center text-xs text-muted">Sin resultados</p>
+            )}
+          </div>
+        </div>
+      )}
+      {error && <span className="mt-1.5 block text-xs text-danger">{error}</span>}
     </div>
   )
 }

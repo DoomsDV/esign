@@ -1,17 +1,17 @@
 @import "tailwindcss";
 
-/* Design tokens del panel esign. Estetica calida (crema + acento naranja) inspirada
-   en la referencia de login; tema claro por defecto con tokens centralizados para
-   habilitar dark mode a futuro. */
+/* Design tokens del panel esign. Neutros frios (SaaS moderno) que hacen resaltar
+   el acento naranja y los colores semanticos; tema claro por defecto con tokens
+   centralizados para habilitar dark mode a futuro. */
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
 
-  /* Neutros calidos */
-  --color-cream: #f4efe4;
-  --color-cream-soft: #faf7f0;
-  --color-ink: #1c1b19;
-  --color-muted: #7a756c;
-  --color-line: #e7e0d3;
+  /* Neutros frios */
+  --color-cream: #eef0f3;
+  --color-cream-soft: #f6f7f9;
+  --color-ink: #1a1d23;
+  --color-muted: #616873;
+  --color-line: #e3e6eb;
 
   /* Acento (naranja/durazno) */
   --color-brand-50: #fef5e9;
@@ -25,8 +25,10 @@
 
   /* Estados de documentos */
   --color-ok: #16a34a;
+  --color-ok-strong: #15803d;
   --color-warn: #d97706;
   --color-danger: #dc2626;
+  --color-danger-strong: #b91c1c;
   --color-neutral: #6b7280;
 
   --radius-xl: 1rem;

@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { AuthLayout } from '@/components/AuthLayout'
-import { Alert, Button, Card, TextField } from '@/components/ui'
+import { Alert, Button, TextField } from '@/components/ui'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
 
@@ -38,7 +38,6 @@ export default function Register() {
         ruc: values.ruc.trim(),
         dv: values.dv ? Number(values.dv) : undefined,
       })
-      // Auto-login tras el alta.
       const res = await login(values.email.trim(), values.password)
       if (res.clients.length) {
         await selectClient(res.user_id, res.clients[0])
@@ -52,80 +51,73 @@ export default function Register() {
   }
 
   return (
-    <AuthLayout altText="Ya tenes cuenta?" altHref="/login" altLabel="Iniciar sesion">
-      <Card className="w-full max-w-lg px-8 py-10">
-        <div className="text-center">
-          <h1 className="text-2xl font-extrabold text-ink">Crear cuenta</h1>
-          <p className="mt-2 text-sm text-muted">
-            Registra tu negocio para empezar a emitir documentos electronicos.
-          </p>
-        </div>
+    <AuthLayout
+      title="Crear cuenta"
+      subtitle="Registra tu negocio para empezar a emitir documentos electrónicos."
+      altText="¿Ya tenés cuenta?"
+      altHref="/login"
+      altLabel="Iniciar sesión"
+      panelQuote="Alta en minutos: emisor, establecimientos, certificado y API keys en un solo panel. Tu equipo emite; vos controlas."
+      panelAuthor="esign"
+      panelRole="Onboarding de contribuyentes"
+    >
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3.5">
+        {serverError && <Alert>{serverError}</Alert>}
 
-        <form onSubmit={handleSubmit(onSubmit)} className="mt-8 flex flex-col gap-4">
-          {serverError && <Alert>{serverError}</Alert>}
+        <TextField
+          label="Razón social"
+          placeholder="Mi Empresa SA"
+          error={errors.business_name?.message}
+          {...register('business_name', { required: 'Ingresá la razón social' })}
+        />
 
-          <TextField
-            label="Razon social"
-            placeholder="Mi Empresa SA"
-            error={errors.business_name?.message}
-            {...register('business_name', { required: 'Ingresa la razon social' })}
-          />
-
-          <div className="grid grid-cols-3 gap-3">
-            <div className="col-span-2">
-              <TextField
-                label="RUC"
-                placeholder="80012345"
-                error={errors.ruc?.message}
-                {...register('ruc', { required: 'Ingresa el RUC' })}
-              />
-            </div>
+        <div className="grid grid-cols-3 gap-3">
+          <div className="col-span-2">
             <TextField
-              label="DV"
-              placeholder="6"
-              inputMode="numeric"
-              error={errors.dv?.message}
-              {...register('dv')}
+              label="RUC"
+              placeholder="80012345"
+              error={errors.ruc?.message}
+              {...register('ruc', { required: 'Ingresá el RUC' })}
             />
           </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <TextField label="Nombre" placeholder="Daniel" {...register('first_name')} />
-            <TextField label="Apellido" placeholder="Villasanti" {...register('last_name')} />
-          </div>
-
           <TextField
-            label="Email"
-            type="email"
-            placeholder="tu@empresa.com"
-            autoComplete="email"
-            error={errors.email?.message}
-            {...register('email', { required: 'Ingresa tu email' })}
+            label="DV"
+            placeholder="6"
+            inputMode="numeric"
+            error={errors.dv?.message}
+            {...register('dv')}
           />
-          <TextField
-            label="Contrasena"
-            type="password"
-            placeholder="Minimo 8 caracteres"
-            autoComplete="new-password"
-            error={errors.password?.message}
-            {...register('password', {
-              required: 'Ingresa una contrasena',
-              minLength: { value: 8, message: 'Minimo 8 caracteres' },
-            })}
-          />
+        </div>
 
-          <Button type="submit" loading={isSubmitting} className="mt-2 w-full py-3">
-            Crear cuenta
-          </Button>
-        </form>
+        <div className="grid grid-cols-2 gap-3">
+          <TextField label="Nombre" placeholder="Daniel" {...register('first_name')} />
+          <TextField label="Apellido" placeholder="Villasanti" {...register('last_name')} />
+        </div>
 
-        <p className="mt-8 text-center text-sm text-muted">
-          Ya tenes cuenta?{' '}
-          <Link to="/login" className="font-semibold text-brand-600 hover:text-brand-700">
-            Iniciar sesion
-          </Link>
-        </p>
-      </Card>
+        <TextField
+          label="Email"
+          type="email"
+          placeholder="tu@empresa.com"
+          autoComplete="email"
+          error={errors.email?.message}
+          {...register('email', { required: 'Ingresá tu email' })}
+        />
+        <TextField
+          label="Contraseña"
+          type="password"
+          placeholder="Mínimo 8 caracteres"
+          autoComplete="new-password"
+          error={errors.password?.message}
+          {...register('password', {
+            required: 'Ingresá una contraseña',
+            minLength: { value: 8, message: 'Mínimo 8 caracteres' },
+          })}
+        />
+
+        <Button type="submit" loading={isSubmitting} className="mt-1 w-full py-3">
+          Crear cuenta
+        </Button>
+      </form>
     </AuthLayout>
   )
 }

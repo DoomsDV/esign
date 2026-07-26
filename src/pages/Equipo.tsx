@@ -35,7 +35,7 @@ export default function Equipo() {
         <Card className="p-6">
           <h2 className="text-base font-bold text-ink">Invitar miembro</h2>
           <p className="mt-1 text-sm text-muted">
-            Crea una invitacion PENDING con token. El envio de correo y la aceptacion quedan para una
+            Crea una invitación PENDING con token. El envío de correo y la aceptación quedan para una
             fase posterior.
           </p>
 
@@ -73,7 +73,7 @@ export default function Equipo() {
               )}
               {result && (
                 <div className="mt-4 space-y-2">
-                  <SuccessAlert>Invitacion creada ({result.status ?? 'PENDING'}).</SuccessAlert>
+                  <SuccessAlert>Invitación creada ({result.status ?? 'PENDING'}).</SuccessAlert>
                   {result.token && (
                     <div className="rounded-xl border border-line bg-cream-soft p-3 font-mono text-xs break-all">
                       token: {result.token}
@@ -87,7 +87,7 @@ export default function Equipo() {
                   onClick={() => invite.mutate()}
                   disabled={!email.includes('@')}
                 >
-                  Crear invitacion
+                  Crear invitación
                 </Button>
               </div>
             </>

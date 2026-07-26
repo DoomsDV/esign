@@ -1,15 +1,42 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
-import { Alert, Button, Card, SuccessAlert, TextField } from '@/components/ui'
+import { Alert, Button, SearchSelect, SuccessAlert, TextField } from '@/components/ui'
+import { cn } from '@/lib/cn'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
 import { getClient, upsertEmisor, type Actividad } from '@/lib/config'
+import {
+  ACTIVIDADES_ECONOMICAS,
+  TIPOS_REGIMEN,
+  actividadLabel,
+} from '@/lib/sifen-catalogs'
+
+const CARD =
+  'rounded-3xl bg-white ring-1 ring-line/70 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_28px_-16px_rgba(16,24,40,0.18)]'
+
+function ReadOnlyField({
+  label,
+  value,
+  className,
+}: {
+  label: string
+  value: string
+  className?: string
+}) {
+  return (
+    <div className={cn('min-w-0', className)}>
+      <p className="text-xs font-medium uppercase tracking-wide text-muted">{label}</p>
+      <p className="mt-1 break-words text-sm font-semibold leading-snug text-ink">{value || '—'}</p>
+    </div>
+  )
+}
 
 export default function Empresa() {
   const { session } = useAuth()
   const token = session!.accessToken
   const qc = useQueryClient()
+  const canEdit = session!.role !== 'analyst'
 
   const q = useQuery({ queryKey: ['client'], queryFn: () => getClient(token) })
 
@@ -24,12 +51,35 @@ export default function Empresa() {
   useEffect(() => {
     if (!q.data) return
     setTipoCont(q.data.emisor?.tipo_contribuyente ?? 1)
-    setRegimen(q.data.emisor?.tipo_regimen ?? '')
+    setRegimen(q.data.emisor?.tipo_regimen ? String(q.data.emisor.tipo_regimen) : '')
     setFantasia(q.data.emisor?.nombre_fantasia ?? '')
     const first = q.data.actividades?.[0]
     setActCod(first?.cod ?? '')
     setActDesc(first?.desc ?? '')
   }, [q.data])
+
+  const regimenOptions = useMemo(
+    () => [
+      { value: '', label: 'Sin régimen (opcional)' },
+      ...TIPOS_REGIMEN.map((r) => ({ value: r.cod, label: `${r.cod} — ${r.desc}` })),
+    ],
+    [],
+  )
+
+  const actividadOptions = useMemo(() => {
+    const base = ACTIVIDADES_ECONOMICAS.map((a) => ({
+      value: a.cod,
+      label: actividadLabel(a.cod, a.desc),
+    }))
+    // Si la actividad guardada no está en el catálogo local, la mostramos igual.
+    if (actCod && !base.some((o) => o.value === actCod)) {
+      base.unshift({
+        value: actCod,
+        label: actividadLabel(actCod, actDesc || 'Actividad guardada'),
+      })
+    }
+    return base
+  }, [actCod, actDesc])
 
   const save = useMutation({
     mutationFn: async () => {
@@ -55,6 +105,12 @@ export default function Empresa() {
     },
   })
 
+  function pickActividad(cod: string) {
+    const hit = ACTIVIDADES_ECONOMICAS.find((a) => a.cod === cod)
+    setActCod(cod)
+    if (hit) setActDesc(hit.desc)
+  }
+
   return (
     <AppShell title="Empresa">
       {q.isLoading && <p className="text-sm text-muted">Cargando…</p>}
@@ -62,77 +118,103 @@ export default function Empresa() {
 
       {q.data && (
         <div className="mx-auto flex max-w-3xl flex-col gap-5">
-          <Card className="p-6">
-            <h2 className="mb-1 text-base font-bold text-ink">Identidad del negocio</h2>
-            <p className="mb-5 text-sm text-muted">Datos fiscales del cliente (solo lectura).</p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <TextField label="Razon social" value={q.data.business_name} readOnly />
-              <TextField label="RUC" value={`${q.data.ruc}-${q.data.dv}`} readOnly />
-              <TextField label="Estado" value={q.data.status} readOnly />
-              <TextField label="Client ID" value={String(q.data.client_id)} readOnly />
+          <section className={cn(CARD, 'p-6')}>
+            <h2 className="text-base font-bold text-ink">Identidad del negocio</h2>
+            <p className="mt-1 text-sm text-muted">Datos fiscales del cliente (solo lectura).</p>
+            <div className="mt-5 grid gap-5 sm:grid-cols-2">
+              <ReadOnlyField
+                label="Razón social"
+                value={q.data.business_name}
+                className="sm:col-span-2"
+              />
+              <ReadOnlyField label="RUC" value={`${q.data.ruc}-${q.data.dv}`} />
+              <ReadOnlyField label="Estado" value={q.data.status} />
+              <ReadOnlyField label="Client ID" value={String(q.data.client_id)} />
             </div>
-          </Card>
+          </section>
 
-          <Card className="p-6">
-            <h2 className="mb-1 text-base font-bold text-ink">Emisor SIFEN</h2>
-            <p className="mb-5 text-sm text-muted">
-              Tipo de contribuyente, regimen y actividad economica (descripcion EXACTA del catalogo SET).
+          <section className={cn(CARD, 'p-6')}>
+            <h2 className="text-base font-bold text-ink">Emisor SIFEN</h2>
+            <p className="mt-1 text-sm text-muted">
+              Tipo de contribuyente, régimen y actividad económica. La descripción de actividad se
+              toma del catálogo (debe coincidir exactamente con SET).
             </p>
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-sm font-medium text-ink">Tipo contribuyente</label>
-                <select
-                  className="rounded-xl border border-line bg-white px-4 py-3 text-sm shadow-sm"
-                  value={tipoCont}
-                  onChange={(e) => setTipoCont(Number(e.target.value))}
-                >
-                  <option value={1}>1 — Persona fisica</option>
-                  <option value={2}>2 — Persona juridica</option>
-                </select>
-              </div>
-              <TextField
-                label="Tipo regimen"
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2">
+              <SearchSelect
+                label="Tipo contribuyente"
+                requiredMark
+                value={String(tipoCont)}
+                onChange={(v) => setTipoCont(Number(v))}
+                options={[
+                  { value: '1', label: '1 — Persona física' },
+                  { value: '2', label: '2 — Persona jurídica' },
+                ]}
+                searchable={false}
+                disabled={!canEdit}
+              />
+              <SearchSelect
+                label="Tipo régimen"
                 value={regimen}
-                onChange={(e) => setRegimen(e.target.value)}
-                placeholder="Opcional"
+                onChange={setRegimen}
+                options={regimenOptions}
+                placeholder="Seleccionar régimen…"
+                searchable={false}
+                disabled={!canEdit}
               />
               <TextField
-                label="Nombre de fantasia"
+                label="Nombre de fantasía"
                 value={fantasia}
                 onChange={(e) => setFantasia(e.target.value)}
                 className="sm:col-span-2"
+                placeholder="Opcional"
+                disabled={!canEdit}
               />
-              <TextField
-                label="Codigo actividad (cActEco)"
-                value={actCod}
-                onChange={(e) => setActCod(e.target.value)}
-                placeholder="74909"
-              />
-              <TextField
-                label="Descripcion actividad (dDesActEco)"
-                value={actDesc}
-                onChange={(e) => setActDesc(e.target.value)}
-                placeholder="EXACTA del catalogo SET"
-              />
+              <div className="sm:col-span-2">
+                <SearchSelect
+                  label="Actividad económica"
+                  requiredMark
+                  value={actCod}
+                  onChange={pickActividad}
+                  options={actividadOptions}
+                  placeholder="Buscar por código o descripción…"
+                  disabled={!canEdit}
+                />
+                {actDesc && (
+                  <div className="mt-3 rounded-xl bg-cream-soft px-4 py-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
+                      Descripción SET (dDesActEco)
+                    </p>
+                    <p className="mt-1 break-words text-sm leading-relaxed text-ink">{actDesc}</p>
+                    <p className="mt-1 font-mono text-xs text-muted">cActEco: {actCod}</p>
+                  </div>
+                )}
+              </div>
             </div>
 
             {err && (
-              <div className="mt-4">
+              <div className="mt-5">
                 <Alert>{err}</Alert>
               </div>
             )}
             {msg && (
-              <div className="mt-4">
+              <div className="mt-5">
                 <SuccessAlert>{msg}</SuccessAlert>
               </div>
             )}
 
-            <div className="mt-5 flex justify-end">
-              <Button loading={save.isPending} onClick={() => save.mutate()} disabled={session!.role === 'analyst'}>
-                Guardar emisor
-              </Button>
-            </div>
-          </Card>
+            {canEdit && (
+              <div className="mt-6 flex justify-end border-t border-line/70 pt-5">
+                <Button
+                  loading={save.isPending}
+                  onClick={() => save.mutate()}
+                  disabled={!actCod || !actDesc}
+                >
+                  Guardar emisor
+                </Button>
+              </div>
+            )}
+          </section>
         </div>
       )}
     </AppShell>

@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
-import { Alert, Badge, Button, Modal, Select } from '@/components/ui'
+import { Alert, Badge, Button, Modal } from '@/components/ui'
+import { cn } from '@/lib/cn'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
 import {
@@ -17,15 +18,199 @@ import {
   type DocumentListItem,
 } from '@/lib/documents'
 
+const CARD =
+  'rounded-3xl bg-white ring-1 ring-line/70 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_28px_-16px_rgba(16,24,40,0.18)]'
+
 const ESTADOS = ['APROBADO', 'RECHAZADO', 'FIRMADO', 'ENVIADO', 'CANCELADO']
 const TIPOS: Array<{ value: string; label: string }> = [
   { value: '1', label: 'Factura' },
-  { value: '5', label: 'Nota de credito' },
-  { value: '6', label: 'Nota de debito' },
+  { value: '5', label: 'Nota de crédito' },
+  { value: '6', label: 'Nota de débito' },
   { value: '4', label: 'Autofactura' },
-  { value: '7', label: 'Nota de remision' },
+  { value: '7', label: 'Nota de remisión' },
 ]
 const PAGE_SIZE = 15
+
+/* ---------- Iconos ---------- */
+function IconSearch({ className }: { className?: string }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <circle cx="11" cy="11" r="7" className="stroke-current" strokeWidth="1.8" />
+      <path d="m20 20-3.2-3.2" className="stroke-current" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  )
+}
+function IconFilter({ className }: { className?: string }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path d="M4 7h16M4 12h16M4 17h16" className="stroke-current" strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="8" cy="7" r="2.2" className="fill-current" />
+      <circle cx="16" cy="12" r="2.2" className="fill-current" />
+      <circle cx="10" cy="17" r="2.2" className="fill-current" />
+    </svg>
+  )
+}
+function IconChevron({ className }: { className?: string }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path d="m6 9 6 6 6-6" className="stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+function IconCheck({ className }: { className?: string }) {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path d="m5 13 4 4L19 7" className="stroke-current" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+function IconEye() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" className="stroke-current" strokeWidth="1.7" />
+      <circle cx="12" cy="12" r="2.7" className="stroke-current" strokeWidth="1.7" />
+    </svg>
+  )
+}
+function IconDownload() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M12 4v10m0 0 4-4m-4 4-4-4M5 19h14" className="stroke-current" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+function IconDots() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="5" cy="12" r="1.6" className="fill-current" />
+      <circle cx="12" cy="12" r="1.6" className="fill-current" />
+      <circle cx="19" cy="12" r="1.6" className="fill-current" />
+    </svg>
+  )
+}
+function IconResend() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M20 12a8 8 0 1 1-2.3-5.6M20 4v3.5h-3.5" className="stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
+/* Fecha compacta: 24h + mes abreviado (25 jul 2026, 21:53). */
+function formatFechaCorta(iso: string | null): string {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return iso
+  return d
+    .toLocaleString('es-PY', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    })
+    .replace(/\./g, '')
+}
+
+function useOutsideClose(onClose: () => void) {
+  const ref = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose()
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [onClose])
+  return ref
+}
+
+/* ---------- Select con búsqueda interna ---------- */
+interface Option {
+  value: string
+  label: string
+}
+function FilterSelect({
+  label,
+  value,
+  onChange,
+  options,
+  allLabel = 'Todos',
+  searchable = false,
+}: {
+  label: string
+  value: string
+  onChange: (v: string) => void
+  options: Option[]
+  allLabel?: string
+  searchable?: boolean
+}) {
+  const [open, setOpen] = useState(false)
+  const [q, setQ] = useState('')
+  const ref = useOutsideClose(() => {
+    setOpen(false)
+    setQ('')
+  })
+  const all: Option[] = [{ value: '', label: allLabel }, ...options]
+  const current = all.find((o) => o.value === value) ?? all[0]
+  const filtered = searchable && q ? all.filter((o) => o.label.toLowerCase().includes(q.toLowerCase())) : all
+
+  return (
+    <div className="relative w-full" ref={ref}>
+      <label className="mb-1.5 block text-xs font-medium text-muted">{label}</label>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={cn(
+          'flex w-full items-center justify-between gap-2 rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm shadow-sm transition-colors hover:border-brand-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-200',
+          open && 'border-brand-300 ring-2 ring-brand-200',
+        )}
+      >
+        <span className={current.value ? 'text-ink' : 'text-muted'}>{current.label}</span>
+        <IconChevron className={cn('text-muted transition-transform', open && 'rotate-180')} />
+      </button>
+      {open && (
+        <div className="absolute z-30 mt-1.5 w-full min-w-[12rem] rounded-xl border border-line bg-white p-1.5 shadow-xl">
+          {searchable && (
+            <div className="mb-1.5 flex items-center gap-2 rounded-lg bg-cream px-2.5 py-1.5 text-muted">
+              <IconSearch />
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Buscar…"
+                autoFocus
+                className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-muted/70"
+              />
+            </div>
+          )}
+          <div className="max-h-56 overflow-auto">
+            {filtered.map((o) => (
+              <button
+                key={o.value || 'all'}
+                type="button"
+                onClick={() => {
+                  onChange(o.value)
+                  setOpen(false)
+                  setQ('')
+                }}
+                className={cn(
+                  'flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-ink transition-colors hover:bg-cream',
+                  value === o.value && 'bg-cream font-medium',
+                )}
+              >
+                <span>{o.label}</span>
+                {value === o.value && <IconCheck className="text-brand-600" />}
+              </button>
+            ))}
+            {filtered.length === 0 && (
+              <p className="px-2.5 py-3 text-center text-xs text-muted">Sin resultados</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
 
 function EstadoBadge({ estado }: { estado: string }) {
   const m = estadoMeta(estado)
@@ -37,6 +222,108 @@ function EstadoBadge({ estado }: { estado: string }) {
   )
 }
 
+/* ---------- Acciones por fila ---------- */
+function RowActions({
+  doc,
+  onView,
+  onDownload,
+  onRetry,
+}: {
+  doc: DocumentListItem
+  onView: () => void
+  onDownload: () => void
+  onRetry: () => void
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useOutsideClose(() => setOpen(false))
+  const iconBtn =
+    'grid h-8 w-8 place-items-center rounded-lg text-muted transition-colors hover:bg-cream hover:text-ink'
+  return (
+    <div className="flex items-center justify-end gap-0.5" ref={ref}>
+      <button
+        type="button"
+        title="Ver detalle"
+        aria-label="Ver detalle"
+        className={iconBtn}
+        onClick={(e) => {
+          e.stopPropagation()
+          onView()
+        }}
+      >
+        <IconEye />
+      </button>
+      <button
+        type="button"
+        title="Descargar XML"
+        aria-label="Descargar XML"
+        className={iconBtn}
+        onClick={(e) => {
+          e.stopPropagation()
+          onDownload()
+        }}
+      >
+        <IconDownload />
+      </button>
+      <div className="relative">
+        <button
+          type="button"
+          title="Más opciones"
+          aria-label="Más opciones"
+          className={iconBtn}
+          onClick={(e) => {
+            e.stopPropagation()
+            setOpen((o) => !o)
+          }}
+        >
+          <IconDots />
+        </button>
+        {open && (
+          <div className="absolute right-0 z-30 mt-1 w-52 rounded-xl border border-line bg-white p-1.5 text-left shadow-xl">
+            <button
+              type="button"
+              className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-ink hover:bg-cream"
+              onClick={(e) => {
+                e.stopPropagation()
+                setOpen(false)
+                onView()
+              }}
+            >
+              <IconEye />
+              Ver detalle
+            </button>
+            <button
+              type="button"
+              className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-ink hover:bg-cream"
+              onClick={(e) => {
+                e.stopPropagation()
+                setOpen(false)
+                onDownload()
+              }}
+            >
+              <IconDownload />
+              Descargar XML
+            </button>
+            {doc.estado === 'FIRMADO' && (
+              <button
+                type="button"
+                className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-warn hover:bg-warn/10"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setOpen(false)
+                  onRetry()
+                }}
+              >
+                <IconResend />
+                Reenviar a SIFEN
+              </button>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function Documentos() {
   const { session, environment } = useAuth()
   const token = session!.accessToken
@@ -44,8 +331,13 @@ export default function Documentos() {
 
   const [estado, setEstado] = useState('')
   const [tipo, setTipo] = useState('')
+  const [query, setQuery] = useState('')
+  const [desde, setDesde] = useState('')
+  const [hasta, setHasta] = useState('')
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState<string | null>(null)
+  const [filtersOpen, setFiltersOpen] = useState(false)
+  const filtersRef = useOutsideClose(() => setFiltersOpen(false))
 
   const listQuery = useQuery({
     queryKey: ['documents', environment, estado, tipo, page],
@@ -59,117 +351,312 @@ export default function Documentos() {
       }),
   })
 
-  const totalPages = Math.max(1, Math.ceil((listQuery.data?.total ?? 0) / PAGE_SIZE))
+  const items = listQuery.data?.items ?? []
+  const total = listQuery.data?.total ?? 0
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+
+  // Búsqueda de texto y rango de fecha: client-side sobre la página cargada.
+  const filtered = useMemo(() => {
+    let r = items
+    const q = query.trim().toLowerCase()
+    if (q) {
+      r = r.filter(
+        (dcto) =>
+          (dcto.num_documento ?? '').toLowerCase().includes(q) ||
+          (dcto.receptor_nombre ?? '').toLowerCase().includes(q) ||
+          (dcto.cdc ?? '').toLowerCase().includes(q) ||
+          formatFechaCorta(dcto.fecha_emision).toLowerCase().includes(q),
+      )
+    }
+    if (desde) r = r.filter((dcto) => dcto.fecha_emision && dcto.fecha_emision.slice(0, 10) >= desde)
+    if (hasta) r = r.filter((dcto) => dcto.fecha_emision && dcto.fecha_emision.slice(0, 10) <= hasta)
+    return r
+  }, [items, query, desde, hasta])
+
+  const panelFiltersActive = Boolean(estado || tipo || desde || hasta)
+  const activeFilterCount = [estado, tipo, desde, hasta].filter(Boolean).length
+  const hasClientFilter = Boolean(query.trim() || desde || hasta)
+  const rangeFrom = total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1
+  const rangeTo = Math.min(page * PAGE_SIZE, total)
 
   function resetTo(setter: (v: string) => void, v: string) {
     setter(v)
     setPage(1)
   }
 
+  function clearPanelFilters() {
+    setEstado('')
+    setTipo('')
+    setDesde('')
+    setHasta('')
+    setPage(1)
+  }
+
+  function handleDownload(cdc: string) {
+    void downloadXml(token, cdc).catch(() => {})
+  }
+  function handleRetry(cdc: string) {
+    void requestRetry(token, cdc)
+      .then(() => queryClient.invalidateQueries({ queryKey: ['documents'] }))
+      .catch(() => {})
+  }
+
+  const dateInput =
+    'w-full rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-ink shadow-sm transition-colors hover:border-brand-300 focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-200'
+
+  const activeChips: Array<{ key: string; label: string; onClear: () => void }> = []
+  if (estado) {
+    activeChips.push({
+      key: 'estado',
+      label: estadoMeta(estado).label,
+      onClear: () => resetTo(setEstado, ''),
+    })
+  }
+  if (tipo) {
+    activeChips.push({
+      key: 'tipo',
+      label: TIPOS.find((t) => t.value === tipo)?.label ?? tipo,
+      onClear: () => resetTo(setTipo, ''),
+    })
+  }
+  if (desde) {
+    activeChips.push({ key: 'desde', label: `Desde ${desde}`, onClear: () => setDesde('') })
+  }
+  if (hasta) {
+    activeChips.push({ key: 'hasta', label: `Hasta ${hasta}`, onClear: () => setHasta('') })
+  }
+
   return (
     <AppShell title="Documentos">
-      {/* Filtros */}
-      <div className="mb-5 flex flex-wrap items-end gap-3">
-        <Select label="Estado" value={estado} onChange={(e) => resetTo(setEstado, e.target.value)}>
-          <option value="">Todos</option>
-          {ESTADOS.map((s) => (
-            <option key={s} value={s}>
-              {estadoMeta(s).label}
-            </option>
-          ))}
-        </Select>
-        <Select label="Tipo" value={tipo} onChange={(e) => resetTo(setTipo, e.target.value)}>
-          <option value="">Todos</option>
-          {TIPOS.map((t) => (
-            <option key={t.value} value={t.value}>
-              {t.label}
-            </option>
-          ))}
-        </Select>
-        <div className="ml-auto text-sm text-muted">
-          {listQuery.data ? `${listQuery.data.total} documento(s) · ${environment}` : ''}
-        </div>
-      </div>
+      <div className="space-y-5">
+        {/* Toolbar: búsqueda + botón de filtros agrupados */}
+        <div className={cn(CARD, 'p-4 sm:p-5')}>
+          <div className="flex items-center gap-2.5">
+            <div className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-line bg-cream-soft px-3.5 py-2.5 text-muted transition-colors focus-within:border-brand-300 focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-200">
+              <IconSearch />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Buscar por número, receptor, CDC o fecha…"
+                className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-muted/70"
+              />
+              {query && (
+                <button
+                  type="button"
+                  onClick={() => setQuery('')}
+                  className="shrink-0 text-xs font-medium text-muted hover:text-ink"
+                >
+                  Limpiar
+                </button>
+              )}
+            </div>
 
-      {/* Tabla */}
-      <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-              <th className="px-4 py-3 font-semibold">Fecha</th>
-              <th className="px-4 py-3 font-semibold">Tipo</th>
-              <th className="px-4 py-3 font-semibold">Nro</th>
-              <th className="px-4 py-3 font-semibold">Receptor</th>
-              <th className="px-4 py-3 font-semibold">Estado</th>
-              <th className="px-4 py-3 text-right font-semibold">Total</th>
-              <th className="px-4 py-3" />
-            </tr>
-          </thead>
-          <tbody>
-            {listQuery.isLoading && (
-              <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-muted">
-                  Cargando...
-                </td>
-              </tr>
-            )}
-            {listQuery.isError && (
-              <tr>
-                <td colSpan={7} className="px-4 py-6">
-                  <Alert>
-                    {listQuery.error instanceof ApiError
-                      ? listQuery.error.message
-                      : 'No se pudieron cargar los documentos.'}
-                  </Alert>
-                </td>
-              </tr>
-            )}
-            {listQuery.data?.items.length === 0 && (
-              <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-muted">
-                  No hay documentos para este filtro.
-                </td>
-              </tr>
-            )}
-            {listQuery.data?.items.map((doc: DocumentListItem) => (
-              <tr
-                key={doc.cdc}
-                className="cursor-pointer border-b border-line/60 last:border-0 hover:bg-cream-soft"
-                onClick={() => setSelected(doc.cdc)}
+            <div className="relative shrink-0" ref={filtersRef}>
+              <button
+                type="button"
+                onClick={() => setFiltersOpen((o) => !o)}
+                aria-label="Filtros"
+                aria-expanded={filtersOpen}
+                title="Filtros"
+                className={cn(
+                  'relative grid h-11 w-11 place-items-center rounded-2xl border bg-white text-ink shadow-sm transition-colors',
+                  filtersOpen || panelFiltersActive
+                    ? 'border-ink bg-ink text-white'
+                    : 'border-line hover:border-ink/40 hover:bg-cream',
+                )}
               >
-                <td className="px-4 py-3 text-muted">{formatFecha(doc.fecha_emision)}</td>
-                <td className="px-4 py-3">{tipoDeLabel(doc.tipo_de)}</td>
-                <td className="px-4 py-3 font-mono text-xs">{doc.num_documento}</td>
-                <td className="px-4 py-3">{doc.receptor_nombre || 'Sin nombre'}</td>
-                <td className="px-4 py-3">
-                  <EstadoBadge estado={doc.estado} />
-                </td>
-                <td className="px-4 py-3 text-right tabular-nums">
-                  {formatMoneda(doc.total_operacion, doc.moneda)}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <span className="text-brand-600">Ver</span>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                <IconFilter />
+                {activeFilterCount > 0 && (
+                  <span className="absolute -right-1 -top-1 grid h-4 min-w-4 place-items-center rounded-full bg-brand-400 px-1 text-[10px] font-bold text-ink">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
 
-      {/* Paginacion */}
-      {totalPages > 1 && (
-        <div className="mt-4 flex items-center justify-end gap-2 text-sm">
-          <Button variant="secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-            Anterior
-          </Button>
-          <span className="text-muted">
-            {page} / {totalPages}
-          </span>
-          <Button variant="secondary" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
-            Siguiente
-          </Button>
+              {filtersOpen && (
+                <div className="absolute right-0 z-40 mt-2 w-[min(100vw-2rem,20rem)] rounded-2xl border border-line bg-white p-4 shadow-xl">
+                  <div className="mb-3 flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-ink">Filtros</p>
+                    {panelFiltersActive && (
+                      <button
+                        type="button"
+                        onClick={clearPanelFilters}
+                        className="text-xs font-medium text-muted hover:text-ink"
+                      >
+                        Restablecer
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    <FilterSelect
+                      label="Estado"
+                      value={estado}
+                      onChange={(v) => resetTo(setEstado, v)}
+                      options={ESTADOS.map((s) => ({ value: s, label: estadoMeta(s).label }))}
+                      searchable
+                    />
+                    <FilterSelect
+                      label="Tipo"
+                      value={tipo}
+                      onChange={(v) => resetTo(setTipo, v)}
+                      options={TIPOS}
+                      searchable
+                    />
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-medium text-muted">Desde</label>
+                        <input
+                          type="date"
+                          value={desde}
+                          max={hasta || undefined}
+                          onChange={(e) => setDesde(e.target.value)}
+                          className={dateInput}
+                        />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <label className="text-xs font-medium text-muted">Hasta</label>
+                        <input
+                          type="date"
+                          value={hasta}
+                          min={desde || undefined}
+                          onChange={(e) => setHasta(e.target.value)}
+                          className={dateInput}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {activeChips.length > 0 && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {activeChips.map((chip) => (
+                <button
+                  key={chip.key}
+                  type="button"
+                  onClick={chip.onClear}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-cream px-2.5 py-1 text-xs font-medium text-ink transition-colors hover:bg-line"
+                  title="Quitar filtro"
+                >
+                  {chip.label}
+                  <span className="text-muted">×</span>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
-      )}
+
+        {/* Tabla */}
+        <div className={cn(CARD, 'overflow-hidden')}>
+          <div className="flex items-center justify-between gap-3 border-b border-line/70 px-5 py-3.5">
+            <p className="text-sm font-semibold text-ink">
+              {hasClientFilter ? `${filtered.length} resultado(s) en la página` : `${total} documento(s)`}
+            </p>
+            <span
+              className={cn(
+                'rounded-full px-2.5 py-0.5 text-[11px] font-bold',
+                environment === 'TEST' ? 'bg-ok/10 text-ok-strong' : 'bg-danger/10 text-danger-strong',
+              )}
+            >
+              {environment}
+            </span>
+          </div>
+
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-left text-[11px] uppercase tracking-wider text-muted">
+                  <th className="px-5 py-3 font-semibold">Fecha</th>
+                  <th className="px-5 py-3 font-semibold">Tipo</th>
+                  <th className="px-5 py-3 font-semibold">Nro</th>
+                  <th className="px-5 py-3 font-semibold">Receptor</th>
+                  <th className="px-5 py-3 font-semibold">Estado</th>
+                  <th className="px-5 py-3 text-right font-semibold">Total</th>
+                  <th className="px-5 py-3 text-right font-semibold">Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                {listQuery.isLoading && (
+                  <tr>
+                    <td colSpan={7} className="px-5 py-12 text-center text-muted">
+                      Cargando…
+                    </td>
+                  </tr>
+                )}
+                {listQuery.isError && (
+                  <tr>
+                    <td colSpan={7} className="px-5 py-6">
+                      <Alert>
+                        {listQuery.error instanceof ApiError
+                          ? listQuery.error.message
+                          : 'No se pudieron cargar los documentos.'}
+                      </Alert>
+                    </td>
+                  </tr>
+                )}
+                {!listQuery.isLoading && !listQuery.isError && filtered.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-5 py-12 text-center text-muted">
+                      {hasClientFilter ? 'Ningún documento coincide con la búsqueda.' : 'No hay documentos para este filtro.'}
+                    </td>
+                  </tr>
+                )}
+                {filtered.map((doc) => (
+                  <tr
+                    key={doc.cdc}
+                    className="cursor-pointer border-t border-line/50 transition-colors hover:bg-cream-soft"
+                    onClick={() => setSelected(doc.cdc)}
+                  >
+                    <td className="whitespace-nowrap px-5 py-4 text-muted">{formatFechaCorta(doc.fecha_emision)}</td>
+                    <td className="px-5 py-4 font-medium text-ink">{tipoDeLabel(doc.tipo_de)}</td>
+                    <td className="px-5 py-4 font-mono text-xs text-muted">{doc.num_documento}</td>
+                    <td className="max-w-[16rem] truncate px-5 py-4 text-ink">{doc.receptor_nombre || 'Sin nombre'}</td>
+                    <td className="px-5 py-4">
+                      <EstadoBadge estado={doc.estado} />
+                    </td>
+                    <td className="whitespace-nowrap px-5 py-4 text-right font-semibold tabular-nums text-ink">
+                      {formatMoneda(doc.total_operacion, doc.moneda)}
+                    </td>
+                    <td className="px-5 py-3 text-right">
+                      <RowActions
+                        doc={doc}
+                        onView={() => setSelected(doc.cdc)}
+                        onDownload={() => handleDownload(doc.cdc)}
+                        onRetry={() => handleRetry(doc.cdc)}
+                      />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Paginación */}
+          {total > 0 && (
+            <div className="flex flex-col items-center justify-between gap-3 border-t border-line/70 px-5 py-3.5 sm:flex-row">
+              <p className="text-xs text-muted">
+                Mostrando <span className="font-medium text-ink">{rangeFrom}</span>–
+                <span className="font-medium text-ink">{rangeTo}</span> de{' '}
+                <span className="font-medium text-ink">{total}</span>
+              </p>
+              <div className="flex items-center gap-2">
+                <Button variant="secondary" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
+                  Anterior
+                </Button>
+                <span className="min-w-[4.5rem] text-center text-sm text-muted">
+                  {page} / {totalPages}
+                </span>
+                <Button variant="secondary" disabled={page >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                  Siguiente
+                </Button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
 
       <DocumentDetailModal
         cdc={selected}
@@ -222,14 +709,14 @@ function DocumentDetailModal({
 
           <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2">
             <Field label="CDC" value={doc.cdc} mono />
-            <Field label="Numero" value={doc.num_documento} />
+            <Field label="Número" value={doc.num_documento} />
             <Field label="Establecimiento / Punto" value={`${doc.establecimiento} - ${doc.punto_expedicion}`} />
             <Field label="Emitido" value={formatFecha(doc.fecha_emision)} />
             <Field label="Receptor" value={doc.receptor_nombre || 'Sin nombre'} />
             <Field label="Documento receptor" value={doc.receptor_doc || '—'} />
             <Field label="Total" value={formatMoneda(doc.total_operacion, doc.moneda)} />
             <Field label="Protocolo (dProtAut)" value={doc.prot_aut || '—'} />
-            <Field label="Codigo SIFEN (dCodRes)" value={doc.cod_res || '—'} />
+            <Field label="Código SIFEN (dCodRes)" value={doc.cod_res || '—'} />
             <Field label="Ambiente" value={doc.environment} />
           </dl>
 
@@ -244,12 +731,12 @@ function DocumentDetailModal({
             <Alert>
               {retryMutation.error instanceof ApiError
                 ? retryMutation.error.message
-                : 'No se pudo marcar para reenvio.'}
+                : 'No se pudo marcar para reenvío.'}
             </Alert>
           )}
           {retryMutation.isSuccess && (
             <div className="rounded-xl border border-ok/30 bg-ok/5 px-4 py-3 text-sm text-ok">
-              Documento marcado para reenvio. El servicio lo reintentara automaticamente.
+              Documento marcado para reenvío. El servicio lo reintentará automáticamente.
             </div>
           )}
 

@@ -96,9 +96,9 @@ export async function downloadXml(token: string, cdc: string): Promise<void> {
 export const TIPO_DE_LABEL: Record<number, string> = {
   1: 'Factura',
   4: 'Autofactura',
-  5: 'Nota de credito',
-  6: 'Nota de debito',
-  7: 'Nota de remision',
+  5: 'Nota de crédito',
+  6: 'Nota de débito',
+  7: 'Nota de remisión',
 }
 
 export function tipoDeLabel(t: number): string {
@@ -114,7 +114,7 @@ export interface EstadoMeta {
 export const ESTADO_META: Record<DocEstado, EstadoMeta> = {
   APROBADO: { label: 'Aprobado', className: 'bg-ok/10 text-ok', dot: 'bg-ok' },
   RECHAZADO: { label: 'Rechazado', className: 'bg-danger/10 text-danger', dot: 'bg-danger' },
-  FIRMADO: { label: 'Firmado (pend. envio)', className: 'bg-warn/10 text-warn', dot: 'bg-warn' },
+  FIRMADO: { label: 'Firmado (pend. envío)', className: 'bg-warn/10 text-warn', dot: 'bg-warn' },
   ENVIADO: { label: 'Enviado', className: 'bg-brand-100 text-brand-700', dot: 'bg-brand-500' },
   CANCELADO: { label: 'Cancelado', className: 'bg-neutral/10 text-neutral', dot: 'bg-neutral' },
   BORRADOR: { label: 'Borrador', className: 'bg-neutral/10 text-neutral', dot: 'bg-neutral' },

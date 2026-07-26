@@ -48,7 +48,7 @@ export default function ApiKeys() {
   return (
     <AppShell title="API keys">
       <Card className="mb-5 p-5">
-        <h2 className="text-base font-bold text-ink">Keys de emision</h2>
+        <h2 className="text-base font-bold text-ink">Keys de emisión</h2>
         <p className="mt-1 text-sm text-muted">
           El ambiente lo determina el prefijo (<code className="text-ink">sk_test_</code> /{' '}
           <code className="text-ink">sk_prod_</code>). La key completa se muestra una sola vez al rotar.
@@ -61,7 +61,7 @@ export default function ApiKeys() {
               onClick={() => {
                 if (
                   confirm(
-                    `¿Rotar la API key de ${environment}? La key anterior quedara REVOKED y dejara de funcionar.`,
+                    `¿Rotar la API key de ${environment}? La key anterior quedará REVOKED y dejará de funcionar.`,
                   )
                 ) {
                   rotate.mutate(environment)
@@ -118,12 +118,12 @@ export default function ApiKeys() {
       <Modal
         open={!!revealed}
         onClose={() => setRevealed(null)}
-        title="Nueva API key (copiala ahora)"
+        title="Nueva API key (Cópiala ahora)"
       >
         {revealed && (
           <>
             <SuccessAlert>
-              Esta es la unica vez que veras la key completa. Guardala en un gestor de secretos.
+              Esta es la única vez que verás la key completa. Guárdala en un gestor de secretos.
             </SuccessAlert>
             <div className="mt-4 rounded-xl border border-line bg-cream-soft p-4 font-mono text-sm break-all">
               {revealed.api_key}

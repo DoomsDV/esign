@@ -1,4 +1,4 @@
-// Configuracion de bases de API leida de variables de entorno de Vite.
+// Configuración de bases de API leida de variables de entorno de Vite.
 // ORDS: panel (auth, config, lectura de documentos). Go: emision + mediacion de secretos.
 const trimSlash = (s: string) => s.replace(/\/+$/, '')
 

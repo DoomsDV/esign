@@ -25,7 +25,7 @@ export default function Certificado() {
   const upload = useMutation({
     mutationFn: async () => {
       if (!file) throw new ApiError('VALIDATION', 'Seleccioná un archivo .p12', 422)
-      if (!password) throw new ApiError('VALIDATION', 'Ingresá la password del certificado', 422)
+      if (!password) throw new ApiError('VALIDATION', 'Ingresá la contraseña del certificado', 422)
       const p12_base64 = await fileToBase64(file)
       await uploadCertificate(token, { p12_base64, password })
     },
@@ -97,7 +97,7 @@ export default function Certificado() {
                 />
               </div>
               <TextField
-                label="Password del certificado"
+                label="Contraseña del certificado"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}

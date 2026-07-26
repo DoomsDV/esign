@@ -68,7 +68,7 @@ export async function apiFetch<T>(path: string, opts: FetchOptions = {}): Promis
   try {
     env = (await res.json()) as ApiEnvelope<T>
   } catch {
-    throw new ApiError('INVALID_RESPONSE', `Respuesta no valida (HTTP ${res.status})`, res.status)
+    throw new ApiError('INVALID_RESPONSE', `Respuesta no válida (HTTP ${res.status})`, res.status)
   }
 
   if (!env.success) {
