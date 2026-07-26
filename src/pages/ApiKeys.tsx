@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
-import { Alert, Badge, Button, Modal, SuccessAlert } from '@/components/ui'
+import { Alert, Badge, Button, Card, Menu, Modal, SuccessAlert } from '@/components/ui'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
 import { listApiKeys, rotateApiKey, type RotateKeyResult } from '@/lib/config'
@@ -41,6 +41,20 @@ function CopyIcon({ className }: { className?: string }) {
         className="stroke-current"
         strokeWidth="1.8"
         strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function RotateIcon({ className }: { className?: string }) {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <path
+        d="M4 12a8 8 0 0 1 13.7-5.6L20 8M20 4v4h-4M20 12a8 8 0 0 1-13.7 5.6L4 16M4 20v-4h4"
+        className="stroke-current"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   )
@@ -93,30 +107,14 @@ export default function ApiKeys() {
 
   return (
     <AppShell title="API keys">
-      <div className="bg-white">
-        <div className="border-b border-line pb-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
-              <h2 className="text-base font-bold text-ink">Keys de emisión</h2>
-              <p className="mt-1 max-w-2xl text-sm text-muted">
-                El ambiente lo determina el prefijo (<code className="text-ink">sk_test_</code> /{' '}
-                <code className="text-ink">sk_prod_</code>). La key completa se muestra una sola vez al
-                rotar. El toggle TEST/PROD filtra la lista. Rotar invalida la key ACTIVE anterior.
-              </p>
-            </div>
-            {canRotate && (
-              <Button
-                className="shrink-0 self-start"
-                variant={isProd ? 'danger-outline' : 'primary'}
-                onClick={() => {
-                  setErr(null)
-                  setConfirmOpen(true)
-                }}
-              >
-                Rotar key {environment}
-              </Button>
-            )}
-          </div>
+      <div className="space-y-5">
+        <div className="min-w-0">
+          <h2 className="text-base font-bold text-ink">Keys de emisión</h2>
+          <p className="mt-1 max-w-2xl text-sm text-muted">
+            El ambiente lo determina el prefijo (<code className="text-ink">sk_test_</code> /{' '}
+            <code className="text-ink">sk_prod_</code>). La key completa se muestra una sola vez al
+            rotar. El toggle TEST/PROD filtra la lista. Rotar invalida la key ACTIVE anterior.
+          </p>
           {err && (
             <div className="mt-4">
               <Alert>{err}</Alert>
@@ -124,74 +122,95 @@ export default function ApiKeys() {
           )}
         </div>
 
-        {q.isLoading && <p className="py-6 text-sm text-muted">Cargando…</p>}
+        {q.isLoading && (
+          <Card className="p-6">
+            <p className="text-sm text-muted">Cargando…</p>
+          </Card>
+        )}
         {q.error && (
-          <div className="py-4">
+          <Card className="p-6">
             <Alert>{(q.error as Error).message}</Alert>
-          </div>
+          </Card>
         )}
 
         {!q.isLoading && !q.error && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                  <th className="py-3 pr-4 font-semibold">Ambiente</th>
-                  <th className="px-4 py-3 font-semibold">Prefijo</th>
-                  <th className="px-4 py-3 font-semibold">Estado</th>
-                  <th className="px-4 py-3 font-semibold">Creada</th>
-                  <th className="py-3 pl-4 font-semibold">
-                    <span className="sr-only">Acciones</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {scoped.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="py-8 text-center text-muted">
-                      No hay keys para {environment}
-                    </td>
+          <Card className="overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
+                    <th className="py-3 pl-5 pr-4 font-semibold">Ambiente</th>
+                    <th className="px-4 py-3 font-semibold">Prefijo</th>
+                    <th className="px-4 py-3 font-semibold">Estado</th>
+                    <th className="px-4 py-3 font-semibold">Creada</th>
+                    <th className="py-3 pl-4 pr-5 font-semibold">
+                      <span className="sr-only">Acciones</span>
+                    </th>
                   </tr>
-                ) : (
-                  scoped.map((k) => {
-                    const revoked = k.status === 'REVOKED'
-                    return (
-                      <tr
-                        key={`${k.environment}-${k.prefix}-${k.created_at}`}
-                        className={cn(
-                          'border-b border-line last:border-0',
-                          revoked && 'text-muted',
-                        )}
-                      >
-                        <td className="py-3 pr-4 font-medium text-ink">{k.environment}</td>
-                        <td className="px-4 py-3 font-mono text-xs text-ink">
-                          {k.prefix}
-                          <span className="text-muted">…</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge className={statusClass(k.status)}>{k.status}</Badge>
-                        </td>
-                        <td className="px-4 py-3 text-muted">
-                          <span title={k.created_at ?? undefined}>{formatFechaKey(k.created_at)}</span>
-                        </td>
-                        <td className="py-3 pl-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() => copyPrefix(k.prefix)}
-                            className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-cream hover:text-ink"
-                            title="Copiar prefijo"
-                          >
-                            <CopyIcon />
-                            {copiedPrefix === k.prefix ? 'Copiado' : 'Copiar'}
-                          </button>
-                        </td>
-                      </tr>
-                    )
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {scoped.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-muted">
+                        No hay keys para {environment}
+                      </td>
+                    </tr>
+                  ) : (
+                    scoped.map((k) => {
+                      const revoked = k.status === 'REVOKED'
+                      return (
+                        <tr
+                          key={`${k.environment}-${k.prefix}-${k.created_at}`}
+                          className={cn(
+                            'border-b border-line last:border-0',
+                            revoked && 'text-muted',
+                          )}
+                        >
+                          <td className="py-3 pl-5 pr-4 font-medium text-ink">{k.environment}</td>
+                          <td className="px-4 py-3 font-mono text-xs text-ink">
+                            {k.prefix}
+                            <span className="text-muted">…</span>
+                          </td>
+                          <td className="px-4 py-3">
+                            <Badge className={statusClass(k.status)}>{k.status}</Badge>
+                          </td>
+                          <td className="px-4 py-3 text-muted">
+                            <span title={k.created_at ?? undefined}>{formatFechaKey(k.created_at)}</span>
+                          </td>
+                          <td className="py-3 pl-4 pr-5 text-right">
+                            <div className="flex justify-end">
+                              <Menu
+                                items={[
+                                  {
+                                    label:
+                                      copiedPrefix === k.prefix ? 'Copiado' : 'Copiar prefijo',
+                                    onClick: () => copyPrefix(k.prefix),
+                                    icon: <CopyIcon />,
+                                  },
+                                  ...(canRotate
+                                    ? [
+                                        {
+                                          label: `Rotar key ${k.environment}`,
+                                          onClick: () => {
+                                            setErr(null)
+                                            setConfirmOpen(true)
+                                          },
+                                          icon: <RotateIcon />,
+                                        },
+                                      ]
+                                    : []),
+                                ]}
+                              />
+                            </div>
+                          </td>
+                        </tr>
+                      )
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </Card>
         )}
       </div>
 
@@ -204,7 +223,7 @@ export default function ApiKeys() {
           className={cn(
             'rounded-xl border px-4 py-3 text-sm',
             isProd
-              ? 'border-danger/30 bg-danger/5 text-danger'
+              ? 'border-ok/30 bg-ok/5 text-ok-strong'
               : 'border-warn/30 bg-warn/5 text-warn',
           )}
         >
@@ -233,7 +252,7 @@ export default function ApiKeys() {
             Cancelar
           </Button>
           <Button
-            variant={isProd ? 'danger' : 'primary'}
+            variant={isProd ? 'success' : 'primary'}
             loading={rotate.isPending}
             onClick={() => rotate.mutate(environment)}
           >

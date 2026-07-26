@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
-import { Alert, Badge, Button, SuccessAlert, TextField } from '@/components/ui'
+import { Alert, Badge, Button, Card, SuccessAlert, TextField } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
@@ -32,6 +32,20 @@ function IconUpload() {
         strokeWidth="1.7"
         strokeLinecap="round"
         strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+function IconCopy() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect x="9" y="9" width="11" height="11" rx="2" className="stroke-current" strokeWidth="1.8" />
+      <path
+        d="M5 15V5a2 2 0 0 1 2-2h10"
+        className="stroke-current"
+        strokeWidth="1.8"
+        strokeLinecap="round"
       />
     </svg>
   )
@@ -73,6 +87,13 @@ export default function Certificado() {
   const [msg, setMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
   const [dragging, setDragging] = useState(false)
+  const [copiedDn, setCopiedDn] = useState(false)
+
+  async function copySubjectDn(value: string) {
+    await navigator.clipboard.writeText(value)
+    setCopiedDn(true)
+    window.setTimeout(() => setCopiedDn(false), 1600)
+  }
 
   const pickFile = useCallback((next: File | null) => {
     setErr(null)
@@ -114,9 +135,9 @@ export default function Certificado() {
 
   return (
     <AppShell title="Certificado">
-      <div className="flex w-full flex-col gap-8 bg-white lg:grid lg:grid-cols-2 lg:gap-10 lg:gap-y-0">
+      <div className="grid w-full gap-6 lg:grid-cols-2 lg:items-stretch">
         {/* Columna: estado actual */}
-        <section className="min-w-0 lg:border-r lg:border-line/70 lg:pr-10">
+        <Card className="min-w-0 p-6 sm:p-8">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Estado</p>
           <h2 className="mt-1 text-base font-bold text-ink">Certificado activo</h2>
           <p className="mt-1 text-sm text-muted">
@@ -148,16 +169,32 @@ export default function Certificado() {
               </div>
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-muted">Subject DN</p>
-                <p className="mt-1.5 break-all rounded-xl border border-line px-4 py-3 font-mono text-xs leading-relaxed text-ink">
-                  {meta.subject_dn ?? '—'}
-                </p>
+                <div className="mt-1.5 flex items-center gap-2 rounded-xl border border-line px-4 py-3">
+                  <span
+                    className="min-w-0 flex-1 truncate font-mono text-xs text-ink"
+                    title={meta.subject_dn ?? undefined}
+                  >
+                    {meta.subject_dn ?? '—'}
+                  </span>
+                  {meta.subject_dn && (
+                    <button
+                      type="button"
+                      onClick={() => copySubjectDn(meta.subject_dn!)}
+                      className="inline-flex shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-muted transition-colors hover:bg-cream hover:text-ink"
+                      title="Copiar Subject DN"
+                    >
+                      <IconCopy />
+                      {copiedDn ? 'Copiado' : 'Copiar'}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}
-        </section>
+        </Card>
 
         {/* Columna: subir */}
-        <section className="min-w-0 border-t border-line/70 pt-8 lg:border-t-0 lg:pt-0">
+        <Card className="min-w-0 p-6 sm:p-8">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Actualizar</p>
           <h2 className="mt-1 text-base font-bold text-ink">Subir .p12</h2>
           <p className="mt-1 text-sm text-muted">
@@ -222,7 +259,7 @@ export default function Certificado() {
                       ? 'border-brand-400 bg-brand-50 text-ink'
                       : file
                         ? 'border-ok/40 bg-ok/5 text-ink'
-                        : 'border-line bg-white text-muted hover:border-brand-300 hover:bg-brand-50/40',
+                        : 'border-muted/30 bg-white text-muted hover:border-brand-300 hover:bg-cream-soft',
                   )}
                 >
                   <span className={cn(file ? 'text-ok' : 'text-brand-600')}>
@@ -268,7 +305,7 @@ export default function Certificado() {
               </div>
             </div>
           )}
-        </section>
+        </Card>
       </div>
     </AppShell>
   )

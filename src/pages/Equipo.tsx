@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
-import { Alert, Badge, Button, SuccessAlert, TextField } from '@/components/ui'
+import { Alert, Badge, Button, SuccessAlert, TextField, panelClass } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
@@ -62,7 +62,7 @@ export default function Equipo() {
 
   return (
     <AppShell title="Equipo">
-      <div className="flex w-full flex-col gap-8 bg-white lg:grid lg:grid-cols-2 lg:gap-10">
+      <div className={cn(panelClass, 'flex w-full flex-col gap-8 p-6 sm:p-8 lg:grid lg:grid-cols-2 lg:gap-10')}>
         <section className="min-w-0 lg:border-r lg:border-line/70 lg:pr-10">
           <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">Acceso</p>
           <h2 className="mt-1 text-base font-bold text-ink">Invitar miembro</h2>

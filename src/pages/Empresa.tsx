@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
-import { Alert, Button, SearchSelect, SuccessAlert, TextField } from '@/components/ui'
+import { Alert, Button, SearchSelect, SuccessAlert, TextField, panelClass } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
@@ -117,7 +117,7 @@ export default function Empresa() {
       {q.error && <Alert>{(q.error as Error).message}</Alert>}
 
       {q.data && (
-        <div className="flex w-full flex-col gap-8">
+        <div className={cn(panelClass, 'flex w-full flex-col gap-8 p-6 sm:p-8')}>
           <section className={SECTION}>
             <h2 className="text-base font-bold text-ink">Identidad del negocio</h2>
             <p className="mt-1 text-sm text-muted">Datos fiscales del cliente (solo lectura).</p>

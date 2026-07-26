@@ -11,7 +11,15 @@ import {
 } from 'react'
 import { cn } from '@/lib/cn'
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'danger-outline'
+type ButtonVariant =
+  | 'primary'
+  | 'secondary'
+  | 'soft'
+  | 'ghost'
+  | 'danger'
+  | 'danger-outline'
+  | 'success'
+  | 'success-outline'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant
@@ -23,11 +31,16 @@ const variantClasses: Record<ButtonVariant, string> = {
     'bg-brand-400 text-ink hover:bg-brand-500 active:bg-brand-600 shadow-sm disabled:opacity-60',
   secondary:
     'bg-white text-ink border border-line hover:bg-cream disabled:opacity-60',
+  soft: 'bg-cream text-ink hover:bg-line/70 disabled:opacity-60',
   ghost: 'bg-transparent text-muted hover:text-ink hover:bg-cream',
   danger:
     'bg-danger text-white hover:bg-danger-strong active:bg-danger-strong shadow-sm disabled:opacity-60',
   'danger-outline':
     'bg-white text-danger border border-danger/40 hover:bg-danger/5 active:bg-danger/10 disabled:opacity-60',
+  success:
+    'bg-ok text-white hover:bg-ok-strong active:bg-ok-strong shadow-sm disabled:opacity-60',
+  'success-outline':
+    'bg-white text-ok-strong border border-ok/40 hover:bg-ok/5 active:bg-ok/10 disabled:opacity-60',
 }
 
 export function Button({ variant = 'primary', loading, className, children, disabled, ...rest }: ButtonProps) {
@@ -73,7 +86,7 @@ export const TextField = forwardRef<HTMLInputElement, FieldProps>(function TextF
         ref={ref}
         id={inputId}
         className={cn(
-          'w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink placeholder:text-muted/55 placeholder:italic shadow-sm transition-colors focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-200',
+          'w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink placeholder:text-muted/55 placeholder:italic shadow-sm transition-colors focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-300/50',
           error && 'border-danger focus:border-danger focus:ring-danger/20',
           className,
         )}
@@ -88,12 +101,13 @@ export const TextField = forwardRef<HTMLInputElement, FieldProps>(function TextF
   )
 })
 
+/** Superficie blanca "flotante" estilo Vercel/Stripe: borde sutil + sombra ligera.
+ *  Reutilizable en páginas que no usan el componente `Card` directamente. */
+export const panelClass =
+  'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-16px_rgba(16,24,40,0.16)]'
+
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
-  return (
-    <div className={cn('rounded-3xl bg-white shadow-[0_20px_60px_-30px_rgba(0,0,0,0.35)]', className)}>
-      {children}
-    </div>
-  )
+  return <div className={cn(panelClass, className)}>{children}</div>
 }
 
 export function Alert({ children }: { children: ReactNode }) {
@@ -128,7 +142,7 @@ export function Select({ label, className, children, id, ...rest }: SelectProps)
       <select
         id={selectId}
         className={cn(
-          'rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink shadow-sm transition-colors focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-200',
+          'rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink shadow-sm transition-colors focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-300/50',
           className,
         )}
         {...rest}
@@ -231,6 +245,89 @@ export function Drawer({
           <div className="shrink-0 border-t border-line bg-white px-5 py-4 sm:px-6">{footer}</div>
         )}
       </aside>
+    </div>
+  )
+}
+
+export interface MenuItem {
+  label: string
+  onClick: () => void
+  icon?: ReactNode
+  danger?: boolean
+}
+
+/** Menú de acciones "kebab" (tres puntos). Popover alineado a la derecha con
+ *  cierre por click-afuera; pensado para acciones a nivel de fila en tablas. */
+export function Menu({
+  items,
+  label = 'Más acciones',
+  align = 'right',
+}: {
+  items: MenuItem[]
+  label?: string
+  align?: 'left' | 'right'
+}) {
+  const [open, setOpen] = useState(false)
+  const ref = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [open])
+
+  return (
+    <div className="relative inline-block" ref={ref}>
+      <button
+        type="button"
+        aria-label={label}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        className={cn(
+          'grid h-8 w-8 place-items-center rounded-lg text-muted transition-colors hover:bg-cream hover:text-ink',
+          open && 'bg-cream text-ink',
+        )}
+      >
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <circle cx="12" cy="5" r="1.6" className="fill-current" />
+          <circle cx="12" cy="12" r="1.6" className="fill-current" />
+          <circle cx="12" cy="19" r="1.6" className="fill-current" />
+        </svg>
+      </button>
+      {open && (
+        <div
+          role="menu"
+          className={cn(
+            'absolute z-40 mt-1.5 w-48 rounded-xl border border-line bg-white p-1.5 shadow-xl',
+            align === 'right' ? 'right-0' : 'left-0',
+          )}
+        >
+          {items.map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              role="menuitem"
+              onClick={() => {
+                setOpen(false)
+                item.onClick()
+              }}
+              className={cn(
+                'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
+                item.danger
+                  ? 'text-danger hover:bg-danger/10'
+                  : 'text-ink hover:bg-cream',
+              )}
+            >
+              {item.icon && <span className="grid h-4 w-4 shrink-0 place-items-center">{item.icon}</span>}
+              {item.label}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

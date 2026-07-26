@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
-import { Alert, Badge, Button, Modal } from '@/components/ui'
+import { Alert, Badge, Button, Modal, panelClass } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
@@ -18,8 +18,8 @@ import {
   type DocumentListItem,
 } from '@/lib/documents'
 
-/** Secciones al ras del body (sin tarjeta flotante). */
-const SECTION = 'bg-white'
+/** Tarjeta blanca flotante estilo Vercel/Stripe sobre el fondo gris del shell. */
+const SECTION = panelClass
 
 const ESTADOS = ['APROBADO', 'RECHAZADO', 'FIRMADO', 'ENVIADO', 'CANCELADO']
 const TIPOS: Array<{ value: string; label: string }> = [
@@ -430,7 +430,7 @@ export default function Documentos() {
     <AppShell title="Documentos">
       <div className="space-y-5">
         {/* Toolbar: búsqueda + botón de filtros agrupados */}
-        <div className={cn(SECTION, 'py-1')}>
+        <div className={cn(SECTION, 'p-2.5')}>
           <div className="flex items-center gap-2.5">
             <div className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-line bg-white px-3.5 py-2.5 text-muted transition-colors focus-within:border-brand-300 focus-within:ring-2 focus-within:ring-brand-200">
               <IconSearch />
@@ -550,7 +550,7 @@ export default function Documentos() {
         </div>
 
         {/* Tabla */}
-        <div className={cn(SECTION, 'overflow-hidden')}>
+        <div className={cn(SECTION, 'overflow-hidden px-4 sm:px-6')}>
           <div className="flex items-center justify-between gap-3 border-b border-line/70 py-3.5">
             <p className="text-sm font-semibold text-ink">
               {hasClientFilter ? `${filtered.length} resultado(s) en la página` : `${total} documento(s)`}
@@ -558,7 +558,7 @@ export default function Documentos() {
             <span
               className={cn(
                 'rounded-full px-2.5 py-0.5 text-[11px] font-bold',
-                environment === 'TEST' ? 'bg-brand-100 text-brand-700' : 'bg-danger/10 text-danger-strong',
+                environment === 'TEST' ? 'bg-brand-100 text-brand-700' : 'bg-ok/10 text-ok-strong',
               )}
             >
               {environment}

@@ -323,7 +323,7 @@ export default function Dashboard() {
             <span
               className={cn(
                 'rounded-full px-2.5 py-1 text-[11px] font-bold',
-                isTest ? 'bg-brand-100 text-brand-700' : 'bg-danger/10 text-danger',
+                isTest ? 'bg-brand-100 text-brand-700' : 'bg-ok/10 text-ok-strong',
               )}
             >
               {environment}

@@ -263,7 +263,8 @@ export function AppShell({
         <button
           onClick={handleLogout}
           className={cn(
-            'flex h-10 items-center rounded-xl text-sm font-medium text-muted transition-colors hover:bg-cream hover:text-danger',
+            'flex h-10 items-center rounded-xl text-sm font-medium text-muted transition-colors hover:bg-cream',
+            isTest ? 'hover:text-danger' : 'hover:text-ok-strong',
             isCollapsed ? 'w-10 justify-center px-0' : 'w-full gap-3 px-3',
           )}
           title="Cerrar sesión"
@@ -293,7 +294,7 @@ export function AppShell({
   )
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-white">
+    <div className={cn('flex h-dvh overflow-hidden bg-white', !isTest && 'env-prod')}>
       {desktopSidebar}
 
       {/* Drawer móvil */}
@@ -325,7 +326,7 @@ export function AppShell({
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {/* Franja de ambiente: cue visual sin ocupar una fila de contenido */}
         <div
-          className={cn('h-1 w-full shrink-0', isTest ? 'bg-brand-400' : 'bg-danger')}
+          className={cn('h-1 w-full shrink-0', isTest ? 'bg-brand-400' : 'bg-ok')}
           aria-hidden
         />
         <header className="shrink-0 border-b border-line bg-white">
@@ -355,7 +356,7 @@ export function AppShell({
                     }
                     className={cn(
                       'inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] font-semibold sm:px-2',
-                      isTest ? 'bg-brand-100 text-brand-700' : 'bg-danger/10 text-danger-strong',
+                      isTest ? 'bg-brand-100 text-brand-700' : 'bg-ok/10 text-ok-strong',
                     )}
                   >
                     <IconInfo />
@@ -389,7 +390,7 @@ export function AppShell({
           )}
         </header>
 
-        <main className="min-h-0 flex-1 overflow-auto p-4 sm:p-6">{children}</main>
+        <main className="min-h-0 flex-1 overflow-auto bg-cream-soft p-4 sm:p-6">{children}</main>
       </div>
     </div>
   )

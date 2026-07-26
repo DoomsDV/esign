@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
-import { Alert, Badge, Button, Drawer, SearchSelect, SuccessAlert, TextField } from '@/components/ui'
+import { Alert, Badge, Button, Drawer, SearchSelect, SuccessAlert, TextField, panelClass } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
@@ -282,7 +282,8 @@ export default function Establecimientos() {
         {q.isLoading && <p className="text-sm text-muted">Cargando…</p>}
         {q.error && <Alert>{(q.error as Error).message}</Alert>}
 
-        <div className="grid gap-4">
+        {establecimientos.length > 0 && (
+        <div className={cn(panelClass, 'grid gap-4 p-4 sm:p-5')}>
           {establecimientos.map((e) => {
             const dir = [
               formatReadable(e.direccion),
@@ -313,10 +314,10 @@ export default function Establecimientos() {
                     </div>
 
                     <div className="mt-2.5 flex items-start gap-2 text-sm text-muted">
-                      <span className="mt-0.5 shrink-0 text-brand-600">
+                      <span className="mt-0.5 shrink-0 text-ink/55">
                         <IconMap />
                       </span>
-                      <p className="min-w-0 leading-snug text-ink/80">{dir || 'Sin dirección'}</p>
+                      <p className="min-w-0 leading-snug text-muted">{dir || 'Sin dirección'}</p>
                       <span className="group relative mt-0.5 shrink-0 text-muted hover:text-ink" title={geoTip}>
                         <IconInfo />
                         <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-lg bg-ink px-2.5 py-1.5 text-[11px] font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
@@ -327,11 +328,12 @@ export default function Establecimientos() {
                   </div>
 
                   {canEdit && (
-                    <div className="flex shrink-0 gap-2">
-                      <Button variant="secondary" onClick={() => openEdit(e)}>
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <Button variant="ghost" className="gap-1.5 px-3" onClick={() => openEdit(e)}>
+                        <IconEdit />
                         Editar
                       </Button>
-                      <Button variant="ghost" onClick={() => openNewPunto(e)}>
+                      <Button variant="soft" onClick={() => openNewPunto(e)}>
                         + Nuevo punto
                       </Button>
                     </div>
@@ -357,7 +359,10 @@ export default function Establecimientos() {
                         </tr>
                       ) : (
                         puntos.map((p) => (
-                          <tr key={p.codigo} className="border-t border-line/60">
+                          <tr
+                            key={p.codigo}
+                            className="border-b border-line/60 transition-colors last:border-0 hover:bg-cream-soft"
+                          >
                             <td className="py-3 pr-3.5 font-mono text-xs font-semibold text-ink">{p.codigo}</td>
                             <td className="px-3.5 py-3 text-ink">{p.descripcion || '—'}</td>
                             <td className="px-3.5 py-3">
@@ -404,9 +409,10 @@ export default function Establecimientos() {
             )
           })}
         </div>
+        )}
 
         {!q.isLoading && establecimientos.length === 0 && (
-          <div className={cn(SECTION, 'py-10 text-center')}>
+          <div className={cn(panelClass, 'py-10 text-center')}>
             <p className="text-sm font-medium text-ink">Todavía no hay establecimientos</p>
             <p className="mt-1 text-sm text-muted">
               Creá la sucursal 001 con la geo registrada en el RUC/SET.

@@ -36,6 +36,22 @@
   --radius-3xl: 1.75rem;
 }
 
+/* Ambiente PRODUCCIÓN: re-tematiza el acento de marca (naranja) a verde.
+   Aprovecha que las utilidades `brand-*` de Tailwind v4 son `var(--color-brand-*)`,
+   por lo que redefinir las variables en este scope tiñe de verde todo lo que use
+   `brand` (botones, nav activo, logo, focus rings, badges) sin tocar cada componente.
+   Escala verde estándar; 600/700 coinciden con los tokens semánticos `ok`/`ok-strong`. */
+.env-prod {
+  --color-brand-50: #f0fdf4;
+  --color-brand-100: #dcfce7;
+  --color-brand-200: #bbf7d0;
+  --color-brand-300: #86efac;
+  --color-brand-400: #4ade80;
+  --color-brand-500: #22c55e;
+  --color-brand-600: #16a34a;
+  --color-brand-700: #15803d;
+}
+
 html,
 body,
 #root {
