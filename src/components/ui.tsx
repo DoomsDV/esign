@@ -2,6 +2,7 @@
 import {
   forwardRef,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type ButtonHTMLAttributes,
@@ -9,6 +10,7 @@ import {
   type ReactNode,
   type SelectHTMLAttributes,
 } from 'react'
+import { createPortal } from 'react-dom'
 import { cn } from '@/lib/cn'
 
 type ButtonVariant =
@@ -256,8 +258,8 @@ export interface MenuItem {
   danger?: boolean
 }
 
-/** Menú de acciones "kebab" (tres puntos). Popover alineado a la derecha con
- *  cierre por click-afuera; pensado para acciones a nivel de fila en tablas. */
+/** Menú de acciones "kebab" (tres puntos). El popover se renderiza en un portal
+ *  con position:fixed para no quedar recortado por overflow de tablas/tarjetas. */
 export function Menu({
   items,
   label = 'Más acciones',
@@ -268,20 +270,72 @@ export function Menu({
   align?: 'left' | 'right'
 }) {
   const [open, setOpen] = useState(false)
-  const ref = useRef<HTMLDivElement>(null)
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
+  const itemCount = items.length
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setCoords(null)
+      return
+    }
+    const btn = triggerRef.current
+    if (!btn) return
+    const place = () => {
+      const rect = btn.getBoundingClientRect()
+      const menuWidth = 192
+      const gap = 6
+      const left =
+        align === 'right'
+          ? Math.max(8, rect.right - menuWidth)
+          : Math.min(window.innerWidth - menuWidth - 8, rect.left)
+      const spaceBelow = window.innerHeight - rect.bottom
+      const estimatedHeight = 8 + itemCount * 40
+      const openUp = spaceBelow < estimatedHeight + gap && rect.top > spaceBelow
+      const top = openUp ? rect.top - gap - estimatedHeight : rect.bottom + gap
+      setCoords({ top: Math.max(8, top), left })
+    }
+    place()
+  }, [open, align, itemCount])
 
   useEffect(() => {
     if (!open) return
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false)
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node
+      if (triggerRef.current?.contains(t) || menuRef.current?.contains(t)) return
+      setOpen(false)
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
-  }, [open])
+    const onReposition = () => {
+      const btn = triggerRef.current
+      if (!btn) return
+      const rect = btn.getBoundingClientRect()
+      const menuWidth = 192
+      const gap = 6
+      const left =
+        align === 'right'
+          ? Math.max(8, rect.right - menuWidth)
+          : Math.min(window.innerWidth - menuWidth - 8, rect.left)
+      const spaceBelow = window.innerHeight - rect.bottom
+      const estimatedHeight = 8 + itemCount * 40
+      const openUp = spaceBelow < estimatedHeight + gap && rect.top > spaceBelow
+      const top = openUp ? rect.top - gap - estimatedHeight : rect.bottom + gap
+      setCoords({ top: Math.max(8, top), left })
+    }
+    document.addEventListener('mousedown', onDown)
+    window.addEventListener('resize', onReposition)
+    window.addEventListener('scroll', onReposition, true)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      window.removeEventListener('resize', onReposition)
+      window.removeEventListener('scroll', onReposition, true)
+    }
+  }, [open, align, itemCount])
 
   return (
-    <div className="relative inline-block" ref={ref}>
+    <>
       <button
+        ref={triggerRef}
         type="button"
         aria-label={label}
         aria-haspopup="menu"
@@ -298,37 +352,41 @@ export function Menu({
           <circle cx="12" cy="19" r="1.6" className="fill-current" />
         </svg>
       </button>
-      {open && (
-        <div
-          role="menu"
-          className={cn(
-            'absolute z-40 mt-1.5 w-48 rounded-xl border border-line bg-white p-1.5 shadow-xl',
-            align === 'right' ? 'right-0' : 'left-0',
-          )}
-        >
-          {items.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              role="menuitem"
-              onClick={() => {
-                setOpen(false)
-                item.onClick()
-              }}
-              className={cn(
-                'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
-                item.danger
-                  ? 'text-danger hover:bg-danger/10'
-                  : 'text-ink hover:bg-cream',
-              )}
-            >
-              {item.icon && <span className="grid h-4 w-4 shrink-0 place-items-center">{item.icon}</span>}
-              {item.label}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+      {open &&
+        coords &&
+        createPortal(
+          <div
+            ref={menuRef}
+            role="menu"
+            style={{ position: 'fixed', top: coords.top, left: coords.left, zIndex: 80 }}
+            className="w-48 rounded-xl border border-line bg-white p-1.5 shadow-xl"
+          >
+            {items.map((item) => (
+              <button
+                key={item.label}
+                type="button"
+                role="menuitem"
+                onClick={() => {
+                  setOpen(false)
+                  item.onClick()
+                }}
+                className={cn(
+                  'flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-left text-sm transition-colors',
+                  item.danger
+                    ? 'text-danger hover:bg-danger/10'
+                    : 'text-ink hover:bg-cream',
+                )}
+              >
+                {item.icon && (
+                  <span className="grid h-4 w-4 shrink-0 place-items-center">{item.icon}</span>
+                )}
+                {item.label}
+              </button>
+            ))}
+          </div>,
+          document.body,
+        )}
+    </>
   )
 }
 

@@ -1,7 +1,7 @@
 // Capa de datos de documentos: consume el panel ORDS (/api/v1/documents) y helpers de
 // presentacion (estado, tipo de DE, moneda). El XML se descarga con fetch autenticado
 // (el endpoint devuelve XML crudo, no el envelope JSON).
-import { apiFetch, ApiError } from './api'
+import { apiFetch, ApiError, refreshSession, isTokenExpired } from './api'
 import { ORDS_BASE, type Environment } from './env'
 
 export type DocEstado = 'BORRADOR' | 'FIRMADO' | 'ENVIADO' | 'APROBADO' | 'RECHAZADO' | 'CANCELADO'
@@ -75,8 +75,14 @@ export async function requestRetry(token: string, cdc: string): Promise<void> {
 
 // downloadXml baja el XML firmado (endpoint devuelve application/xml crudo, con JWT).
 export async function downloadXml(token: string, cdc: string): Promise<void> {
+  let access = token
+  if (isTokenExpired(access)) {
+    const fresh = await refreshSession()
+    if (!fresh) throw new ApiError('UNAUTHORIZED', 'Sesión finalizada. Volvé a iniciar sesión.', 401)
+    access = fresh
+  }
   const res = await fetch(`${ORDS_BASE}/api/v1/documents/${cdc}/xml`, {
-    headers: { Authorization: `Bearer ${token}`, Accept: 'application/xml' },
+    headers: { Authorization: `Bearer ${access}`, Accept: 'application/xml' },
   })
   if (!res.ok) throw new ApiError('XML_ERROR', `No se pudo descargar el XML (HTTP ${res.status})`, res.status)
   const text = await res.text()

@@ -1,5 +1,6 @@
 // Cliente HTTP del panel. Todas las respuestas del backend usan el envelope estandar
 // { success, data, error, meta }. apiFetch lo desenvuelve y lanza ApiError si success=false.
+// Renueva el access JWT en silencio via /auth/refresh cuando está por vencer o llega 401.
 import { ORDS_BASE } from './env'
 
 export interface ApiEnvelope<T> {
@@ -30,9 +31,26 @@ export interface FetchOptions {
   prefix?: string
   /** query params */
   query?: Record<string, string | number | undefined | null>
+  /** Interno: ya se reintento tras un refresh. */
+  _retried?: boolean
 }
 
-/** Callback global para 401 en requests autenticados (sesión vencida). */
+/** Bridge que AuthProvider registra para leer/actualizar tokens sin imports circulares. */
+export interface AuthBridge {
+  getAccessToken: () => string | null
+  getRefreshToken: () => string | null
+  applyTokens: (accessToken: string, refreshToken: string) => void
+  markSessionDead: () => void
+}
+
+let authBridge: AuthBridge | null = null
+let refreshInFlight: Promise<string | null> | null = null
+
+export function setAuthBridge(bridge: AuthBridge | null) {
+  authBridge = bridge
+}
+
+/** Callback legacy (401 definitivo). Preferir AuthBridge.markSessionDead. */
 type UnauthorizedHandler = () => void
 let unauthorizedHandler: UnauthorizedHandler | null = null
 
@@ -40,15 +58,13 @@ export function setUnauthorizedHandler(handler: UnauthorizedHandler | null) {
   unauthorizedHandler = handler
 }
 
-function notifyUnauthorized(hadToken: boolean, status: number, code: string) {
-  if (!hadToken) return
-  if (status === 401 || code === 'UNAUTHORIZED') {
-    unauthorizedHandler?.()
-  }
+function notifySessionDead() {
+  authBridge?.markSessionDead()
+  unauthorizedHandler?.()
 }
 
 /** Lee el claim `exp` (epoch en segundos) de un JWT sin validar la firma. */
-function jwtExpSeconds(token: string): number | null {
+export function jwtExpSeconds(token: string): number | null {
   try {
     const payload = token.split('.')[1]
     if (!payload) return null
@@ -72,6 +88,72 @@ export function isTokenExpired(token: string | null | undefined): boolean {
   return exp * 1000 <= Date.now() + 5000
 }
 
+/** True si el access token vence dentro de `withinSec` segundos. */
+export function isTokenNearExpiry(
+  token: string | null | undefined,
+  withinSec = 90,
+): boolean {
+  if (!token) return false
+  const exp = jwtExpSeconds(token)
+  if (exp == null) return false
+  return exp * 1000 <= Date.now() + withinSec * 1000
+}
+
+/**
+ * Renueva el par access/refresh vía ORDS. Single-flight: N callers concurrentes
+ * comparten la misma Promise. Devuelve el nuevo access token o null si falla.
+ */
+export async function refreshSession(): Promise<string | null> {
+  if (!authBridge) return null
+  if (refreshInFlight) return refreshInFlight
+
+  refreshInFlight = (async () => {
+    const refreshToken = authBridge!.getRefreshToken()
+    if (!refreshToken) return null
+    try {
+      const res = await fetch(`${ORDS_BASE}/api/v1/auth/refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      })
+      let env: ApiEnvelope<{
+        access_token: string
+        refresh_token: string
+        expires_in?: number
+      }>
+      try {
+        env = (await res.json()) as typeof env
+      } catch {
+        return null
+      }
+      if (!env.success || !env.data?.access_token || !env.data.refresh_token) {
+        return null
+      }
+      authBridge!.applyTokens(env.data.access_token, env.data.refresh_token)
+      return env.data.access_token
+    } catch {
+      return null
+    }
+  })().finally(() => {
+    refreshInFlight = null
+  })
+
+  return refreshInFlight
+}
+
+async function resolveAuthToken(
+  token: string | null | undefined,
+  retried: boolean,
+): Promise<string | null | undefined> {
+  if (!token) return token
+  if (!isTokenExpired(token)) return token
+  if (retried) return null
+  return refreshSession()
+}
+
 function buildQuery(query?: FetchOptions['query']): string {
   if (!query) return ''
   const usp = new URLSearchParams()
@@ -88,12 +170,17 @@ export async function apiFetch<T>(path: string, opts: FetchOptions = {}): Promis
   const base = opts.base ?? ORDS_BASE
   const prefix = opts.prefix ?? '/api/v1'
   const url = `${base}${prefix}${path}${buildQuery(opts.query)}`
+  const retried = Boolean(opts._retried)
   const hadToken = Boolean(opts.token)
 
-  // Sesión vencida: cortar antes de la red (el backend puede responder 500 en vez de 401).
-  if (hadToken && isTokenExpired(opts.token)) {
-    notifyUnauthorized(true, 401, 'UNAUTHORIZED')
-    throw new ApiError('UNAUTHORIZED', 'Sesión finalizada. Volvé a iniciar sesión.', 401)
+  let token = opts.token
+  if (hadToken) {
+    const resolved = await resolveAuthToken(token, retried)
+    if (!resolved) {
+      notifySessionDead()
+      throw new ApiError('UNAUTHORIZED', 'Sesión finalizada. Volvé a iniciar sesión.', 401)
+    }
+    token = resolved
   }
 
   let res: Response
@@ -103,7 +190,7 @@ export async function apiFetch<T>(path: string, opts: FetchOptions = {}): Promis
       headers: {
         'Content-Type': 'application/json',
         Accept: 'application/json',
-        ...(opts.token ? { Authorization: `Bearer ${opts.token}` } : {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
       body: opts.body != null ? JSON.stringify(opts.body) : undefined,
     })
@@ -115,11 +202,32 @@ export async function apiFetch<T>(path: string, opts: FetchOptions = {}): Promis
   try {
     env = (await res.json()) as ApiEnvelope<T>
   } catch {
+    if (res.status === 401 && hadToken && !retried) {
+      const fresh = await refreshSession()
+      if (fresh) {
+        return apiFetch<T>(path, { ...opts, token: fresh, _retried: true })
+      }
+      notifySessionDead()
+      throw new ApiError('UNAUTHORIZED', 'Sesión finalizada. Volvé a iniciar sesión.', 401)
+    }
     if (res.status === 401) {
-      notifyUnauthorized(hadToken, 401, 'UNAUTHORIZED')
+      notifySessionDead()
       throw new ApiError('UNAUTHORIZED', 'Sesión finalizada. Volvé a iniciar sesión.', 401)
     }
     throw new ApiError('INVALID_RESPONSE', `Respuesta no válida (HTTP ${res.status})`, res.status)
+  }
+
+  const failedAuth =
+    res.status === 401 ||
+    (!env.success && (env.error?.code === 'UNAUTHORIZED' || res.status === 401))
+
+  if (failedAuth && hadToken && !retried) {
+    const fresh = await refreshSession()
+    if (fresh) {
+      return apiFetch<T>(path, { ...opts, token: fresh, _retried: true })
+    }
+    notifySessionDead()
+    throw new ApiError('UNAUTHORIZED', 'Sesión finalizada. Volvé a iniciar sesión.', 401)
   }
 
   if (!env.success) {
@@ -127,13 +235,12 @@ export async function apiFetch<T>(path: string, opts: FetchOptions = {}): Promis
     const message =
       env.error?.message ??
       (code === 'UNAUTHORIZED' ? 'Sesión finalizada. Volvé a iniciar sesión.' : 'Error desconocido')
-    notifyUnauthorized(hadToken, res.status, code)
+    if (code === 'UNAUTHORIZED' || res.status === 401) notifySessionDead()
     throw new ApiError(code, message, res.status)
   }
 
-  // Envelope success=true pero HTTP 401 (defensa).
   if (res.status === 401) {
-    notifyUnauthorized(hadToken, 401, 'UNAUTHORIZED')
+    notifySessionDead()
     throw new ApiError('UNAUTHORIZED', 'Sesión finalizada. Volvé a iniciar sesión.', 401)
   }
 

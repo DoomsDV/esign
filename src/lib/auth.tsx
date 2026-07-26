@@ -1,6 +1,7 @@
 // Contexto de autenticacion del panel (patron Stripe: persona -> negocios).
-// Flujo: login (email/pass) devuelve la lista de negocios -> select-client emite el JWT.
-// El JWT + datos de sesion se persisten en localStorage. Incluye el toggle global TEST/PROD.
+// Flujo: login (email/pass) -> select-client emite JWT + refresh.
+// El access se renueva en silencio con /auth/refresh; solo si el refresh falla
+// se muestra el modal de sesión vencida.
 import {
   createContext,
   useCallback,
@@ -11,7 +12,14 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import { apiData, isTokenExpired, setUnauthorizedHandler } from './api'
+import {
+  apiData,
+  isTokenExpired,
+  isTokenNearExpiry,
+  jwtExpSeconds,
+  refreshSession,
+  setAuthBridge,
+} from './api'
 import type { Environment } from './env'
 
 export interface ClientMembership {
@@ -53,7 +61,7 @@ interface AuthContextValue {
   selectClient: (userId: number, client: ClientMembership) => Promise<void>
   register: (input: RegisterInput) => Promise<void>
   logout: () => void
-  /** True cuando una API autenticada respondió 401. */
+  /** True cuando el refresh también falló (sesión realmente muerta). */
   sessionExpired: boolean
   /** Limpia sesión y cierra el modal de sesión vencida. */
   acknowledgeSessionExpired: () => void
@@ -61,6 +69,8 @@ interface AuthContextValue {
 
 const SESSION_KEY = 'esign.session'
 const ENV_KEY = 'esign.environment'
+/** Renovar el access ~90s antes de que venza. */
+const REFRESH_SKEW_SEC = 90
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
@@ -77,6 +87,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(() => loadSession())
   const [sessionExpired, setSessionExpired] = useState(false)
   const expiredRef = useRef(false)
+  const sessionRef = useRef(session)
+  sessionRef.current = session
+
   const [environment, setEnvState] = useState<Environment>(
     () => (localStorage.getItem(ENV_KEY) as Environment) || 'TEST',
   )
@@ -86,24 +99,90 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     else localStorage.removeItem(SESSION_KEY)
   }, [session])
 
-  // Registra handler 401: marca expirada sin borrar sesión (evita redirect inmediato).
-  useEffect(() => {
-    setUnauthorizedHandler(() => {
-      if (expiredRef.current) return
-      expiredRef.current = true
-      setSessionExpired(true)
-    })
-    return () => setUnauthorizedHandler(null)
+  const markSessionDead = useCallback(() => {
+    if (expiredRef.current) return
+    expiredRef.current = true
+    setSessionExpired(true)
   }, [])
 
-  // Si al cargar el panel el access token ya venció, mostrar el modal sin esperar
-  // a que falle una request.
+  // Bridge para que apiFetch renueve tokens sin import circular.
   useEffect(() => {
-    if (session && isTokenExpired(session.accessToken) && !expiredRef.current) {
-      expiredRef.current = true
-      setSessionExpired(true)
+    setAuthBridge({
+      getAccessToken: () => sessionRef.current?.accessToken ?? null,
+      getRefreshToken: () => sessionRef.current?.refreshToken ?? null,
+      applyTokens: (accessToken, refreshToken) => {
+        expiredRef.current = false
+        setSessionExpired(false)
+        setSession((prev) =>
+          prev ? { ...prev, accessToken, refreshToken } : null,
+        )
+      },
+      markSessionDead,
+    })
+    return () => setAuthBridge(null)
+  }, [markSessionDead])
+
+  // Al montar / cambiar sesión: si el access ya venció, renovar en silencio.
+  // Solo mostrar el modal si el refresh también falla.
+  useEffect(() => {
+    if (!session?.refreshToken) return
+    if (!isTokenExpired(session.accessToken) && !isTokenNearExpiry(session.accessToken, REFRESH_SKEW_SEC)) {
+      return
     }
-  }, [session])
+    let cancelled = false
+    void (async () => {
+      const fresh = await refreshSession()
+      if (cancelled) return
+      if (!fresh) markSessionDead()
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [session?.accessToken, session?.refreshToken, markSessionDead])
+
+  // Timer proactivo: renovar ~90s antes del exp + al volver a la pestaña.
+  useEffect(() => {
+    if (!session?.accessToken || !session.refreshToken) return
+
+    let timer: number | undefined
+
+    const arm = (accessToken: string) => {
+      if (timer != null) window.clearTimeout(timer)
+      const exp = jwtExpSeconds(accessToken)
+      if (exp == null) return
+      const ms = exp * 1000 - Date.now() - REFRESH_SKEW_SEC * 1000
+      const delay = Number.isFinite(ms) ? Math.max(3_000, Math.min(ms, 2_147_000_000)) : 60_000
+      timer = window.setTimeout(() => {
+        void refreshSession().then((fresh) => {
+          if (!fresh) markSessionDead()
+        })
+      }, delay)
+    }
+
+    arm(session.accessToken)
+
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible') return
+      const cur = sessionRef.current
+      if (!cur?.accessToken) return
+      if (isTokenExpired(cur.accessToken) || isTokenNearExpiry(cur.accessToken, REFRESH_SKEW_SEC)) {
+        void refreshSession().then((fresh) => {
+          if (!fresh) markSessionDead()
+          else arm(fresh)
+        })
+      } else {
+        arm(cur.accessToken)
+      }
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', onVisible)
+
+    return () => {
+      if (timer != null) window.clearTimeout(timer)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', onVisible)
+    }
+  }, [session?.accessToken, session?.refreshToken, markSessionDead])
 
   const setEnvironment = useCallback((env: Environment) => {
     setEnvState(env)
