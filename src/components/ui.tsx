@@ -11,7 +11,7 @@ import {
 } from 'react'
 import { cn } from '@/lib/cn'
 
-type ButtonVariant = 'primary' | 'secondary' | 'ghost'
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'danger-outline'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: ButtonVariant
@@ -24,6 +24,10 @@ const variantClasses: Record<ButtonVariant, string> = {
   secondary:
     'bg-white text-ink border border-line hover:bg-cream disabled:opacity-60',
   ghost: 'bg-transparent text-muted hover:text-ink hover:bg-cream',
+  danger:
+    'bg-danger text-white hover:bg-danger-strong active:bg-danger-strong shadow-sm disabled:opacity-60',
+  'danger-outline':
+    'bg-white text-danger border border-danger/40 hover:bg-danger/5 active:bg-danger/10 disabled:opacity-60',
 }
 
 export function Button({ variant = 'primary', loading, className, children, disabled, ...rest }: ButtonProps) {

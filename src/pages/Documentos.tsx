@@ -18,8 +18,8 @@ import {
   type DocumentListItem,
 } from '@/lib/documents'
 
-const CARD =
-  'rounded-3xl bg-white ring-1 ring-line/70 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_28px_-16px_rgba(16,24,40,0.18)]'
+/** Secciones al ras del body (sin tarjeta flotante). */
+const SECTION = 'bg-white'
 
 const ESTADOS = ['APROBADO', 'RECHAZADO', 'FIRMADO', 'ENVIADO', 'CANCELADO']
 const TIPOS: Array<{ value: string; label: string }> = [
@@ -430,9 +430,9 @@ export default function Documentos() {
     <AppShell title="Documentos">
       <div className="space-y-5">
         {/* Toolbar: búsqueda + botón de filtros agrupados */}
-        <div className={cn(CARD, 'p-4 sm:p-5')}>
+        <div className={cn(SECTION, 'py-1')}>
           <div className="flex items-center gap-2.5">
-            <div className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-line bg-cream-soft px-3.5 py-2.5 text-muted transition-colors focus-within:border-brand-300 focus-within:bg-white focus-within:ring-2 focus-within:ring-brand-200">
+            <div className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-line bg-white px-3.5 py-2.5 text-muted transition-colors focus-within:border-brand-300 focus-within:ring-2 focus-within:ring-brand-200">
               <IconSearch />
               <input
                 value={query}
@@ -550,8 +550,8 @@ export default function Documentos() {
         </div>
 
         {/* Tabla */}
-        <div className={cn(CARD, 'overflow-hidden')}>
-          <div className="flex items-center justify-between gap-3 border-b border-line/70 px-5 py-3.5">
+        <div className={cn(SECTION, 'overflow-hidden')}>
+          <div className="flex items-center justify-between gap-3 border-b border-line/70 py-3.5">
             <p className="text-sm font-semibold text-ink">
               {hasClientFilter ? `${filtered.length} resultado(s) en la página` : `${total} documento(s)`}
             </p>
@@ -569,26 +569,26 @@ export default function Documentos() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="text-left text-[11px] uppercase tracking-wider text-muted">
-                  <th className="px-5 py-3 font-semibold">Fecha</th>
-                  <th className="px-5 py-3 font-semibold">Tipo</th>
-                  <th className="px-5 py-3 font-semibold">Nro</th>
-                  <th className="px-5 py-3 font-semibold">Receptor</th>
-                  <th className="px-5 py-3 font-semibold">Estado</th>
-                  <th className="px-5 py-3 text-right font-semibold">Total</th>
-                  <th className="px-5 py-3 text-right font-semibold">Acciones</th>
+                  <th className="py-3 pr-4 font-semibold">Fecha</th>
+                  <th className="px-4 py-3 font-semibold">Tipo</th>
+                  <th className="px-4 py-3 font-semibold">Nro</th>
+                  <th className="px-4 py-3 font-semibold">Receptor</th>
+                  <th className="px-4 py-3 font-semibold">Estado</th>
+                  <th className="px-4 py-3 text-right font-semibold">Total</th>
+                  <th className="py-3 pl-4 text-right font-semibold">Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {listQuery.isLoading && (
                   <tr>
-                    <td colSpan={7} className="px-5 py-12 text-center text-muted">
+                    <td colSpan={7} className="py-12 text-center text-muted">
                       Cargando…
                     </td>
                   </tr>
                 )}
                 {listQuery.isError && (
                   <tr>
-                    <td colSpan={7} className="px-5 py-6">
+                    <td colSpan={7} className="py-6">
                       <Alert>
                         {listQuery.error instanceof ApiError
                           ? listQuery.error.message
@@ -599,7 +599,7 @@ export default function Documentos() {
                 )}
                 {!listQuery.isLoading && !listQuery.isError && filtered.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="px-5 py-12 text-center text-muted">
+                    <td colSpan={7} className="py-12 text-center text-muted">
                       {hasClientFilter ? 'Ningún documento coincide con la búsqueda.' : 'No hay documentos para este filtro.'}
                     </td>
                   </tr>
@@ -607,20 +607,20 @@ export default function Documentos() {
                 {filtered.map((doc) => (
                   <tr
                     key={doc.cdc}
-                    className="cursor-pointer border-t border-line/50 transition-colors hover:bg-cream-soft"
+                    className="cursor-pointer border-t border-line/50 transition-colors hover:bg-cream"
                     onClick={() => setSelected(doc.cdc)}
                   >
-                    <td className="whitespace-nowrap px-5 py-4 text-muted">{formatFechaCorta(doc.fecha_emision)}</td>
-                    <td className="px-5 py-4 font-medium text-ink">{tipoDeLabel(doc.tipo_de)}</td>
-                    <td className="px-5 py-4 font-mono text-xs text-muted">{doc.num_documento}</td>
-                    <td className="max-w-[16rem] truncate px-5 py-4 text-ink">{doc.receptor_nombre || 'Sin nombre'}</td>
-                    <td className="px-5 py-4">
+                    <td className="whitespace-nowrap py-4 pr-4 text-muted">{formatFechaCorta(doc.fecha_emision)}</td>
+                    <td className="px-4 py-4 font-medium text-ink">{tipoDeLabel(doc.tipo_de)}</td>
+                    <td className="px-4 py-4 font-mono text-xs text-muted">{doc.num_documento}</td>
+                    <td className="max-w-[16rem] truncate px-4 py-4 text-ink">{doc.receptor_nombre || 'Sin nombre'}</td>
+                    <td className="px-4 py-4">
                       <EstadoBadge estado={doc.estado} />
                     </td>
-                    <td className="whitespace-nowrap px-5 py-4 text-right font-semibold tabular-nums text-ink">
+                    <td className="whitespace-nowrap px-4 py-4 text-right font-semibold tabular-nums text-ink">
                       {formatMoneda(doc.total_operacion, doc.moneda)}
                     </td>
-                    <td className="px-5 py-3 text-right">
+                    <td className="py-3 pl-4 text-right">
                       <RowActions
                         doc={doc}
                         onView={() => setSelected(doc.cdc)}
@@ -636,7 +636,7 @@ export default function Documentos() {
 
           {/* Paginación */}
           {total > 0 && (
-            <div className="flex flex-col items-center justify-between gap-3 border-t border-line/70 px-5 py-3.5 sm:flex-row">
+            <div className="flex flex-col items-center justify-between gap-3 border-t border-line/70 py-3.5 sm:flex-row">
               <p className="text-xs text-muted">
                 Mostrando <span className="font-medium text-ink">{rangeFrom}</span>–
                 <span className="font-medium text-ink">{rangeTo}</span> de{' '}

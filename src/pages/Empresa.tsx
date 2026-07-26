@@ -12,8 +12,8 @@ import {
   actividadLabel,
 } from '@/lib/sifen-catalogs'
 
-const CARD =
-  'rounded-3xl bg-white ring-1 ring-line/70 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_28px_-16px_rgba(16,24,40,0.18)]'
+/** Secciones al ras del body (sin tarjeta flotante). */
+const SECTION = 'bg-white'
 
 function ReadOnlyField({
   label,
@@ -117,8 +117,8 @@ export default function Empresa() {
       {q.error && <Alert>{(q.error as Error).message}</Alert>}
 
       {q.data && (
-        <div className="mx-auto flex max-w-3xl flex-col gap-5">
-          <section className={cn(CARD, 'p-6')}>
+        <div className="flex w-full flex-col gap-8">
+          <section className={SECTION}>
             <h2 className="text-base font-bold text-ink">Identidad del negocio</h2>
             <p className="mt-1 text-sm text-muted">Datos fiscales del cliente (solo lectura).</p>
             <div className="mt-5 grid gap-5 sm:grid-cols-2">
@@ -133,7 +133,7 @@ export default function Empresa() {
             </div>
           </section>
 
-          <section className={cn(CARD, 'p-6')}>
+          <section className={cn(SECTION, 'border-t border-line/70 pt-8')}>
             <h2 className="text-base font-bold text-ink">Emisor SIFEN</h2>
             <p className="mt-1 text-sm text-muted">
               Tipo de contribuyente, régimen y actividad económica. La descripción de actividad se
@@ -181,7 +181,7 @@ export default function Empresa() {
                   disabled={!canEdit}
                 />
                 {actDesc && (
-                  <div className="mt-3 rounded-xl bg-cream-soft px-4 py-3">
+                  <div className="mt-3 rounded-xl border border-line px-4 py-3">
                     <p className="text-[11px] font-semibold uppercase tracking-wide text-muted">
                       Descripción SET (dDesActEco)
                     </p>

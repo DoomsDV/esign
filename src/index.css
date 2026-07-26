@@ -46,6 +46,6 @@ body {
   margin: 0;
   font-family: var(--font-sans);
   color: var(--color-ink);
-  background-color: var(--color-cream-soft);
+  background-color: #fff;
   -webkit-font-smoothing: antialiased;
 }

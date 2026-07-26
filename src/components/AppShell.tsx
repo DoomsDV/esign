@@ -47,8 +47,13 @@ function IconBuilding() {
 function IconKey() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="8" cy="14" r="4" className="stroke-current" strokeWidth="1.8" />
-      <path d="M11.5 11.5 20 3m0 0h-4m4 0v4" className="stroke-current" strokeWidth="1.8" strokeLinecap="round" />
+      <circle cx="7.5" cy="12" r="3.5" className="stroke-current" strokeWidth="1.8" />
+      <path
+        d="M11 12h9.5M17.5 12v2.5M20.5 12v2.5"
+        className="stroke-current"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
     </svg>
   )
 }
@@ -224,7 +229,7 @@ export function AppShell({
   // vía overflow-hidden cuando colapsa: no animamos textos individuales, así
   // evitamos layout thrash y lag.
   const sidebarContent = (isCollapsed: boolean) => (
-    <div className="flex h-full w-full flex-col px-3 py-5">
+    <div className="flex h-full w-full flex-col overflow-y-auto px-3 py-5">
       <div
         className={cn(
           'mb-6 flex h-9 items-center',
@@ -277,7 +282,7 @@ export function AppShell({
   const desktopSidebar = (
     <aside
       className={cn(
-        'hidden shrink-0 overflow-hidden border-r border-line bg-white md:block',
+        'hidden h-full shrink-0 overflow-hidden border-r border-line bg-white md:block',
         'transition-[width] duration-200 ease-out',
         collapsed ? 'w-[4.5rem]' : 'w-64',
       )}
@@ -288,7 +293,7 @@ export function AppShell({
   )
 
   return (
-    <div className="flex min-h-screen bg-cream-soft">
+    <div className="flex h-dvh overflow-hidden bg-white">
       {desktopSidebar}
 
       {/* Drawer móvil */}
@@ -317,13 +322,13 @@ export function AppShell({
         </aside>
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {/* Franja de ambiente: cue visual sin ocupar una fila de contenido */}
         <div
           className={cn('h-1 w-full shrink-0', isTest ? 'bg-ok' : 'bg-danger')}
           aria-hidden
         />
-        <header className="border-b border-line bg-white">
+        <header className="shrink-0 border-b border-line bg-white">
           <div className="flex items-center gap-2 px-4 py-3 sm:gap-4 sm:px-6">
             <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
               <button
@@ -384,7 +389,7 @@ export function AppShell({
           )}
         </header>
 
-        <main className="flex-1 overflow-auto p-4 sm:p-6">{children}</main>
+        <main className="min-h-0 flex-1 overflow-auto p-4 sm:p-6">{children}</main>
       </div>
     </div>
   )

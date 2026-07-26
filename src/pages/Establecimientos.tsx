@@ -25,8 +25,8 @@ import {
   geoLabel,
 } from '@/lib/geo'
 
-const CARD =
-  'rounded-3xl bg-white ring-1 ring-line/70 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_28px_-16px_rgba(16,24,40,0.18)]'
+/** Secciones al ras del body (sin tarjeta flotante). */
+const SECTION = 'bg-white'
 
 const emptyEstab: EstablecimientoUpsert = {
   codigo: '',
@@ -297,7 +297,10 @@ export default function Establecimientos() {
             const puntos = e.puntos ?? []
 
             return (
-              <div key={e.codigo} className={cn(CARD, 'flex flex-col p-5')}>
+              <div
+                key={e.codigo}
+                className={cn(SECTION, 'flex flex-col border-b border-line/70 pb-6 last:border-0 last:pb-0')}
+              >
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
@@ -335,27 +338,27 @@ export default function Establecimientos() {
                   )}
                 </div>
 
-                <div className="mt-4 overflow-hidden rounded-2xl border border-line/80">
+                <div className="mt-4 overflow-x-auto">
                   <table className="w-full text-sm">
                     <thead>
-                      <tr className="bg-cream-soft text-left text-[11px] uppercase tracking-wider text-muted">
-                        <th className="px-3.5 py-2.5 font-semibold">Punto</th>
+                      <tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-muted">
+                        <th className="py-2.5 pr-3.5 font-semibold">Punto</th>
                         <th className="px-3.5 py-2.5 font-semibold">Descripción</th>
                         <th className="px-3.5 py-2.5 font-semibold">Estado</th>
-                        {canEdit && <th className="px-3.5 py-2.5 text-right font-semibold">Acciones</th>}
+                        {canEdit && <th className="py-2.5 pl-3.5 text-right font-semibold">Acciones</th>}
                       </tr>
                     </thead>
                     <tbody>
                       {puntos.length === 0 ? (
                         <tr>
-                          <td colSpan={canEdit ? 4 : 3} className="px-3.5 py-4 text-muted">
+                          <td colSpan={canEdit ? 4 : 3} className="py-4 text-muted">
                             Sin puntos de expedición. Agregá al menos el 001.
                           </td>
                         </tr>
                       ) : (
                         puntos.map((p) => (
                           <tr key={p.codigo} className="border-t border-line/60">
-                            <td className="px-3.5 py-3 font-mono text-xs font-semibold text-ink">{p.codigo}</td>
+                            <td className="py-3 pr-3.5 font-mono text-xs font-semibold text-ink">{p.codigo}</td>
                             <td className="px-3.5 py-3 text-ink">{p.descripcion || '—'}</td>
                             <td className="px-3.5 py-3">
                               <Badge
@@ -367,7 +370,7 @@ export default function Establecimientos() {
                               </Badge>
                             </td>
                             {canEdit && (
-                              <td className="px-3.5 py-2.5">
+                              <td className="py-2.5 pl-3.5">
                                 <div className="flex items-center justify-end gap-0.5">
                                   <button
                                     type="button"
@@ -403,7 +406,7 @@ export default function Establecimientos() {
         </div>
 
         {!q.isLoading && establecimientos.length === 0 && (
-          <div className={cn(CARD, 'p-10 text-center')}>
+          <div className={cn(SECTION, 'py-10 text-center')}>
             <p className="text-sm font-medium text-ink">Todavía no hay establecimientos</p>
             <p className="mt-1 text-sm text-muted">
               Creá la sucursal 001 con la geo registrada en el RUC/SET.
