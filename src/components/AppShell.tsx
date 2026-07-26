@@ -9,19 +9,19 @@ import { EnvToggle } from './EnvToggle'
 interface NavItem {
   label: string
   to: string
-  soon?: boolean
 }
 
 const MAIN: NavItem[] = [
   { label: 'Dashboard', to: '/' },
   { label: 'Documentos', to: '/documentos' },
-  { label: 'Establecimientos', to: '/establecimientos', soon: true },
+  { label: 'Establecimientos', to: '/establecimientos' },
 ]
 const CONFIG: NavItem[] = [
-  { label: 'API keys', to: '/api-keys', soon: true },
-  { label: 'Certificado', to: '/certificado', soon: true },
-  { label: 'Ambientes', to: '/ambientes', soon: true },
-  { label: 'Equipo', to: '/equipo', soon: true },
+  { label: 'Empresa', to: '/empresa' },
+  { label: 'API keys', to: '/api-keys' },
+  { label: 'Certificado', to: '/certificado' },
+  { label: 'Ambientes', to: '/ambientes' },
+  { label: 'Equipo', to: '/equipo' },
 ]
 
 function NavGroup({ title, items }: { title: string; items: NavItem[] }) {
@@ -42,11 +42,6 @@ function NavGroup({ title, items }: { title: string; items: NavItem[] }) {
             }
           >
             {item.label}
-            {item.soon && (
-              <span className="rounded-full bg-cream px-2 py-0.5 text-[10px] font-semibold text-muted">
-                pronto
-              </span>
-            )}
           </NavLink>
         ))}
       </nav>

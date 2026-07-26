@@ -130,6 +130,12 @@ export function Select({ label, className, children, id, ...rest }: SelectProps)
   )
 }
 
+export function SuccessAlert({ children }: { children: ReactNode }) {
+  return (
+    <div className="rounded-xl border border-ok/30 bg-ok/5 px-4 py-3 text-sm text-ok">{children}</div>
+  )
+}
+
 export function Modal({
   open,
   onClose,

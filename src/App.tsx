@@ -5,6 +5,12 @@ import Register from '@/pages/Register'
 import SelectClient from '@/pages/SelectClient'
 import Dashboard from '@/pages/Dashboard'
 import Documentos from '@/pages/Documentos'
+import Empresa from '@/pages/Empresa'
+import Establecimientos from '@/pages/Establecimientos'
+import ApiKeys from '@/pages/ApiKeys'
+import Certificado from '@/pages/Certificado'
+import Ambientes from '@/pages/Ambientes'
+import Equipo from '@/pages/Equipo'
 
 export default function App() {
   return (
@@ -25,6 +31,54 @@ export default function App() {
         element={
           <ProtectedRoute>
             <Documentos />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/empresa"
+        element={
+          <ProtectedRoute>
+            <Empresa />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/establecimientos"
+        element={
+          <ProtectedRoute>
+            <Establecimientos />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/api-keys"
+        element={
+          <ProtectedRoute>
+            <ApiKeys />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/certificado"
+        element={
+          <ProtectedRoute>
+            <Certificado />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/ambientes"
+        element={
+          <ProtectedRoute>
+            <Ambientes />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/equipo"
+        element={
+          <ProtectedRoute>
+            <Equipo />
           </ProtectedRoute>
         }
       />
