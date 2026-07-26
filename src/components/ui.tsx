@@ -395,7 +395,8 @@ export interface SearchSelectOption {
   label: string
 }
 
-/** Select con búsqueda interna; útil para catálogos largos (geo, etc.). */
+/** Select con búsqueda interna; útil para catálogos largos (geo, etc.).
+ *  El panel se renderiza en portal (fixed) para no quedar recortado por overflow. */
 export function SearchSelect({
   label,
   value,
@@ -419,18 +420,59 @@ export function SearchSelect({
 }) {
   const [open, setOpen] = useState(false)
   const [q, setQ] = useState('')
-  const ref = useRef<HTMLDivElement>(null)
+  const [coords, setCoords] = useState<{
+    top: number
+    left: number
+    width: number
+    maxHeight: number
+  } | null>(null)
+  const triggerRef = useRef<HTMLButtonElement>(null)
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  const placePanel = () => {
+    const btn = triggerRef.current
+    if (!btn) return
+    const rect = btn.getBoundingClientRect()
+    const gap = 6
+    const spaceBelow = window.innerHeight - rect.bottom - gap - 8
+    const spaceAbove = rect.top - gap - 8
+    const openUp = spaceBelow < 240 && spaceAbove > spaceBelow
+    const available = Math.max(160, openUp ? spaceAbove : spaceBelow)
+    const maxHeight = Math.min(280, available)
+    const top = openUp ? Math.max(8, rect.top - gap - maxHeight) : rect.bottom + gap
+    setCoords({
+      top,
+      left: rect.left,
+      width: rect.width,
+      maxHeight,
+    })
+  }
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setCoords(null)
+      return
+    }
+    placePanel()
+  }, [open])
 
   useEffect(() => {
     if (!open) return
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false)
-        setQ('')
-      }
+    const onDown = (e: MouseEvent) => {
+      const t = e.target as Node
+      if (triggerRef.current?.contains(t) || panelRef.current?.contains(t)) return
+      setOpen(false)
+      setQ('')
     }
-    document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    const onReposition = () => placePanel()
+    document.addEventListener('mousedown', onDown)
+    window.addEventListener('resize', onReposition)
+    window.addEventListener('scroll', onReposition, true)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      window.removeEventListener('resize', onReposition)
+      window.removeEventListener('scroll', onReposition, true)
+    }
   }, [open])
 
   const current = options.find((o) => o.value === value)
@@ -440,7 +482,7 @@ export function SearchSelect({
       : options
 
   return (
-    <div className="relative w-full" ref={ref}>
+    <div className="w-full">
       {label && (
         <label className="mb-1.5 block text-sm font-medium text-ink">
           {label}
@@ -448,6 +490,7 @@ export function SearchSelect({
         </label>
       )}
       <button
+        ref={triggerRef}
         type="button"
         disabled={disabled}
         onClick={() => !disabled && setOpen((o) => !o)}
@@ -460,56 +503,102 @@ export function SearchSelect({
         <span className={cn('truncate text-left', current ? 'text-ink' : 'text-muted/70')}>
           {current?.label ?? placeholder}
         </span>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className={cn('shrink-0 text-muted transition-transform', open && 'rotate-180')} aria-hidden>
-          <path d="m6 9 6 6 6-6" className="stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 24 24"
+          fill="none"
+          className={cn('shrink-0 text-muted transition-transform', open && 'rotate-180')}
+          aria-hidden
+        >
+          <path
+            d="m6 9 6 6 6-6"
+            className="stroke-current"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
         </svg>
       </button>
-      {open && (
-        <div className="absolute z-40 mt-1.5 w-full rounded-xl border border-line bg-white p-1.5 shadow-xl">
-          {searchable && (
-            <div className="mb-1.5 flex items-center gap-2 rounded-lg bg-cream px-2.5 py-1.5 text-muted">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-                <circle cx="11" cy="11" r="7" className="stroke-current" strokeWidth="1.8" />
-                <path d="m20 20-3.2-3.2" className="stroke-current" strokeWidth="1.8" strokeLinecap="round" />
-              </svg>
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Buscar…"
-                autoFocus
-                className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-muted/70"
-              />
-            </div>
-          )}
-          <div className="max-h-56 overflow-auto">
-            {filtered.map((o) => (
-              <button
-                key={o.value}
-                type="button"
-                onClick={() => {
-                  onChange(o.value)
-                  setOpen(false)
-                  setQ('')
-                }}
-                className={cn(
-                  'flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-ink transition-colors hover:bg-cream',
-                  value === o.value && 'bg-cream font-medium',
-                )}
-              >
-                <span>{o.label}</span>
-                {value === o.value && (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="text-brand-600" aria-hidden>
-                    <path d="m5 13 4 4L19 7" className="stroke-current" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                )}
-              </button>
-            ))}
-            {filtered.length === 0 && (
-              <p className="px-2.5 py-3 text-center text-xs text-muted">Sin resultados</p>
+      {open &&
+        coords &&
+        createPortal(
+          <div
+            ref={panelRef}
+            role="listbox"
+            style={{
+              position: 'fixed',
+              top: coords.top,
+              left: coords.left,
+              width: coords.width,
+              maxHeight: coords.maxHeight,
+              zIndex: 80,
+            }}
+            className="flex flex-col rounded-xl border border-line bg-white p-1.5 shadow-xl"
+          >
+            {searchable && (
+              <div className="mb-1.5 flex shrink-0 items-center gap-2 rounded-lg bg-cream px-2.5 py-1.5 text-muted">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <circle cx="11" cy="11" r="7" className="stroke-current" strokeWidth="1.8" />
+                  <path
+                    d="m20 20-3.2-3.2"
+                    className="stroke-current"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  />
+                </svg>
+                <input
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  placeholder="Buscar…"
+                  autoFocus
+                  className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-muted/70"
+                />
+              </div>
             )}
-          </div>
-        </div>
-      )}
+            <div className="min-h-0 flex-1 overflow-auto">
+              {filtered.map((o) => (
+                <button
+                  key={o.value}
+                  type="button"
+                  onClick={() => {
+                    onChange(o.value)
+                    setOpen(false)
+                    setQ('')
+                  }}
+                  className={cn(
+                    'flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-ink transition-colors hover:bg-cream',
+                    value === o.value && 'bg-cream font-medium',
+                  )}
+                >
+                  <span>{o.label}</span>
+                  {value === o.value && (
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      className="shrink-0 text-brand-600"
+                      aria-hidden
+                    >
+                      <path
+                        d="m5 13 4 4L19 7"
+                        className="stroke-current"
+                        strokeWidth="2.2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                </button>
+              ))}
+              {filtered.length === 0 && (
+                <p className="px-2.5 py-3 text-center text-xs text-muted">Sin resultados</p>
+              )}
+            </div>
+          </div>,
+          document.body,
+        )}
       {error && <span className="mt-1.5 block text-xs text-danger">{error}</span>}
     </div>
   )
