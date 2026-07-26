@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
 import { Alert, Badge, Button, Card, SuccessAlert, TextField } from '@/components/ui'
-import { cn } from '@/lib/cn'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
 import { upsertEnvironment } from '@/lib/secrets'
@@ -44,8 +43,9 @@ export default function Ambientes() {
 
   return (
     <AppShell title="Ambientes">
-      <div className="flex w-full flex-col gap-6">
-        <header className="min-w-0">
+      <Card className="overflow-hidden">
+        {/* Encabezado del panel dentro de la tarjeta */}
+        <div className="border-b border-line px-6 py-5 sm:px-8">
           <div className="flex flex-wrap items-center gap-2">
             <h2 className="text-base font-bold text-ink">Timbrado y CSC</h2>
             <Badge className={isProd ? 'bg-ok/10 text-ok-strong' : 'bg-brand-100 text-brand-700'}>
@@ -56,15 +56,17 @@ export default function Ambientes() {
             El toggle global TEST/PROD define el ambiente a configurar. El CSC se envía en claro a
             Go, que lo cifra antes de persistir. No mezclar credenciales de PROD en TEST.
           </p>
-        </header>
+        </div>
 
         {!canEdit ? (
-          <Alert>Solo el owner puede actualizar timbrado y CSC.</Alert>
+          <div className="px-6 py-6 sm:px-8">
+            <Alert>Solo el owner puede actualizar timbrado y CSC.</Alert>
+          </div>
         ) : (
-          <Card className="p-6 sm:p-8">
-            <div className="flex flex-col gap-6">
+          <>
+            <div className="flex flex-col gap-6 px-6 py-6 sm:px-8">
               <section className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-muted/70">
                   Timbrado SIFEN
                 </p>
                 <p className="mt-1 text-sm text-muted">
@@ -88,10 +90,10 @@ export default function Ambientes() {
                 </div>
               </section>
 
-              <hr className="border-t border-line" />
+              <hr className="border-t border-line/70" />
 
               <section className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted">
+                <p className="text-[11px] font-medium uppercase tracking-wider text-muted/70">
                   Código de seguridad (CSC)
                 </p>
                 <p className="mt-1 text-sm text-muted">
@@ -117,38 +119,35 @@ export default function Ambientes() {
                 </div>
               </section>
 
+              {isProd && (
+                <div className="rounded-xl border border-ok/30 bg-ok/5 px-4 py-3 text-sm text-ok-strong">
+                  Estás editando <strong>PRODUCCIÓN</strong>. Un CSC o timbrado incorrecto invalida
+                  la emisión fiscal real.
+                </div>
+              )}
+
               {(err || msg) && (
                 <div className="space-y-3">
                   {err && <Alert>{err}</Alert>}
                   {msg && <SuccessAlert>{msg}</SuccessAlert>}
                 </div>
               )}
-
-              <div className="flex justify-end border-t border-line/70 pt-5">
-                <Button
-                  variant={isProd ? 'success-outline' : 'primary'}
-                  loading={save.isPending}
-                  onClick={() => save.mutate()}
-                  disabled={!canSave}
-                >
-                  Guardar {environment}
-                </Button>
-              </div>
             </div>
-          </Card>
-        )}
 
-        {canEdit && isProd && (
-          <div
-            className={cn(
-              'rounded-xl border border-ok/30 bg-ok/5 px-4 py-3 text-sm text-ok-strong',
-            )}
-          >
-            Estás editando <strong>PRODUCCIÓN</strong>. Un CSC o timbrado incorrecto invalida la
-            emisión fiscal real.
-          </div>
+            {/* Footer de acción: zona diferenciada, alineada a la derecha */}
+            <div className="flex justify-end border-t border-line bg-cream-soft px-6 py-4 sm:px-8">
+              <Button
+                variant={isProd ? 'success' : 'primary'}
+                loading={save.isPending}
+                onClick={() => save.mutate()}
+                disabled={!canSave}
+              >
+                Guardar {environment}
+              </Button>
+            </div>
+          </>
         )}
-      </div>
+      </Card>
     </AppShell>
   )
 }

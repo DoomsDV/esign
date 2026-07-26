@@ -79,7 +79,7 @@ export const TextField = forwardRef<HTMLInputElement, FieldProps>(function TextF
       {label && (
         <label htmlFor={inputId} className="text-sm font-medium text-ink">
           {label}
-          {requiredMark && <span className="ml-0.5 text-danger">*</span>}
+          {requiredMark && <span className="ml-0.5 text-danger/45">*</span>}
         </label>
       )}
       <input
@@ -386,7 +386,7 @@ export function SearchSelect({
       {label && (
         <label className="mb-1.5 block text-sm font-medium text-ink">
           {label}
-          {requiredMark && <span className="ml-0.5 text-danger">*</span>}
+          {requiredMark && <span className="ml-0.5 text-danger/45">*</span>}
         </label>
       )}
       <button

@@ -107,43 +107,55 @@ export default function ApiKeys() {
 
   return (
     <AppShell title="API keys">
-      <div className="space-y-5">
-        <div className="min-w-0">
-          <h2 className="text-base font-bold text-ink">Keys de emisión</h2>
-          <p className="mt-1 max-w-2xl text-sm text-muted">
-            El ambiente lo determina el prefijo (<code className="text-ink">sk_test_</code> /{' '}
-            <code className="text-ink">sk_prod_</code>). La key completa se muestra una sola vez al
-            rotar. El toggle TEST/PROD filtra la lista. Rotar invalida la key ACTIVE anterior.
-          </p>
-          {err && (
-            <div className="mt-4">
-              <Alert>{err}</Alert>
-            </div>
+      <Card className="overflow-hidden">
+        <div className="flex flex-col gap-4 p-6 sm:flex-row sm:items-start sm:justify-between">
+          <div className="min-w-0">
+            <h2 className="text-base font-bold text-ink">Keys de emisión</h2>
+            <p className="mt-1 max-w-2xl text-sm text-muted">
+              El ambiente lo determina el prefijo (<code className="text-ink">sk_test_</code> /{' '}
+              <code className="text-ink">sk_prod_</code>). La key completa se muestra una sola vez al
+              rotar. El toggle TEST/PROD filtra la lista. Rotar invalida la key ACTIVE anterior.
+            </p>
+          </div>
+          {canRotate && (
+            <Button
+              className="shrink-0 self-start"
+              variant={isProd ? 'success' : 'primary'}
+              onClick={() => {
+                setErr(null)
+                setConfirmOpen(true)
+              }}
+            >
+              <RotateIcon />
+              Rotar key {environment}
+            </Button>
           )}
         </div>
 
-        {q.isLoading && (
-          <Card className="p-6">
-            <p className="text-sm text-muted">Cargando…</p>
-          </Card>
-        )}
-        {q.error && (
-          <Card className="p-6">
-            <Alert>{(q.error as Error).message}</Alert>
-          </Card>
+        {err && (
+          <div className="px-6 pb-4">
+            <Alert>{err}</Alert>
+          </div>
         )}
 
-        {!q.isLoading && !q.error && (
-          <Card className="overflow-hidden">
+        <div className="border-t border-line">
+          {q.isLoading && <p className="p-6 text-sm text-muted">Cargando…</p>}
+          {q.error && (
+            <div className="p-6">
+              <Alert>{(q.error as Error).message}</Alert>
+            </div>
+          )}
+
+          {!q.isLoading && !q.error && (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-line text-left text-xs uppercase tracking-wide text-muted">
-                    <th className="py-3 pl-5 pr-4 font-semibold">Ambiente</th>
+                    <th className="py-3 pl-6 pr-4 font-semibold">Ambiente</th>
                     <th className="px-4 py-3 font-semibold">Prefijo</th>
                     <th className="px-4 py-3 font-semibold">Estado</th>
                     <th className="px-4 py-3 font-semibold">Creada</th>
-                    <th className="py-3 pl-4 pr-5 font-semibold">
+                    <th className="py-3 pl-4 pr-6 font-semibold">
                       <span className="sr-only">Acciones</span>
                     </th>
                   </tr>
@@ -162,22 +174,22 @@ export default function ApiKeys() {
                         <tr
                           key={`${k.environment}-${k.prefix}-${k.created_at}`}
                           className={cn(
-                            'border-b border-line last:border-0',
+                            'border-b border-line align-middle transition-colors last:border-0 hover:bg-cream-soft',
                             revoked && 'text-muted',
                           )}
                         >
-                          <td className="py-3 pl-5 pr-4 font-medium text-ink">{k.environment}</td>
-                          <td className="px-4 py-3 font-mono text-xs text-ink">
+                          <td className="py-3 pl-6 pr-4 align-middle font-medium text-ink">{k.environment}</td>
+                          <td className="px-4 py-3 align-middle font-mono text-xs text-ink">
                             {k.prefix}
                             <span className="text-muted">…</span>
                           </td>
-                          <td className="px-4 py-3">
+                          <td className="px-4 py-3 align-middle">
                             <Badge className={statusClass(k.status)}>{k.status}</Badge>
                           </td>
-                          <td className="px-4 py-3 text-muted">
+                          <td className="px-4 py-3 align-middle text-muted">
                             <span title={k.created_at ?? undefined}>{formatFechaKey(k.created_at)}</span>
                           </td>
-                          <td className="py-3 pl-4 pr-5 text-right">
+                          <td className="py-3 pl-4 pr-6 align-middle text-right">
                             <div className="flex justify-end">
                               <Menu
                                 items={[
@@ -210,9 +222,9 @@ export default function ApiKeys() {
                 </tbody>
               </table>
             </div>
-          </Card>
-        )}
-      </div>
+          )}
+        </div>
+      </Card>
 
       <Modal
         open={confirmOpen}
