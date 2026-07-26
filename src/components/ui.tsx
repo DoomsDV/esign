@@ -1,5 +1,11 @@
 // Componentes UI base del panel (estetica calida crema + acento naranja).
-import { forwardRef, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from 'react'
+import {
+  forwardRef,
+  type ButtonHTMLAttributes,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type SelectHTMLAttributes,
+} from 'react'
 import { cn } from '@/lib/cn'
 
 type ButtonVariant = 'primary' | 'secondary' | 'ghost'
@@ -85,6 +91,73 @@ export function Alert({ children }: { children: ReactNode }) {
   return (
     <div className="rounded-xl border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
       {children}
+    </div>
+  )
+}
+
+export function Badge({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <span className={cn('inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold', className)}>
+      {children}
+    </span>
+  )
+}
+
+interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+  label?: string
+}
+
+export function Select({ label, className, children, id, ...rest }: SelectProps) {
+  const selectId = id ?? rest.name
+  return (
+    <div className="flex flex-col gap-1.5">
+      {label && (
+        <label htmlFor={selectId} className="text-xs font-medium text-muted">
+          {label}
+        </label>
+      )}
+      <select
+        id={selectId}
+        className={cn(
+          'rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink shadow-sm transition-colors focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-200',
+          className,
+        )}
+        {...rest}
+      >
+        {children}
+      </select>
+    </div>
+  )
+}
+
+export function Modal({
+  open,
+  onClose,
+  title,
+  children,
+}: {
+  open: boolean
+  onClose: () => void
+  title?: ReactNode
+  children: ReactNode
+}) {
+  if (!open) return null
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-ink/40 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-auto rounded-3xl bg-white p-6 shadow-2xl">
+        <div className="mb-4 flex items-start justify-between gap-4">
+          <div className="text-lg font-bold text-ink">{title}</div>
+          <button
+            onClick={onClose}
+            className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-cream hover:text-ink"
+            aria-label="Cerrar"
+          >
+            ✕
+          </button>
+        </div>
+        {children}
+      </div>
     </div>
   )
 }

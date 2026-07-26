@@ -36,7 +36,9 @@ function buildQuery(query?: FetchOptions['query']): string {
   if (!query) return ''
   const usp = new URLSearchParams()
   for (const [k, v] of Object.entries(query)) {
-    if (v !== undefined && v !== null && v !== '') usp.set(k, String(v))
+    // Se envian tambien los vacios: los handlers ORDS referencian los binds (:estado, :tipo)
+    // y si faltan dan ORDS-25001. En Oracle '' se interpreta como NULL (no filtra).
+    if (v !== undefined && v !== null) usp.set(k, String(v))
   }
   const s = usp.toString()
   return s ? `?${s}` : ''

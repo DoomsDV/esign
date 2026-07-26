@@ -4,6 +4,7 @@ import Login from '@/pages/Login'
 import Register from '@/pages/Register'
 import SelectClient from '@/pages/SelectClient'
 import Dashboard from '@/pages/Dashboard'
+import Documentos from '@/pages/Documentos'
 
 export default function App() {
   return (
@@ -16,6 +17,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <Dashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/documentos"
+        element={
+          <ProtectedRoute>
+            <Documentos />
           </ProtectedRoute>
         }
       />

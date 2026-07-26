@@ -14,7 +14,7 @@ interface NavItem {
 
 const MAIN: NavItem[] = [
   { label: 'Dashboard', to: '/' },
-  { label: 'Documentos', to: '/documentos', soon: true },
+  { label: 'Documentos', to: '/documentos' },
   { label: 'Establecimientos', to: '/establecimientos', soon: true },
 ]
 const CONFIG: NavItem[] = [
