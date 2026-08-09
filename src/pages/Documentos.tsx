@@ -12,6 +12,7 @@ import {
   formatFecha,
   formatMoneda,
   getDocument,
+  getKude,
   listDocuments,
   requestRetry,
   tipoDeLabel,
@@ -320,6 +321,35 @@ function RowActions({
           </div>
         )}
       </div>
+    </div>
+  )
+}
+
+/** Botón que consulta el KuDE (PDF) generado en background y lo abre en otra
+ * pestaña. La generación es asíncrona: si aún no terminó, muestra un aviso y
+ * permite reintentar sin recargar el modal. */
+function VerKudeButton({ token, cdc }: { token: string; cdc: string }) {
+  const [pending, setPending] = useState(false)
+  const mutation = useMutation({
+    mutationFn: () => getKude(token, cdc),
+    onSuccess: (res) => {
+      if (res.estado === 'ready' && res.kude_url) {
+        setPending(false)
+        window.open(res.kude_url, '_blank', 'noopener')
+      } else {
+        setPending(true)
+      }
+    },
+  })
+  return (
+    <div className="flex flex-col gap-1.5">
+      <Button variant="secondary" loading={mutation.isPending} onClick={() => mutation.mutate()}>
+        Ver KuDE
+      </Button>
+      {pending && (
+        <p className="text-xs text-muted">Generando KuDE… probá de nuevo en unos segundos.</p>
+      )}
+      {mutation.isError && <p className="text-xs text-danger">No se pudo consultar el KuDE.</p>}
     </div>
   )
 }
@@ -740,10 +770,11 @@ function DocumentDetailModal({
             </div>
           )}
 
-          <div className="flex flex-wrap gap-3 pt-2">
+          <div className="flex flex-wrap items-start gap-3 pt-2">
             <Button variant="secondary" onClick={() => downloadXml(token, doc.cdc)}>
               Descargar XML
             </Button>
+            {doc.estado === 'APROBADO' && <VerKudeButton token={token} cdc={doc.cdc} />}
             {doc.estado === 'FIRMADO' && (
               <Button loading={retryMutation.isPending} onClick={() => retryMutation.mutate()}>
                 Reenviar a SIFEN

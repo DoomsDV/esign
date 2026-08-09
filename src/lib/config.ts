@@ -148,3 +148,63 @@ export async function createInvitation(
     body: { email, role },
   })
 }
+
+// --- Diseño del KuDE (branding: plantilla/color/logo/footer) ---
+
+export type KudeTemplateId = 'minimalista' | 'corporativa'
+
+export interface KudeConfig {
+  template_id: KudeTemplateId
+  color_primario: string
+  logo_url: string | null
+  notas_footer: string | null
+}
+
+export interface KudeConfigUpdate {
+  template_id?: KudeTemplateId
+  color_primario?: string
+  notas_footer?: string
+}
+
+export async function getKudeConfig(token: string): Promise<KudeConfig> {
+  return apiData<KudeConfig>('/kude-config', { token })
+}
+
+export async function upsertKudeConfig(token: string, body: KudeConfigUpdate): Promise<KudeConfig> {
+  return apiData<KudeConfig>('/kude-config', { token, method: 'PUT', body })
+}
+
+export async function uploadKudeLogo(
+  token: string,
+  file: File,
+): Promise<{ logo_url: string }> {
+  const image_hex = await fileToHex(file)
+  return apiData<{ logo_url: string }>('/kude-config/logo', {
+    token,
+    method: 'POST',
+    body: { image_hex, mime_type: file.type || 'image/png' },
+  })
+}
+
+/** Lee un File (imagen del logo) y lo convierte a hex (mismo formato que el resto
+ * de blobs cifrados de la app; el paquete PL/SQL lo decodifica con HEXTORAW). */
+export function fileToHex(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result
+      if (!(result instanceof ArrayBuffer)) {
+        reject(new Error('no se pudo leer el archivo'))
+        return
+      }
+      const bytes = new Uint8Array(result)
+      let hex = ''
+      for (let i = 0; i < bytes.length; i++) {
+        hex += bytes[i].toString(16).padStart(2, '0')
+      }
+      resolve(hex)
+    }
+    reader.onerror = () => reject(reader.error ?? new Error('error al leer el archivo'))
+    reader.readAsArrayBuffer(file)
+  })
+}

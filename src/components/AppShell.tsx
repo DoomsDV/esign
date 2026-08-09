@@ -57,6 +57,21 @@ function IconKey() {
     </svg>
   )
 }
+function IconPalette() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 3a9 9 0 1 0 0 18c1.1 0 1.7-.9 1.2-1.85-.25-.5-.05-1.1.45-1.35A2 2 0 0 1 15 19h1.5A4.5 4.5 0 0 0 21 14.5C21 8.15 17.1 3 12 3Z"
+        className="stroke-current"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <circle cx="7.5" cy="11.5" r="1.3" className="fill-current" />
+      <circle cx="10.5" cy="7.5" r="1.3" className="fill-current" />
+      <circle cx="15" cy="8" r="1.3" className="fill-current" />
+    </svg>
+  )
+}
 function IconCert() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -135,6 +150,7 @@ const PRIMARY: NavItem[] = [
 ]
 const CONFIG: NavItem[] = [
   { label: 'Empresa', to: '/empresa', icon: <IconBuilding /> },
+  { label: 'Diseño KuDE', to: '/diseno-kude', icon: <IconPalette /> },
   { label: 'API keys', to: '/api-keys', icon: <IconKey /> },
   { label: 'Certificado', to: '/certificado', icon: <IconCert /> },
   { label: 'Ambientes', to: '/ambientes', icon: <IconEnv /> },
