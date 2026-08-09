@@ -58,7 +58,7 @@ export function AuthLayout({
   altHref,
   altLabel,
   panelQuote = 'Emitir, firmar y consultar documentos electrónicos SIFEN desde un solo lugar. Claro, rápido y listo para tu negocio.',
-  panelAuthor = 'esign',
+  panelAuthor = 'etick',
   panelRole = 'Facturación electrónica Paraguay',
 }: {
   children: ReactNode
@@ -77,7 +77,7 @@ export function AuthLayout({
       <section className="flex min-h-screen flex-col px-7 py-8 sm:px-12 sm:py-10 md:px-14 md:py-12 lg:px-20">
         <Link to="/" className="mb-8 inline-flex items-center gap-2 self-start text-lg font-extrabold tracking-tight text-ink">
           <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-400 text-ink">e</span>
-          esign
+          etick
         </Link>
 
         <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center">

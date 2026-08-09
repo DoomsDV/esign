@@ -58,7 +58,7 @@ export default function Register() {
       altHref="/login"
       altLabel="Iniciar sesión"
       panelQuote="Alta en minutos: emisor, establecimientos, certificado y API keys en un solo panel. Tu equipo emite; vos controlas."
-      panelAuthor="esign"
+      panelAuthor="etick"
       panelRole="Onboarding de contribuyentes"
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3.5">

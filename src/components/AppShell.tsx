@@ -276,7 +276,7 @@ export function AppShell({
         </span>
         {!isCollapsed && (
           <span className="whitespace-nowrap text-xl font-extrabold tracking-tight text-ink">
-            esign
+            etick
           </span>
         )}
       </div>

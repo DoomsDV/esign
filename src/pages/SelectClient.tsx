@@ -39,7 +39,7 @@ export default function SelectClient() {
       altHref="/login"
       altLabel="Cambiar de usuario"
       panelQuote="Un mismo usuario puede operar varios RUC. El aislamiento por negocio protege tus documentos y credenciales."
-      panelAuthor="esign"
+      panelAuthor="etick"
       panelRole="Multi-tenant"
     >
       <div className="flex flex-col gap-3">
