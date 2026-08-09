@@ -65,40 +65,43 @@ function KudePreview({
 
   if (template === 'corporativa') {
     return (
-      <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-sm">
-        <div
-          className="flex items-center justify-between px-5 py-4 text-white"
-          style={{ backgroundColor: safeColor }}
-        >
-          <div className="flex items-center gap-3">
+      <div className="overflow-hidden rounded-2xl border border-line bg-white p-5 shadow-sm">
+        {/* Membrete + caja de timbrado, como una factura paraguaya clásica */}
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
             {logo ? (
-              <img src={logo} alt="logo" className="h-10 max-w-[100px] rounded bg-white object-contain p-1" />
-            ) : (
-              <div className="grid h-10 w-10 place-items-center rounded bg-white/15 text-xs font-bold">
-                LOGO
-              </div>
-            )}
-            <div>
-              <p className="text-sm font-bold leading-tight">{businessName || 'Tu empresa'}</p>
-              <p className="text-[11px] opacity-80">RUC: 6038964-8</p>
-            </div>
+              <img src={logo} alt="logo" className="mb-1.5 h-9 max-w-[110px] object-contain" />
+            ) : null}
+            <p className="text-sm font-bold text-ink">{businessName || 'Tu empresa'}</p>
+            <p className="mt-0.5 text-[10px] text-muted">RUC: 6038964-8</p>
           </div>
-          <div className="rounded-lg border border-white/40 bg-white/10 px-3 py-1.5 text-center text-[11px]">
-            <p className="uppercase tracking-wide opacity-80">Factura</p>
-            <p className="text-sm font-bold">001-001-0000123</p>
+          <div className="shrink-0 rounded-lg border-2 px-3 py-2 text-center" style={{ borderColor: safeColor }}>
+            <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: safeColor }}>
+              Factura electrónica
+            </p>
+            <p className="mt-1 text-sm font-bold text-ink">001-001-0000123</p>
           </div>
         </div>
-        <div className="grid grid-cols-3 gap-2 p-4 text-[11px]">
-          {['Timbrado', 'Receptor', 'Emisor'].map((label) => (
-            <div key={label} className="rounded-md border border-line/70 p-2" style={{ borderLeft: `3px solid ${safeColor}` }}>
-              <p className="text-[9px] font-semibold uppercase tracking-wide text-muted">{label}</p>
-              <p className="mt-1 text-ink">Ejemplo de dato</p>
-            </div>
-          ))}
+
+        {/* Franja de datos: receptor / condición, como una fila de formulario */}
+        <div className="mt-4 flex overflow-hidden rounded-md border border-line/70 text-[10px]">
+          <div className="flex-1 p-2.5">
+            <p>
+              <span className="font-semibold text-ink">Cliente:</span>{' '}
+              <span className="text-muted">Ejemplo S.A.</span>
+            </p>
+            <p className="mt-0.5 text-muted">RUC 1234567-8</p>
+          </div>
+          <div className="w-28 shrink-0 border-l border-line/70 p-2.5">
+            <p className="font-semibold text-ink">Contado</p>
+          </div>
         </div>
-        <PreviewTable color={safeColor} dark />
-        <div className="flex items-center justify-between border-t px-4 py-3" style={{ borderColor: safeColor }}>
-          <div className="text-[10px] text-muted">QR</div>
+
+        <PreviewTable color={safeColor} variant="corporativa" />
+        <ResumenPreview color={safeColor} variant="corporativa" />
+
+        <div className="mt-3 flex items-start justify-between border-t border-line/70 pt-3">
+          <div className="text-[9px] text-muted">QR</div>
           <p className="max-w-[60%] truncate text-right text-[10px] text-muted">{footer}</p>
         </div>
       </div>
@@ -106,67 +109,145 @@ function KudePreview({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-white p-5 shadow-sm">
-      <div className="flex items-start justify-between border-b-2 pb-3" style={{ borderColor: safeColor }}>
-        <div className="flex items-center gap-3">
+    <div className="overflow-hidden rounded-2xl border border-line bg-white p-6 shadow-sm">
+      {/* Encabezado sin cajas: logo a la izquierda, datos legales a la derecha */}
+      <div className="flex items-start justify-between">
+        <div>
           {logo ? (
-            <img src={logo} alt="logo" className="h-10 max-w-[100px] object-contain" />
+            <img src={logo} alt="logo" className="h-8 max-w-[110px] object-contain" />
           ) : (
-            <div className="grid h-10 w-10 place-items-center rounded bg-cream text-[10px] font-bold text-muted">
-              LOGO
-            </div>
+            <p className="text-sm font-bold text-ink">{businessName || 'Tu empresa'}</p>
           )}
-          <div>
-            <p className="text-sm font-bold" style={{ color: safeColor }}>
-              {businessName || 'Tu empresa'}
-            </p>
-            <p className="text-[11px] text-muted">RUC: 6038964-8</p>
-          </div>
         </div>
-        <div className="rounded-lg border px-3 py-1.5 text-right text-[11px]" style={{ borderColor: safeColor }}>
-          <p className="font-bold" style={{ color: safeColor }}>
-            Factura electrónica
-          </p>
-          <p className="text-sm font-bold text-ink">001-001-0000123</p>
+        <div className="text-right">
+          <p className="text-[10px] text-muted">RUC 6038964-8</p>
+          <p className="text-[10px] text-muted">Asunción, Paraguay</p>
         </div>
       </div>
-      <PreviewTable color={safeColor} />
-      <div className="mt-3 flex items-center justify-between border-t border-line pt-3">
-        <div className="text-[10px] text-muted">QR</div>
+
+      <div className="mt-6">
+        <p className="text-xl font-extrabold tracking-tight text-ink">Factura electrónica</p>
+        <p className="mt-1 text-xs text-muted">N° 001-001-0000123</p>
+      </div>
+
+      <div className="mt-5 grid grid-cols-2 gap-8 text-[11px]">
+        <div>
+          <p className="text-[9px] font-semibold uppercase tracking-wide text-muted">Facturar a</p>
+          <p className="mt-1.5 font-bold text-ink">Ejemplo S.A.</p>
+          <p className="text-muted">RUC 1234567-8</p>
+        </div>
+        <div className="space-y-1.5">
+          <div className="flex justify-between border-b border-line/50 pb-1">
+            <span className="text-muted">Timbrado N°</span>
+            <span className="font-semibold text-ink">12345678</span>
+          </div>
+          <div className="flex justify-between border-b border-line/50 pb-1">
+            <span className="text-muted">Condición</span>
+            <span className="font-semibold text-ink">Contado</span>
+          </div>
+        </div>
+      </div>
+
+      <PreviewTable color={safeColor} variant="minimalista" />
+      <ResumenPreview color={safeColor} variant="minimalista" />
+
+      <div className="mt-4 flex items-start justify-between border-t border-line/50 pt-4">
+        <div className="text-[9px] text-muted/70">QR</div>
         <p className="max-w-[60%] truncate text-right text-[10px] text-muted">{footer}</p>
       </div>
     </div>
   )
 }
 
-function PreviewTable({ color, dark }: { color: string; dark?: boolean }) {
+function PreviewTable({ color, variant }: { color: string; variant: 'corporativa' | 'minimalista' }) {
+  if (variant === 'corporativa') {
+    return (
+      <table className="mt-4 w-full border-collapse text-[10px]">
+        <thead>
+          <tr style={{ backgroundColor: color }}>
+            <th className="border px-2 py-1.5 text-left font-semibold text-white" style={{ borderColor: color }}>
+              Descripción
+            </th>
+            <th className="border px-2 py-1.5 text-right font-semibold text-white" style={{ borderColor: color }}>
+              Cant.
+            </th>
+            <th className="border px-2 py-1.5 text-right font-semibold text-white" style={{ borderColor: color }}>
+              Total
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {PREVIEW_ITEMS.map((it, i) => (
+            <tr key={it.desc} className={i % 2 === 1 ? 'bg-cream-soft' : undefined}>
+              <td className="border border-line/70 px-2 py-1.5 text-ink">{it.desc}</td>
+              <td className="border border-line/70 px-2 py-1.5 text-right text-ink">{it.cant}</td>
+              <td className="border border-line/70 px-2 py-1.5 text-right text-ink">{it.total}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    )
+  }
+
   return (
-    <table className="w-full text-[11px]">
+    <table className="mt-4 w-full text-[10px]">
       <thead>
-        <tr style={{ backgroundColor: dark ? '#0f172a' : color }}>
-          <th className="px-3 py-1.5 text-left font-semibold text-white">Descripción</th>
-          <th className="px-3 py-1.5 text-right font-semibold text-white">Cant.</th>
-          <th className="px-3 py-1.5 text-right font-semibold text-white">Total</th>
+        <tr style={{ borderBottom: `2px solid ${color}` }}>
+          <th className="pb-1.5 text-left text-[9px] font-bold uppercase tracking-wide text-muted">
+            Descripción
+          </th>
+          <th className="pb-1.5 text-right text-[9px] font-bold uppercase tracking-wide text-muted">
+            Cant.
+          </th>
+          <th className="pb-1.5 text-right text-[9px] font-bold uppercase tracking-wide text-muted">
+            Total
+          </th>
         </tr>
       </thead>
       <tbody>
-        {PREVIEW_ITEMS.map((it, i) => (
-          <tr key={it.desc} className={i % 2 === 1 ? 'bg-cream-soft' : undefined}>
-            <td className="px-3 py-1.5 text-ink">{it.desc}</td>
-            <td className="px-3 py-1.5 text-right text-ink">{it.cant}</td>
-            <td className="px-3 py-1.5 text-right text-ink">{it.total}</td>
+        {PREVIEW_ITEMS.map((it) => (
+          <tr key={it.desc} className="border-b border-line/40">
+            <td className="py-2 text-ink">{it.desc}</td>
+            <td className="py-2 text-right text-ink">{it.cant}</td>
+            <td className="py-2 text-right text-ink">{it.total}</td>
           </tr>
         ))}
-        <tr>
-          <td colSpan={2} className="px-3 py-2 text-right font-bold" style={{ color }}>
-            Total Gs.
-          </td>
-          <td className="px-3 py-2 text-right font-bold" style={{ color }}>
-            1.050.000
-          </td>
-        </tr>
       </tbody>
     </table>
+  )
+}
+
+function ResumenPreview({ color, variant }: { color: string; variant: 'corporativa' | 'minimalista' }) {
+  if (variant === 'corporativa') {
+    return (
+      <div className="mt-3 flex justify-end">
+        <div className="overflow-hidden rounded-md border border-line/70 text-[10px]">
+          <div className="flex justify-between gap-6 px-3 py-1.5">
+            <span className="text-muted">Subtotal</span>
+            <span className="font-semibold text-ink">1.050.000</span>
+          </div>
+          <div className="flex justify-between gap-6 px-3 py-1.5 text-white" style={{ backgroundColor: color }}>
+            <span className="font-bold">Total a pagar</span>
+            <span className="font-bold">1.050.000</span>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-2 flex justify-end">
+      <div className="min-w-[170px] text-[10px]">
+        <div className="flex justify-between py-1 text-muted">
+          <span>Subtotal</span>
+          <span>1.050.000</span>
+        </div>
+        <div className="flex justify-between pt-2 text-sm font-extrabold" style={{ borderTop: `2px solid ${color}` }}>
+          <span className="text-ink">Total Gs.</span>
+          <span style={{ color }}>1.050.000</span>
+        </div>
+      </div>
+    </div>
   )
 }
 
