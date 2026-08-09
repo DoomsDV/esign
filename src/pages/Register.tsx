@@ -52,16 +52,14 @@ export default function Register() {
 
   return (
     <AuthLayout
+      compact
       title="Crear cuenta"
       subtitle="Registra tu negocio para empezar a emitir documentos electrónicos."
       altText="¿Ya tenés cuenta?"
       altHref="/login"
       altLabel="Iniciar sesión"
-      panelQuote="Alta en minutos: emisor, establecimientos, certificado y API keys en un solo panel. Tu equipo emite; vos controlas."
-      panelAuthor="etick"
-      panelRole="Onboarding de contribuyentes"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3.5">
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-2.5">
         {serverError && <Alert>{serverError}</Alert>}
 
         <TextField
@@ -71,7 +69,7 @@ export default function Register() {
           {...register('business_name', { required: 'Ingresá la razón social' })}
         />
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2.5">
           <div className="col-span-2">
             <TextField
               label="RUC"
@@ -89,9 +87,9 @@ export default function Register() {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <TextField label="Nombre" placeholder="Daniel" {...register('first_name')} />
-          <TextField label="Apellido" placeholder="Villasanti" {...register('last_name')} />
+        <div className="grid grid-cols-2 gap-2.5">
+          <TextField label="Nombre" {...register('first_name')} />
+          <TextField label="Apellido" {...register('last_name')} />
         </div>
 
         <TextField
@@ -114,7 +112,7 @@ export default function Register() {
           })}
         />
 
-        <Button type="submit" loading={isSubmitting} className="mt-1 w-full py-3">
+        <Button type="submit" loading={isSubmitting} className="mt-0.5 w-full py-2.5">
           Crear cuenta
         </Button>
       </form>

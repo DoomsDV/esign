@@ -47,7 +47,6 @@ export default function Login() {
       altText="¿No tenés cuenta?"
       altHref="/registro"
       altLabel="Crear cuenta"
-      panelQuote="Emití, firma y consulta documentos electrónicos SIFEN desde un solo lugar. Claro, rápido y listo para tu negocio."
     >
       <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
         {serverError && <Alert>{serverError}</Alert>}
