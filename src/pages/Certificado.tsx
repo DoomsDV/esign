@@ -177,6 +177,9 @@ export default function Certificado() {
   const upload = useMutation({
     mutationFn: async () => {
       if (!file) throw new ApiError('VALIDATION', 'Seleccioná un archivo .p12', 422)
+      if (file.size < 512) {
+        throw new ApiError('VALIDATION', 'El archivo parece demasiado pequeño para ser un .p12 válido', 422)
+      }
       if (!password) throw new ApiError('VALIDATION', 'Ingresá la contraseña del certificado', 422)
       const p12_base64 = await fileToBase64(file)
       await uploadCertificate(token, { p12_base64, password })
@@ -191,7 +194,12 @@ export default function Certificado() {
     },
     onError: (e: Error) => {
       setMsg(null)
-      setErr(e instanceof ApiError ? e.message : e.message)
+      let message = e instanceof ApiError ? e.message : e.message
+      if (e instanceof ApiError && e.code === 'INVALID_P12') {
+        message +=
+          ' Usá el .p12 de firma electrónica DNIT con clave privada incluida. Si el error persiste, verificá la contraseña.'
+      }
+      setErr(message)
     },
   })
 

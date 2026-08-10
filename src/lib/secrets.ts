@@ -60,14 +60,18 @@ export function fileToBase64(file: File): Promise<string> {
     const reader = new FileReader()
     reader.onload = () => {
       const result = reader.result
-      if (typeof result !== 'string') {
+      if (!(result instanceof ArrayBuffer)) {
         reject(new Error('no se pudo leer el archivo'))
         return
       }
-      const comma = result.indexOf(',')
-      resolve(comma >= 0 ? result.slice(comma + 1) : result)
+      const bytes = new Uint8Array(result)
+      let binary = ''
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]!)
+      }
+      resolve(btoa(binary))
     }
     reader.onerror = () => reject(reader.error ?? new Error('error al leer el archivo'))
-    reader.readAsDataURL(file)
+    reader.readAsArrayBuffer(file)
   })
 }
