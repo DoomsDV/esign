@@ -90,9 +90,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const sessionRef = useRef(session)
   sessionRef.current = session
 
-  const [environment, setEnvState] = useState<Environment>(
-    () => (localStorage.getItem(ENV_KEY) as Environment) || 'TEST',
-  )
+  const [environment, setEnvState] = useState<Environment>(() => {
+    const stored = localStorage.getItem(ENV_KEY)
+    return stored === 'PROD' || stored === 'TEST' ? stored : 'TEST'
+  })
 
   useEffect(() => {
     if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session))

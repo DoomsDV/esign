@@ -94,6 +94,7 @@ export interface InviteResult {
   email?: string
   role?: string
   expires_at?: string
+  expires_in_days?: number
 }
 
 export async function getClient(token: string): Promise<ClientProfile> {

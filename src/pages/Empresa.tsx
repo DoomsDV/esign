@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
-import { Alert, Button, Card, SearchSelect, SuccessAlert, TextField } from '@/components/ui'
+import { Alert, Button, Card, PageHeader, SearchSelect, SuccessAlert, TextField } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
@@ -11,6 +11,19 @@ import {
   TIPOS_REGIMEN,
   actividadLabel,
 } from '@/lib/sifen-catalogs'
+
+function formatClientStatus(status: string): string {
+  switch (status.toUpperCase()) {
+    case 'ACTIVE':
+      return 'Activa'
+    case 'SUSPENDED':
+      return 'Suspendida'
+    case 'INACTIVE':
+      return 'Inactiva'
+    default:
+      return status
+  }
+}
 
 function ReadOnlyField({
   label,
@@ -22,7 +35,7 @@ function ReadOnlyField({
   className?: string
 }) {
   return (
-    <div className={cn('min-w-0', className)}>
+    <div className={cn('rounded-xl bg-cream-soft/80 px-4 py-3', className)}>
       <p className="text-xs font-medium text-muted">{label}</p>
       <p className="mt-1 break-words text-sm font-semibold leading-snug text-ink">{value || '—'}</p>
     </div>
@@ -68,7 +81,6 @@ export default function Empresa() {
       value: a.cod,
       label: actividadLabel(a.cod, a.desc),
     }))
-    // Si la actividad guardada no está en el catálogo local, la mostramos igual.
     if (actCod && !base.some((o) => o.value === actCod)) {
       base.unshift({
         value: actCod as (typeof base)[number]['value'],
@@ -110,102 +122,112 @@ export default function Empresa() {
 
   return (
     <AppShell title="Empresa">
-      {q.isLoading && <p className="text-sm text-muted">Cargando…</p>}
-      {q.error && <Alert>{(q.error as Error).message}</Alert>}
+      <div className="dashboard-canvas -m-4 space-y-5 p-4 sm:-m-6 sm:space-y-6 sm:p-6">
+        {q.isLoading && <p className="text-sm text-muted">Cargando…</p>}
+        {q.error && <Alert>{(q.error as Error).message}</Alert>}
 
-      {q.data && (
-        <Card className="overflow-hidden">
-          <div className="flex flex-col gap-8 px-6 py-6 sm:px-8 sm:py-8">
-            <section>
-              <h2 className="text-base font-bold text-ink">Identidad del negocio</h2>
-              <p className="mt-1 text-sm text-muted">Datos fiscales del cliente (solo lectura).</p>
-              <div className="mt-5 grid gap-5 sm:grid-cols-2">
-                <ReadOnlyField
-                  label="Razón social"
-                  value={q.data.business_name}
-                  className="sm:col-span-2"
-                />
-                <ReadOnlyField label="RUC" value={`${q.data.ruc}-${q.data.dv}`} />
-                <ReadOnlyField label="Estado" value={q.data.status} />
-                <ReadOnlyField label="Client ID" value={String(q.data.client_id)} />
+        {q.data && (
+          <>
+            <PageHeader
+              title="Configuración del emisor"
+              description="Datos fiscales de solo lectura y parámetros SIFEN que definen cómo se arma el XML del DE."
+              action={
+                canEdit ? (
+                  <Button
+                    loading={save.isPending}
+                    onClick={() => save.mutate()}
+                    disabled={!actCod || !actDesc}
+                  >
+                    Guardar cambios
+                  </Button>
+                ) : undefined
+              }
+            />
+
+            {(err || msg) && (
+              <div className="space-y-3">
+                {err && <Alert>{err}</Alert>}
+                {msg && <SuccessAlert>{msg}</SuccessAlert>}
               </div>
-            </section>
+            )}
 
-            <hr className="border-t border-line/70" />
+            <Card className="overflow-hidden">
+              <div className="flex flex-col gap-8 px-5 py-6 sm:px-7 sm:py-8">
+                <section>
+                  <h3 className="text-[15px] font-semibold tracking-tight text-ink">Identidad del negocio</h3>
+                  <p className="mt-1 text-sm text-muted">Datos fiscales del cliente (solo lectura).</p>
+                  <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                    <ReadOnlyField
+                      label="Razón social"
+                      value={q.data.business_name}
+                      className="sm:col-span-2"
+                    />
+                    <ReadOnlyField label="RUC" value={`${q.data.ruc}-${q.data.dv}`} className="tabular-nums" />
+                    <ReadOnlyField
+                      label="Estado de la cuenta"
+                      value={formatClientStatus(q.data.status)}
+                    />
+                  </div>
+                </section>
 
-            <section>
-              <h2 className="text-base font-bold text-ink">Emisor SIFEN</h2>
-              <p className="mt-1 text-sm text-muted">
-                Tipo de contribuyente, régimen y actividad económica. La descripción se toma del
-                catálogo oficial (debe coincidir exactamente con SET).
-              </p>
+                <hr className="border-t border-line/60" />
 
-              <div className="mt-5 grid gap-4 sm:grid-cols-2">
-                <SearchSelect
-                  label="Tipo contribuyente"
-                  requiredMark
-                  value={String(tipoCont)}
-                  onChange={(v) => setTipoCont(Number(v))}
-                  options={[
-                    { value: '1', label: '1 — Persona física' },
-                    { value: '2', label: '2 — Persona jurídica' },
-                  ]}
-                  searchable={false}
-                  disabled={!canEdit}
-                />
-                <SearchSelect
-                  label="Tipo régimen"
-                  value={regimen}
-                  onChange={setRegimen}
-                  options={regimenOptions}
-                  placeholder="Seleccionar régimen…"
-                  searchable={false}
-                  disabled={!canEdit}
-                />
-                <div className="sm:col-span-2">
-                  <TextField
-                    label="Nombre de fantasía"
-                    value={fantasia}
-                    onChange={(e) => setFantasia(e.target.value)}
-                    placeholder="Opcional"
-                    disabled={!canEdit}
-                  />
-                </div>
-                <div className="sm:col-span-2">
-                  <SearchSelect
-                    label="Actividad económica"
-                    requiredMark
-                    value={actCod}
-                    onChange={pickActividad}
-                    options={actividadOptions}
-                    placeholder="Buscar por código o descripción…"
-                    disabled={!canEdit}
-                  />
-                </div>
+                <section>
+                  <h3 className="text-[15px] font-semibold tracking-tight text-ink">Emisor SIFEN</h3>
+                  <p className="mt-1 text-sm leading-relaxed text-muted">
+                    Tipo de contribuyente, régimen y actividad económica. La descripción debe coincidir exactamente
+                    con el catálogo SET (error 1261/1262 si no).
+                  </p>
+
+                  <div className="mt-5 grid gap-4 sm:grid-cols-2">
+                    <SearchSelect
+                      label="Tipo contribuyente"
+                      requiredMark
+                      value={String(tipoCont)}
+                      onChange={(v) => setTipoCont(Number(v))}
+                      options={[
+                        { value: '1', label: '1 — Persona física' },
+                        { value: '2', label: '2 — Persona jurídica' },
+                      ]}
+                      searchable={false}
+                      disabled={!canEdit}
+                    />
+                    <SearchSelect
+                      label="Tipo régimen"
+                      value={regimen}
+                      onChange={setRegimen}
+                      options={regimenOptions}
+                      placeholder="Seleccionar régimen…"
+                      searchable={false}
+                      disabled={!canEdit}
+                    />
+                    <div className="sm:col-span-2">
+                      <TextField
+                        label="Nombre de fantasía"
+                        value={fantasia}
+                        onChange={(e) => setFantasia(e.target.value)}
+                        placeholder="Opcional"
+                        disabled={!canEdit}
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <SearchSelect
+                        label="Actividad económica"
+                        requiredMark
+                        value={actCod}
+                        onChange={pickActividad}
+                        options={actividadOptions}
+                        placeholder="Buscar por código o descripción…"
+                        disabled={!canEdit}
+                      />
+                    </div>
+                  </div>
+                </section>
               </div>
-
-              {(err || msg) && (
-                <div className="mt-5 space-y-3">
-                  {err && <Alert>{err}</Alert>}
-                  {msg && <SuccessAlert>{msg}</SuccessAlert>}
-                </div>
-              )}
-            </section>
-          </div>
-
-          {canEdit && (
-            <div className="flex justify-end border-t border-line bg-cream-soft px-6 py-4 sm:px-8">
-              <Button
-                loading={save.isPending}
-                onClick={() => save.mutate()}
-                disabled={!actCod || !actDesc}
-              >
-                Guardar configuración
-              </Button>
-            </div>
-          )}
-        </Card>
-      )}
+            </Card>
+          </>
+        )}
+      </div>
     </AppShell>
   )
 }

@@ -7,6 +7,7 @@
   /* Geist: tipografía técnica premium (Vercel). Sans para UI; Mono para tokens. */
   --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --font-display: "Yellowtail", cursive;
 
   /* Neutros frios */
   --color-cream: #eef0f3;
@@ -24,6 +25,10 @@
   --color-brand-500: #f2953a;
   --color-brand-600: #e07d24;
   --color-brand-700: #b9631d;
+
+  /* Mint secundario (gráficos / éxito suave) */
+  --color-mint: #7ecb9e;
+  --color-mint-soft: #e8f6ef;
 
   /* Estados de documentos */
   --color-ok: #16a34a;
@@ -248,6 +253,28 @@ body {
   .auth-compact form {
     gap: 0.5rem;
   }
+}
+
+/* Dashboard: textura sutil en el área principal */
+.dashboard-canvas {
+  background-color: var(--color-cream-soft);
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -20%, color-mix(in srgb, var(--color-brand-400) 8%, transparent), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 100%, color-mix(in srgb, var(--color-mint) 6%, transparent), transparent);
+}
+
+/* KPI cards con barra de acento */
+.kpi-card {
+  position: relative;
+}
+.kpi-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  border-radius: 3px 0 0 3px;
+  background: var(--kpi-accent, var(--color-brand-400));
+  opacity: 0.85;
 }
 
 @media (prefers-reduced-motion: reduce) {

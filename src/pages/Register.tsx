@@ -2,9 +2,11 @@ import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
 import { AuthLayout } from '@/components/AuthLayout'
+import { PasswordStrengthMeter } from '@/components/PasswordStrengthMeter'
 import { Alert, Button, TextField } from '@/components/ui'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
+import { analyzePassword } from '@/lib/passwordStrength'
 
 interface RegisterForm {
   business_name: string
@@ -23,8 +25,11 @@ export default function Register() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<RegisterForm>()
+
+  const passwordValue = watch('password') ?? ''
 
   async function onSubmit(values: RegisterForm) {
     setServerError(null)
@@ -108,11 +113,19 @@ export default function Register() {
           error={errors.password?.message}
           {...register('password', {
             required: 'Ingresá una contraseña',
-            minLength: { value: 8, message: 'Mínimo 8 caracteres' },
+            validate: (value) =>
+              analyzePassword(value).isAcceptable ||
+              'Usá al menos 8 caracteres y 3 tipos: mayúscula, minúscula, número o símbolo',
           })}
         />
+        <PasswordStrengthMeter password={passwordValue} />
 
-        <Button type="submit" loading={isSubmitting} className="mt-0.5 w-full py-2.5">
+        <Button
+          type="submit"
+          loading={isSubmitting}
+          disabled={passwordValue.length > 0 && !analyzePassword(passwordValue).isAcceptable}
+          className="mt-0.5 w-full py-2.5"
+        >
           Crear cuenta
         </Button>
       </form>

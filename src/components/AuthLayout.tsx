@@ -2,6 +2,8 @@
 import { Link } from 'react-router-dom'
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/cn'
+import { usePageTitle } from '@/lib/usePageTitle'
+import { BrandLogo } from '@/components/BrandLogo'
 
 function AuthPanelDecor() {
   return (
@@ -142,6 +144,8 @@ export function AuthLayout({
   altLabel: string
   compact?: boolean
 }) {
+  usePageTitle(title)
+
   return (
     <div className="grid h-[100dvh] max-h-[100dvh] overflow-hidden bg-white md:grid-cols-2">
       <section
@@ -150,18 +154,10 @@ export function AuthLayout({
           compact ? 'py-5 sm:py-6 md:py-7' : 'py-8 sm:py-10 md:py-12',
         )}
       >
-        <Link
-          to="/"
-          className={cn(
-            'inline-flex shrink-0 items-center gap-2.5 self-start text-lg font-extrabold tracking-tight text-ink transition-opacity hover:opacity-80',
-            compact ? 'mb-5' : 'mb-10',
-          )}
-        >
-          <span className="grid h-9 w-9 place-items-center rounded-xl bg-brand-400 text-sm font-extrabold text-ink shadow-[0_1px_2px_rgba(26,29,35,0.06)]">
-            e
-          </span>
-          etick
-        </Link>
+        <BrandLogo
+          asLink
+          className={cn('self-start', compact ? 'mb-5' : 'mb-10')}
+        />
 
         <div
           className={cn(

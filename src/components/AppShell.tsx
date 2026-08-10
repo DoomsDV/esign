@@ -4,6 +4,8 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/cn'
 import { EnvToggle } from './EnvToggle'
+import { BrandLogo } from './BrandLogo'
+import { usePageTitle } from '@/lib/usePageTitle'
 
 interface NavItem {
   label: string
@@ -260,26 +262,14 @@ export function AppShell({
 
   const isTest = environment === 'TEST'
 
+  usePageTitle(title)
+
   // Contenido del sidebar con ancho fijo (16rem). El aside padre lo recorta
   // vía overflow-hidden cuando colapsa: no animamos textos individuales, así
   // evitamos layout thrash y lag.
   const sidebarContent = (isCollapsed: boolean) => (
     <div className="flex h-full w-full flex-col overflow-y-auto px-3 py-5">
-      <div
-        className={cn(
-          'mb-6 flex h-9 items-center',
-          isCollapsed ? 'justify-center' : 'gap-3 px-2',
-        )}
-      >
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-400 text-ink font-extrabold">
-          e
-        </span>
-        {!isCollapsed && (
-          <span className="whitespace-nowrap text-xl font-extrabold tracking-tight text-ink">
-            etick
-          </span>
-        )}
-      </div>
+      <BrandLogo asLink collapsed={isCollapsed} className="mb-6" />
 
       <div className="mb-5">
         <NavList items={PRIMARY} collapsed={isCollapsed} onNavigate={() => setMobileOpen(false)} />

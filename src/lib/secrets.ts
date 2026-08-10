@@ -3,8 +3,8 @@
 import { apiData, apiFetch } from './api'
 import { GO_BASE, type Environment } from './env'
 
+/** Metadata expuesta al panel — sin subject_dn (PII; el API puede enviarlo pero no se persiste en cliente). */
 export interface CertificateMeta {
-  subject_dn: string | null
   not_after: string | null
   status: string
   key_version?: number | null
@@ -26,7 +26,10 @@ export interface PanelEnvironmentUpsert {
 }
 
 export async function getCertificateMeta(token: string): Promise<CertificateMeta> {
-  return apiData<CertificateMeta>('/certificate', { token })
+  const raw = await apiData<CertificateMeta & { subject_dn?: string | null }>('/certificate', { token })
+  // Defensa en profundidad: no guardar DN en React Query aunque ORDS aún lo emita.
+  const { subject_dn: _subjectDn, ...meta } = raw
+  return meta
 }
 
 /** Sube el .p12 en claro (base64) a Go; Go cifra y persiste. */

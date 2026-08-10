@@ -2,6 +2,7 @@
 import {
   forwardRef,
   useEffect,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
@@ -112,9 +113,91 @@ export function Card({ className, children }: { className?: string; children: Re
   return <div className={cn(panelClass, className)}>{children}</div>
 }
 
+export function PageHeader({
+  title,
+  description,
+  action,
+  className,
+  compactOnMobile,
+}: {
+  title: ReactNode
+  description?: string
+  action?: ReactNode
+  className?: string
+  /** Oculta la descripción en mobile (usar con InfoTip junto al título). */
+  compactOnMobile?: boolean
+}) {
+  return (
+    <div className={cn('flex flex-wrap items-start justify-between gap-4', className)}>
+      <div className="min-w-0">
+        <h2 className="text-lg font-semibold tracking-tight text-ink">{title}</h2>
+        {description && (
+          <p
+            className={cn(
+              'mt-1 max-w-2xl text-sm leading-relaxed text-muted',
+              compactOnMobile && 'hidden sm:block',
+            )}
+          >
+            {description}
+          </p>
+        )}
+      </div>
+      {action ? <div className="shrink-0">{action}</div> : null}
+    </div>
+  )
+}
+
+export function InfoTip({ text, className }: { text: string; className?: string }) {
+  const [open, setOpen] = useState(false)
+  const id = useId()
+  const rootRef = useRef<HTMLSpanElement>(null)
+
+  useEffect(() => {
+    if (!open) return
+    function onDocClick(e: MouseEvent) {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false)
+    }
+    document.addEventListener('click', onDocClick)
+    return () => document.removeEventListener('click', onDocClick)
+  }, [open])
+
+  return (
+    <span ref={rootRef} className={cn('group/info relative inline-flex shrink-0 align-middle', className)}>
+      <button
+        type="button"
+        aria-label="Más información"
+        aria-expanded={open}
+        aria-controls={id}
+        onClick={(e) => {
+          e.stopPropagation()
+          setOpen((v) => !v)
+        }}
+        className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted/80 transition-colors hover:bg-cream hover:text-ink"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <circle cx="12" cy="12" r="9" className="stroke-current" strokeWidth="1.8" />
+          <path d="M12 11v5M12 8h.01" className="stroke-current" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      </button>
+      <span
+        id={id}
+        role="tooltip"
+        className={cn(
+          'absolute left-0 top-[calc(100%+6px)] z-50 w-[min(18rem,calc(100vw-2.5rem))] rounded-xl bg-ink px-3 py-2.5 text-left text-xs font-normal leading-relaxed text-white shadow-lg',
+          open ? 'visible opacity-100' : 'pointer-events-none invisible opacity-0',
+          'sm:left-1/2 sm:w-64 sm:-translate-x-1/2',
+          'sm:group-hover/info:visible sm:group-hover/info:pointer-events-auto sm:group-hover/info:opacity-100',
+        )}
+      >
+        {text}
+      </span>
+    </span>
+  )
+}
+
 export function Alert({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-xl border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
+    <div role="alert" className="rounded-xl border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
       {children}
     </div>
   )
@@ -157,7 +240,13 @@ export function Select({ label, className, children, id, ...rest }: SelectProps)
 
 export function SuccessAlert({ children }: { children: ReactNode }) {
   return (
-    <div className="rounded-xl border border-ok/30 bg-ok/5 px-4 py-3 text-sm text-ok">{children}</div>
+    <div
+      role="status"
+      aria-live="polite"
+      className="rounded-xl border border-ok/30 bg-ok/5 px-4 py-3 text-sm text-ok"
+    >
+      {children}
+    </div>
   )
 }
 
@@ -172,14 +261,46 @@ export function Modal({
   title?: ReactNode
   children: ReactNode
 }) {
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const titleId = useId()
+
+  useEffect(() => {
+    if (!open) return
+    const previousFocus = document.activeElement as HTMLElement | null
+    dialogRef.current?.focus()
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onClose()
+      }
+    }
+
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      previousFocus?.focus()
+    }
+  }, [open, onClose])
+
   if (!open) return null
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-ink/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-auto rounded-3xl bg-white p-6 shadow-2xl">
+      <div className="absolute inset-0 bg-ink/40 backdrop-blur-sm" onClick={onClose} aria-hidden />
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
+        tabIndex={-1}
+        className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-auto rounded-3xl bg-white p-6 shadow-2xl outline-none"
+      >
         <div className="mb-4 flex items-start justify-between gap-4">
-          <div className="text-lg font-bold text-ink">{title}</div>
+          <div id={titleId} className="text-lg font-bold text-ink">
+            {title}
+          </div>
           <button
+            type="button"
             onClick={onClose}
             className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-cream hover:text-ink"
             aria-label="Cerrar"
@@ -425,6 +546,7 @@ export function SearchSelect({
     left: number
     width: number
     maxHeight: number
+    openUp: boolean
   } | null>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -436,15 +558,15 @@ export function SearchSelect({
     const gap = 6
     const spaceBelow = window.innerHeight - rect.bottom - gap - 8
     const spaceAbove = rect.top - gap - 8
-    const openUp = spaceBelow < 240 && spaceAbove > spaceBelow
-    const available = Math.max(160, openUp ? spaceAbove : spaceBelow)
+    const openUp = spaceBelow < 200 && spaceAbove > spaceBelow
+    const available = Math.max(120, openUp ? spaceAbove : spaceBelow)
     const maxHeight = Math.min(280, available)
-    const top = openUp ? Math.max(8, rect.top - gap - maxHeight) : rect.bottom + gap
     setCoords({
-      top,
+      top: openUp ? rect.top - gap : rect.bottom + gap,
       left: rect.left,
       width: rect.width,
       maxHeight,
+      openUp,
     })
   }
 
@@ -532,6 +654,7 @@ export function SearchSelect({
               left: coords.left,
               width: coords.width,
               maxHeight: coords.maxHeight,
+              transform: coords.openUp ? 'translateY(-100%)' : undefined,
               zIndex: 80,
             }}
             className="flex flex-col rounded-xl border border-line bg-white p-1.5 shadow-xl"
