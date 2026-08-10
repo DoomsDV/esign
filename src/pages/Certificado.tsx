@@ -196,8 +196,7 @@ export default function Certificado() {
       setMsg(null)
       let message = e instanceof ApiError ? e.message : e.message
       if (e instanceof ApiError && e.code === 'INVALID_P12') {
-        message +=
-          ' Usá el .p12 de firma electrónica DNIT con clave privada incluida. Si el error persiste, verificá la contraseña.'
+        message += ' Verificá la contraseña del certificado. Si el error persiste, contactá soporte.'
       }
       setErr(message)
     },
