@@ -111,28 +111,41 @@ const deltaToneClass: Record<Kpi['deltaTone'], string> = {
   neutral: 'text-brand-700',
 }
 
-function KpiCell({ kpi, loading }: { kpi: Kpi; loading: boolean }) {
+function KpiCell({ kpi, loading, compact }: { kpi: Kpi; loading: boolean; compact?: boolean }) {
   return (
     <div
-      className="kpi-card pl-4"
+      className={cn('kpi-card', compact ? 'pl-3' : 'pl-4')}
       style={{ '--kpi-accent': kpi.accent } as CSSProperties}
     >
-      <div className="flex items-start justify-between gap-3">
-        <p className="text-[13px] font-medium tracking-tight text-muted">{kpi.label}</p>
-        <span className={cn('grid h-9 w-9 shrink-0 place-items-center rounded-xl', kpi.iconWrap)}>
+      <div className="flex items-start justify-between gap-2">
+        <p className={cn('font-medium tracking-tight text-muted', compact ? 'text-xs' : 'text-[13px]')}>
+          {kpi.label}
+        </p>
+        <span
+          className={cn(
+            'grid shrink-0 place-items-center rounded-xl',
+            compact ? 'h-7 w-7 [&_svg]:h-4 [&_svg]:w-4' : 'h-9 w-9',
+            kpi.iconWrap,
+          )}
+        >
           {kpi.icon}
         </span>
       </div>
-      <p className="mt-2 text-[2.125rem] font-bold leading-none tracking-tight tabular-nums text-ink">
+      <p
+        className={cn(
+          'mt-1.5 font-bold leading-none tracking-tight tabular-nums text-ink',
+          compact ? 'text-2xl' : 'mt-2 text-[2.125rem]',
+        )}
+      >
         {loading ? '—' : kpi.value}
       </p>
-      <p className="mt-2.5 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-xs">
-        <span className={cn('inline-flex items-center gap-1 font-semibold', deltaToneClass[kpi.deltaTone])}>
+      <p className={cn('flex flex-wrap items-center gap-x-1 gap-y-0.5', compact ? 'mt-1.5 text-[11px]' : 'mt-2.5 text-xs')}>
+        <span className={cn('inline-flex items-center gap-0.5 font-semibold', deltaToneClass[kpi.deltaTone])}>
           {kpi.deltaTone === 'up' && <IconTrendUp />}
           {kpi.deltaTone === 'down' && <IconTrendDown />}
           {kpi.delta}
         </span>
-        <span className="text-muted/90">{kpi.context}</span>
+        {!compact && <span className="text-muted/90">{kpi.context}</span>}
       </p>
     </div>
   )
@@ -152,11 +165,13 @@ function ChartCard({
   className?: string
 }) {
   return (
-    <div className={cn(CARD, 'flex flex-col p-5 sm:p-6', className)}>
-      <div className="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-[15px] font-semibold tracking-tight text-ink">{title}</h2>
-          {subtitle && <p className="mt-0.5 text-xs leading-relaxed text-muted">{subtitle}</p>}
+    <div className={cn(CARD, 'flex flex-col p-4 sm:p-6', className)}>
+      <div className="mb-3 flex items-start justify-between gap-2 sm:mb-4 sm:gap-3">
+        <div className="min-w-0">
+          <h2 className="text-sm font-semibold tracking-tight text-ink sm:text-[15px]">{title}</h2>
+          {subtitle && (
+            <p className="mt-0.5 text-[11px] leading-relaxed text-muted sm:text-xs">{subtitle}</p>
+          )}
         </div>
         {badge}
       </div>
@@ -225,7 +240,7 @@ function sumMontos(items: DocumentListItem[]) {
 
 function EmptyChart({ label }: { label: string }) {
   return (
-    <div className="grid flex-1 min-h-[14rem] place-items-center rounded-xl border border-dashed border-line/80 bg-cream-soft/50 px-4 text-center">
+    <div className="grid min-h-[11rem] flex-1 place-items-center rounded-xl border border-dashed border-line/80 bg-cream-soft/50 px-4 text-center sm:min-h-[14rem]">
       <div>
         <p className="text-sm font-medium text-muted">{label}</p>
         <p className="mt-1 text-xs text-muted/70">Los datos aparecerán cuando emitas documentos</p>
@@ -233,6 +248,8 @@ function EmptyChart({ label }: { label: string }) {
     </div>
   )
 }
+
+const CHART_HEIGHT = 'h-[11.5rem] sm:h-64'
 
 export default function Dashboard() {
   const { session, environment } = useAuth()
@@ -345,21 +362,26 @@ export default function Dashboard() {
 
   return (
     <AppShell title="Dashboard">
-      <div className="dashboard-canvas -m-4 space-y-5 p-4 sm:-m-6 sm:space-y-6 sm:p-6">
+      <div className="dashboard-canvas -m-4 space-y-4 p-4 sm:-m-6 sm:space-y-6 sm:p-6">
         {summary.isError && (
           <Alert>
             {summary.error instanceof ApiError ? summary.error.message : 'No se pudo cargar el resumen.'}
           </Alert>
         )}
 
-        {/* KPIs */}
-        <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto py-1 [scrollbar-width:none] sm:hidden [&::-webkit-scrollbar]:hidden">
+        {/* KPIs: grid 2×2 en mobile, fila única en desktop */}
+        <div className="grid grid-cols-2 gap-2.5 sm:hidden">
           {kpis.map((kpi) => (
-            <div key={kpi.label} className={cn(CARD, 'w-[78%] shrink-0 snap-start p-4')}>
-              <KpiCell kpi={kpi} loading={summary.isLoading} />
+            <div
+              key={kpi.label}
+              className={cn(
+                CARD,
+                'p-3 transition-transform duration-200 active:scale-[0.98]',
+              )}
+            >
+              <KpiCell kpi={kpi} loading={summary.isLoading} compact />
             </div>
           ))}
-          <div className="w-1 shrink-0" aria-hidden />
         </div>
         <div className={cn(CARD, 'hidden overflow-hidden sm:block')}>
           <div className="grid gap-px bg-line/80 sm:grid-cols-2 xl:grid-cols-4">
@@ -372,35 +394,41 @@ export default function Dashboard() {
         </div>
 
         {/* Gráficos principales */}
-        <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 xl:grid-cols-3">
           <ChartCard
             className="xl:col-span-2"
             title="Emisiones recientes"
-            subtitle="Últimos días · muestra de hasta 100 documentos"
+            subtitle="Últimos días, muestra de hasta 100 documentos"
             badge={envBadge}
           >
             {trend.length === 0 ? (
               <EmptyChart label="Sin datos aún" />
             ) : trendAsBars ? (
-              <div className="h-64">
+              <div className={CHART_HEIGHT}>
                 <ResponsiveContainer width="100%" height="100%" debounce={250}>
-                  <BarChart data={trend} margin={{ left: 0, right: 8, top: 8 }} barGap={6}>
+                  <BarChart data={trend} margin={{ left: -4, right: 4, top: 4, bottom: 0 }} barGap={4}>
                     <CartesianGrid strokeDasharray="4 4" stroke={GRID_STROKE} vertical={false} />
-                    <XAxis dataKey="dia" tick={{ fontSize: 11, fill: AXIS_TICK }} axisLine={false} tickLine={false} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: AXIS_TICK }} axisLine={false} tickLine={false} width={28} />
+                    <XAxis
+                      dataKey="dia"
+                      tick={{ fontSize: 10, fill: AXIS_TICK }}
+                      axisLine={false}
+                      tickLine={false}
+                      interval="preserveStartEnd"
+                    />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: AXIS_TICK }} axisLine={false} tickLine={false} width={24} />
                     <Tooltip
                       cursor={{ fill: 'rgba(245, 169, 76, 0.06)' }}
                       contentStyle={{ borderRadius: 12, border: '1px solid #e8eaee', boxShadow: '0 8px 24px -8px rgba(16,24,40,0.15)', fontSize: 12 }}
                     />
-                    <Bar dataKey="total" name="Total" radius={[8, 8, 0, 0]} maxBarSize={44} fill={COLORS.AREA} />
-                    <Bar dataKey="aprobados" name="Aprobados" radius={[8, 8, 0, 0]} maxBarSize={44} fill={COLORS.APROBADO} />
+                    <Bar dataKey="total" name="Total" radius={[6, 6, 0, 0]} maxBarSize={36} fill={COLORS.AREA} />
+                    <Bar dataKey="aprobados" name="Aprobados" radius={[6, 6, 0, 0]} maxBarSize={36} fill={COLORS.APROBADO} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
             ) : (
-              <div className="h-64">
+              <div className={CHART_HEIGHT}>
                 <ResponsiveContainer width="100%" height="100%" debounce={250}>
-                  <AreaChart data={trend} margin={{ left: 0, right: 8, top: 8 }}>
+                  <AreaChart data={trend} margin={{ left: -4, right: 4, top: 4, bottom: 0 }}>
                     <defs>
                       <linearGradient id="fillTotal" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor={COLORS.AREA} stopOpacity={0.28} />
@@ -412,8 +440,14 @@ export default function Dashboard() {
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="4 4" stroke={GRID_STROKE} vertical={false} />
-                    <XAxis dataKey="dia" tick={{ fontSize: 11, fill: AXIS_TICK }} axisLine={false} tickLine={false} />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: AXIS_TICK }} axisLine={false} tickLine={false} width={28} />
+                    <XAxis
+                      dataKey="dia"
+                      tick={{ fontSize: 10, fill: AXIS_TICK }}
+                      axisLine={false}
+                      tickLine={false}
+                      interval="preserveStartEnd"
+                    />
+                    <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: AXIS_TICK }} axisLine={false} tickLine={false} width={24} />
                     <Tooltip
                       contentStyle={{ borderRadius: 12, border: '1px solid #e8eaee', boxShadow: '0 8px 24px -8px rgba(16,24,40,0.15)', fontSize: 12 }}
                       formatter={(value, name) => [value as number, String(name)]}
@@ -424,9 +458,9 @@ export default function Dashboard() {
                       name="Total"
                       stroke={COLORS.AREA}
                       fill="url(#fillTotal)"
-                      strokeWidth={2.5}
-                      dot={{ r: 3, strokeWidth: 0, fill: COLORS.AREA }}
-                      activeDot={{ r: 5, stroke: '#fff', strokeWidth: 2 }}
+                      strokeWidth={2}
+                      dot={{ r: 2.5, strokeWidth: 0, fill: COLORS.AREA }}
+                      activeDot={{ r: 4, stroke: '#fff', strokeWidth: 2 }}
                     />
                     <Area
                       type="monotone"
@@ -447,16 +481,16 @@ export default function Dashboard() {
             {byTipo.length === 0 ? (
               <EmptyChart label="Sin datos aún" />
             ) : (
-              <div className="h-64">
+              <div className={CHART_HEIGHT}>
                 <ResponsiveContainer width="100%" height="100%" debounce={250}>
-                  <BarChart data={byTipo} layout="vertical" margin={{ left: 8, right: 16 }} barCategoryGap="30%">
+                  <BarChart data={byTipo} layout="vertical" margin={{ left: 0, right: 8, top: 0, bottom: 0 }} barCategoryGap="28%">
                     <CartesianGrid strokeDasharray="4 4" stroke={GRID_STROKE} horizontal={false} />
-                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: AXIS_TICK }} axisLine={false} tickLine={false} />
+                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10, fill: AXIS_TICK }} axisLine={false} tickLine={false} />
                     <YAxis
                       type="category"
                       dataKey="tipo"
-                      width={92}
-                      tick={{ fontSize: 11, fill: AXIS_TICK }}
+                      width={76}
+                      tick={{ fontSize: 10, fill: AXIS_TICK }}
                       axisLine={false}
                       tickLine={false}
                     />
@@ -464,7 +498,7 @@ export default function Dashboard() {
                       cursor={{ fill: 'rgba(245, 169, 76, 0.06)' }}
                       contentStyle={{ borderRadius: 12, border: '1px solid #e8eaee', fontSize: 12 }}
                     />
-                    <Bar dataKey="value" name="Cantidad" radius={[0, 8, 8, 0]} maxBarSize={28} fill={COLORS.BAR} />
+                    <Bar dataKey="value" name="Cantidad" radius={[0, 6, 6, 0]} maxBarSize={22} fill={COLORS.BAR} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -473,21 +507,21 @@ export default function Dashboard() {
         </div>
 
         {/* Donut + recientes */}
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-3">
           <ChartCard title="Distribución por estado">
             {donut.length === 0 ? (
               <EmptyChart label="Sin datos aún" />
             ) : (
               <>
-                <div className="relative h-52">
+                <div className="relative h-44 sm:h-52">
                   <ResponsiveContainer width="100%" height="100%" debounce={250}>
                     <PieChart>
                       <Pie
                         data={donut}
                         dataKey="value"
                         nameKey="name"
-                        innerRadius={52}
-                        outerRadius={82}
+                        innerRadius="58%"
+                        outerRadius="88%"
                         paddingAngle={3}
                         stroke="none"
                       >
@@ -502,17 +536,17 @@ export default function Dashboard() {
                   </ResponsiveContainer>
                   <div className="pointer-events-none absolute inset-0 grid place-items-center">
                     <div className="text-center">
-                      <p className="text-2xl font-bold tabular-nums text-ink">{donutTotal}</p>
-                      <p className="text-[11px] font-medium text-muted">documentos</p>
+                      <p className="text-xl font-bold tabular-nums text-ink sm:text-2xl">{donutTotal}</p>
+                      <p className="text-[10px] font-medium text-muted sm:text-[11px]">documentos</p>
                     </div>
                   </div>
                 </div>
-                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2">
+                <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 sm:flex sm:flex-wrap sm:gap-x-4">
                   {donut.map((s) => (
-                    <span key={s.name} className="inline-flex items-center gap-2 text-xs text-muted">
-                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: s.color }} />
-                      <span className="font-medium text-ink">{s.value}</span>
-                      {s.name}
+                    <span key={s.name} className="inline-flex min-w-0 items-center gap-1.5 text-[11px] text-muted sm:gap-2 sm:text-xs">
+                      <span className="h-2 w-2 shrink-0 rounded-full sm:h-2.5 sm:w-2.5" style={{ backgroundColor: s.color }} />
+                      <span className="shrink-0 font-medium tabular-nums text-ink">{s.value}</span>
+                      <span className="truncate">{s.name}</span>
                     </span>
                   ))}
                 </div>
@@ -521,21 +555,21 @@ export default function Dashboard() {
           </ChartCard>
 
           <div className={cn(CARD, 'lg:col-span-2')}>
-            <div className="flex items-center justify-between border-b border-line/60 px-5 py-4 sm:px-6">
-              <div>
-                <h2 className="text-[15px] font-semibold tracking-tight text-ink">Documentos recientes</h2>
-                <p className="text-xs text-muted">Últimas emisiones en {environment}</p>
+            <div className="flex items-center justify-between gap-2 border-b border-line/60 px-4 py-3 sm:px-6 sm:py-4">
+              <div className="min-w-0">
+                <h2 className="text-sm font-semibold tracking-tight text-ink sm:text-[15px]">Documentos recientes</h2>
+                <p className="text-[11px] text-muted sm:text-xs">Últimas emisiones en {environment}</p>
               </div>
               <Link
                 to="/documentos"
-                className="inline-flex items-center gap-1 text-sm font-semibold text-brand-600 transition-colors hover:text-brand-700"
+                className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-brand-600 transition-colors hover:text-brand-700 active:scale-[0.98] sm:gap-1 sm:text-sm"
               >
                 Ver todos
                 <IconArrowRight />
               </Link>
             </div>
 
-            <div className="divide-y divide-line/50 px-2 sm:px-3">
+            <div className="divide-y divide-line/50 px-1 sm:px-3">
               {summary.isLoading && <p className="py-8 text-center text-sm text-muted">Cargando…</p>}
               {!summary.isLoading && recent.length === 0 && (
                 <p className="py-8 text-center text-sm text-muted">Aún no hay documentos en {environment}.</p>
@@ -545,25 +579,29 @@ export default function Dashboard() {
                 return (
                   <div
                     key={doc.cdc}
-                    className="flex items-center justify-between gap-3 rounded-xl px-3 py-3"
+                    className="flex items-center justify-between gap-2 rounded-xl px-2.5 py-2.5 sm:gap-3 sm:px-3 sm:py-3"
                   >
                     <div className="min-w-0">
-                      <p className="truncate text-sm font-medium text-ink">
+                      <p className="truncate text-[13px] font-medium text-ink sm:text-sm">
                         {tipoDeLabel(doc.tipo_de)}
-                        <span className="mx-1.5 text-muted/50">·</span>
+                        <span className="mx-1 text-muted/50 sm:mx-1.5">·</span>
                         <span className="font-normal text-muted">{doc.receptor_nombre || 'Sin nombre'}</span>
                       </p>
-                      <p className="mt-0.5 text-xs tabular-nums text-muted">
+                      <p className="mt-0.5 text-[11px] tabular-nums text-muted sm:text-xs">
                         {doc.num_documento}
-                        <span className="mx-1.5 text-muted/40">·</span>
+                        <span className="mx-1 text-muted/40 sm:mx-1.5">·</span>
                         {formatFecha(doc.fecha_emision)}
+                        <span className="mx-1 text-muted/40 sm:hidden">·</span>
+                        <span className="font-medium text-ink/80 sm:hidden">
+                          {formatMoneda(doc.total_operacion, doc.moneda)}
+                        </span>
                       </p>
                     </div>
-                    <div className="flex shrink-0 items-center gap-3">
+                    <div className="flex shrink-0 items-center gap-2 sm:gap-3">
                       <span className="hidden text-sm font-medium tabular-nums text-ink sm:inline">
                         {formatMoneda(doc.total_operacion, doc.moneda)}
                       </span>
-                      <Badge className={m.className}>
+                      <Badge className={cn(m.className, 'text-[11px] sm:text-xs')}>
                         <span className={`h-1.5 w-1.5 rounded-full ${m.dot}`} />
                         {m.label}
                       </Badge>
@@ -574,7 +612,7 @@ export default function Dashboard() {
             </div>
 
             {fallidos.length > 0 && (
-              <div className="mx-4 mb-4 mt-2 rounded-xl border border-warn/25 bg-linear-to-br from-warn/5 to-brand-50/30 p-4 sm:mx-5">
+              <div className="mx-3 mb-3 mt-1 rounded-xl border border-warn/25 bg-linear-to-br from-warn/5 to-brand-50/30 p-3.5 sm:mx-5 sm:mb-4 sm:mt-2 sm:p-4">
                 <p className="text-sm font-semibold text-warn">Atención: firmados / rechazados</p>
                 <ul className="mt-2 space-y-1.5 text-xs text-muted">
                   {fallidos.map((doc) => (
