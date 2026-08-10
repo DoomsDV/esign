@@ -148,6 +148,9 @@ function KeyRow({
   )
 }
 
+const API_KEYS_TIP =
+  'Claves para integrar tu backend con etick. El prefijo define el ambiente SIFEN (sk_test_ homologación, sk_prod_ producción). La key completa solo se muestra una vez al rotar; la anterior queda revocada de inmediato.'
+
 export default function ApiKeys() {
   const { session, environment } = useAuth()
   const token = session!.accessToken
@@ -203,8 +206,9 @@ export default function ApiKeys() {
     <AppShell title="API keys">
       <div className="dashboard-canvas -m-4 space-y-5 p-4 sm:-m-6 sm:space-y-6 sm:p-6">
         <PageHeader
+          compactOnMobile
           title="Keys de emisión"
-          description={`Claves para integrar tu backend con etick. Ambiente actual: ${environment} (${isProd ? 'sk_prod_' : 'sk_test_'}). La key completa solo se muestra una vez al rotar.`}
+          description={API_KEYS_TIP}
           action={
             canRotate ? (
               <Button
@@ -221,13 +225,16 @@ export default function ApiKeys() {
 
         {err && <Alert>{err}</Alert>}
 
-        <div className={cn(panelClass, 'px-5 py-4 sm:px-6')}>
+        <p className="text-xs text-muted sm:hidden">
+          Ambiente: <strong className="text-ink">{environment}</strong>{' '}
+          <span className="font-mono">({isProd ? 'sk_prod_' : 'sk_test_'})</span>
+        </p>
+
+        <div className={cn(panelClass, 'hidden px-5 py-4 sm:block sm:px-6')}>
           <p className="text-sm leading-relaxed text-muted">
-            El prefijo define el ambiente SIFEN:{' '}
-            <code className="rounded bg-cream px-1.5 py-0.5 font-mono text-xs text-ink">sk_test_</code>{' '}
-            homologación,{' '}
-            <code className="rounded bg-cream px-1.5 py-0.5 font-mono text-xs text-ink">sk_prod_</code>{' '}
-            producción. Al rotar, la key activa anterior pasa a revocada de inmediato.
+            Ambiente actual: <strong className="text-ink">{environment}</strong> (
+            {isProd ? 'sk_prod_' : 'sk_test_'}). El prefijo define el ambiente SIFEN. Al rotar, la key
+            activa anterior pasa a revocada de inmediato.
           </p>
         </div>
 
@@ -251,7 +258,7 @@ export default function ApiKeys() {
 
         {!q.isLoading && !q.error && scoped.length > 0 && (
           <div className={cn(panelClass, 'overflow-hidden')}>
-            <div className="flex items-center justify-between border-b border-line/60 px-5 py-3.5 sm:px-6">
+            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-line/60 px-5 py-3.5 sm:px-6">
               <p className="text-sm font-semibold text-ink">
                 {scoped.length} key{scoped.length === 1 ? '' : 's'} en {environment}
               </p>

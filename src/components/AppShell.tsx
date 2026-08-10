@@ -115,33 +115,18 @@ function IconInfo() {
   )
 }
 
-// IconMenu: hamburguesa que se transforma suavemente en X cuando isX=true.
-// Solo animamos transform/opacity (GPU); nada de layout.
+// IconMenu: hamburguesa ↔ X con trazo vectorial uniforme (evita líneas gruesas por subpíxeles).
 function IconMenu({ isX }: { isX: boolean }) {
   return (
-    <span className="relative block h-4 w-5" aria-hidden>
-      <span
-        className={cn(
-          'absolute left-0 top-0 h-0.5 w-5 origin-center rounded-full bg-current will-change-transform',
-          'transition-transform duration-200 ease-out',
-          isX && 'translate-y-[7px] rotate-45',
-        )}
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d={isX ? 'M6 6l12 12M18 6L6 18' : 'M5 7h14M5 12h14M5 17h14'}
+        className="stroke-current"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
-      <span
-        className={cn(
-          'absolute left-0 top-[7px] h-0.5 w-5 rounded-full bg-current',
-          'transition-opacity duration-150 ease-out',
-          isX ? 'opacity-0' : 'opacity-100',
-        )}
-      />
-      <span
-        className={cn(
-          'absolute left-0 top-[14px] h-0.5 w-5 origin-center rounded-full bg-current will-change-transform',
-          'transition-transform duration-200 ease-out',
-          isX && '-translate-y-[7px] -rotate-45',
-        )}
-      />
-    </span>
+    </svg>
   )
 }
 
@@ -398,7 +383,7 @@ export function AppShell({
                     </span>
                   </span>
                 </div>
-                <p className="truncate text-xs text-muted">{session?.businessName}</p>
+                <p className="hidden truncate text-xs text-muted sm:block">{session?.businessName}</p>
               </div>
             </div>
 

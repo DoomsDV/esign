@@ -5,7 +5,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
-import { Alert, Button, Card, SuccessAlert, TextField } from '@/components/ui'
+import { Alert, Button, Card, IconSave, SuccessAlert, TextField } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
@@ -43,10 +43,103 @@ function IconUpload() {
 
 /* ---------- Preview en React (no reusa el HTML de Go) ---------- */
 
-const PREVIEW_ITEMS = [
-  { desc: 'Servicio de consultoría', cant: '1', total: '750.000' },
-  { desc: 'Licencia mensual', cant: '2', total: '300.000' },
-]
+const PREVIEW_ITEMS_DEMO = [
+  { desc: 'Servicio de consultoría', iva: '10%', cant: '1', unitPrice: '750.000', total: '750.000' },
+  { desc: 'Licencia mensual', iva: '10%', cant: '2', unitPrice: '150.000', total: '300.000' },
+] as const
+
+/** Datos de ejemplo para la vista previa (no son datos reales del tenant). */
+const PREVIEW_DEMO = {
+  ruc: '6038964-8',
+  direccion: 'Av. España 1234, Asunción',
+  ciudad: 'Asunción, Paraguay',
+  timbrado: '12345678',
+  vigenciaTimbrado: '09/07/2026',
+  fechaEmision: '25/07/2026 14:30:00',
+  moneda: 'PYG',
+  monedaDesc: 'Guaraníes',
+  tipoCambio: null as string | null,
+  cdc: '01060389648001001000012312026080912345678901',
+  urlConsulta: 'https://ekuatia.set.gov.py/consultas/',
+  leyendaLegal:
+    'ESTE DOCUMENTO ES UNA REPRESENTACIÓN GRÁFICA DE UN DOCUMENTO ELECTRÓNICO (XML)',
+  ivaExento: '0',
+  iva5: '0',
+  iva10: '95.455',
+  totalIva: '95.455',
+} as const
+
+function formatCdc(cdc: string): string {
+  const parts: string[] = []
+  for (let i = 0; i < cdc.length; i += 4) parts.push(cdc.slice(i, i + 4))
+  return parts.join(' ')
+}
+
+/**
+ * Contenedor flexible para logos de cualquier proporción (escudos cuadrados, banners
+ * anchos tipo Tiemsa, etc.). object-contain evita deformar; el box define el techo visual.
+ */
+function PreviewLogo({
+  src,
+  variant,
+}: {
+  src: string
+  variant: 'minimalista' | 'corporativa'
+}) {
+  return (
+    <div
+      className={cn(
+        'flex shrink-0 items-center justify-start',
+        variant === 'corporativa'
+          ? 'mb-1.5 h-[4.5rem] w-full max-w-[13rem]'
+          : 'h-16 w-full max-w-[11rem]',
+      )}
+    >
+      <img
+        src={src}
+        alt="Logo del emisor"
+        className="max-h-full max-w-full object-contain object-left"
+      />
+    </div>
+  )
+}
+
+/** Placeholder visual del QR (en el PDF real Gotenberg inyecta la imagen generada). */
+function QrPlaceholder() {
+  return (
+    <div
+      className="grid shrink-0 grid-cols-5 gap-px rounded-sm bg-gray-400 p-1"
+      style={{ width: 52, height: 52 }}
+      aria-hidden
+    >
+      {Array.from({ length: 25 }, (_, i) => (
+        <div
+          key={i}
+          className="aspect-square rounded-[1px]"
+          style={{ backgroundColor: i % 3 === 0 || i % 7 === 0 ? '#374151' : '#e5e7eb' }}
+        />
+      ))}
+    </div>
+  )
+}
+
+function PreviewLegalFooter({ footer }: { footer: string }) {
+  return (
+    <div className="mt-4 border-t border-line/50 pt-4">
+      <div className="flex items-start gap-3">
+        <QrPlaceholder />
+        <div className="min-w-0 flex-1 text-[10px] leading-snug text-muted">
+          <p className="font-mono tracking-wide" aria-label="Código de control del documento">
+            CDC: {formatCdc(PREVIEW_DEMO.cdc)}
+          </p>
+          <p className="mt-1 break-all">{PREVIEW_DEMO.urlConsulta}</p>
+          <p className="mt-1.5">{PREVIEW_DEMO.leyendaLegal}</p>
+          {footer ? <p className="mt-1.5 normal-case">{footer}</p> : null}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function KudePreview({
   template,
@@ -69,41 +162,60 @@ function KudePreview({
         {/* Membrete + caja de timbrado, como una factura paraguaya clásica */}
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
-            {logo ? (
-              <img src={logo} alt="logo" className="mb-1.5 h-9 max-w-[110px] object-contain" />
-            ) : null}
+            {logo ? <PreviewLogo src={logo} variant="corporativa" /> : null}
             <p className="text-sm font-bold text-ink">{businessName || 'Tu empresa'}</p>
-            <p className="mt-0.5 text-[10px] text-muted">RUC: 6038964-8</p>
+            <p className="mt-0.5 text-[10px] text-muted">RUC: {PREVIEW_DEMO.ruc}</p>
+            <p className="mt-0.5 text-[10px] text-muted">{PREVIEW_DEMO.direccion}</p>
           </div>
           <div className="shrink-0 rounded-lg border-2 px-3 py-2 text-center" style={{ borderColor: safeColor }}>
             <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: safeColor }}>
               Factura electrónica
             </p>
             <p className="mt-1 text-sm font-bold text-ink">001-001-0000123</p>
+            <p className="mt-1.5 text-[9px] text-muted">
+              Timbrado N° {PREVIEW_DEMO.timbrado}
+            </p>
+            <p className="text-[9px] text-muted">Vigente desde {PREVIEW_DEMO.vigenciaTimbrado}</p>
           </div>
         </div>
 
-        {/* Franja de datos: receptor / condición, como una fila de formulario */}
+        {/* Franja de datos: emisión, receptor, condición y moneda */}
         <div className="mt-4 flex overflow-hidden rounded-md border border-line/70 text-[10px]">
           <div className="flex-1 p-2.5">
             <p>
+              <span className="font-semibold text-ink">Fecha y hora de emisión:</span>{' '}
+              <span className="text-muted">{PREVIEW_DEMO.fechaEmision}</span>
+            </p>
+            <p className="mt-1">
               <span className="font-semibold text-ink">Cliente:</span>{' '}
               <span className="text-muted">Ejemplo S.A.</span>
             </p>
             <p className="mt-0.5 text-muted">RUC 1234567-8</p>
           </div>
-          <div className="w-28 shrink-0 border-l border-line/70 p-2.5">
-            <p className="font-semibold text-ink">Contado</p>
+          <div className="w-[38%] shrink-0 border-l border-line/70 p-2.5">
+            <p>
+              <span className="font-semibold text-ink">Cond. de venta:</span>{' '}
+              <span className="text-muted">Contado</span>
+            </p>
+            <p className="mt-1">
+              <span className="font-semibold text-ink">Moneda:</span>{' '}
+              <span className="text-muted">
+                {PREVIEW_DEMO.moneda} ({PREVIEW_DEMO.monedaDesc})
+              </span>
+            </p>
+            {PREVIEW_DEMO.tipoCambio ? (
+              <p className="mt-0.5">
+                <span className="font-semibold text-ink">Tipo de cambio:</span>{' '}
+                <span className="text-muted">{PREVIEW_DEMO.tipoCambio}</span>
+              </p>
+            ) : null}
           </div>
         </div>
 
         <PreviewTable color={safeColor} variant="corporativa" />
         <ResumenPreview color={safeColor} variant="corporativa" />
 
-        <div className="mt-3 flex items-start justify-between border-t border-line/70 pt-3">
-          <div className="text-[9px] text-muted">QR</div>
-          <p className="max-w-[60%] truncate text-right text-[10px] text-muted">{footer}</p>
-        </div>
+        <PreviewLegalFooter footer={footer} />
       </div>
     )
   }
@@ -113,15 +225,12 @@ function KudePreview({
       {/* Encabezado sin cajas: logo a la izquierda, datos legales a la derecha */}
       <div className="flex items-start justify-between">
         <div>
-          {logo ? (
-            <img src={logo} alt="logo" className="h-8 max-w-[110px] object-contain" />
-          ) : (
-            <p className="text-sm font-bold text-ink">{businessName || 'Tu empresa'}</p>
-          )}
+          {logo ? <PreviewLogo src={logo} variant="minimalista" /> : null}
         </div>
         <div className="text-right">
-          <p className="text-[10px] text-muted">RUC 6038964-8</p>
-          <p className="text-[10px] text-muted">Asunción, Paraguay</p>
+          <p className="text-[11px] font-bold text-ink">{businessName || 'Tu empresa'}</p>
+          <p className="mt-0.5 text-[10px] text-muted">RUC {PREVIEW_DEMO.ruc}</p>
+          <p className="text-[10px] text-muted">{PREVIEW_DEMO.ciudad}</p>
         </div>
       </div>
 
@@ -139,7 +248,15 @@ function KudePreview({
         <div className="space-y-1.5">
           <div className="flex justify-between border-b border-line/50 pb-1">
             <span className="text-muted">Timbrado N°</span>
-            <span className="font-semibold text-ink">12345678</span>
+            <span className="font-semibold text-ink">{PREVIEW_DEMO.timbrado}</span>
+          </div>
+          <div className="flex justify-between border-b border-line/50 pb-1">
+            <span className="text-muted">Vigente desde</span>
+            <span className="font-semibold text-ink">{PREVIEW_DEMO.vigenciaTimbrado}</span>
+          </div>
+          <div className="flex justify-between border-b border-line/50 pb-1">
+            <span className="text-muted">Fecha de emisión</span>
+            <span className="font-semibold text-ink">{PREVIEW_DEMO.fechaEmision}</span>
           </div>
           <div className="flex justify-between border-b border-line/50 pb-1">
             <span className="text-muted">Condición</span>
@@ -151,37 +268,55 @@ function KudePreview({
       <PreviewTable color={safeColor} variant="minimalista" />
       <ResumenPreview color={safeColor} variant="minimalista" />
 
-      <div className="mt-4 flex items-start justify-between border-t border-line/50 pt-4">
-        <div className="text-[9px] text-muted/70">QR</div>
-        <p className="max-w-[60%] truncate text-right text-[10px] text-muted">{footer}</p>
-      </div>
+      <PreviewLegalFooter footer={footer} />
     </div>
   )
 }
 
 function PreviewTable({ color, variant }: { color: string; variant: 'corporativa' | 'minimalista' }) {
+  const headerCellBorder = { border: '1px solid #cbd5e1' } as const
+
   if (variant === 'corporativa') {
     return (
-      <table className="mt-4 w-full border-collapse text-[10px]">
+      <table className="mt-4 w-full border-separate border-spacing-0 text-[10px]">
         <thead>
-          <tr style={{ backgroundColor: color }}>
-            <th className="border px-2 py-1.5 text-left font-semibold text-white" style={{ borderColor: color }}>
+          <tr>
+            <th
+              className="bg-white px-2 py-1.5 text-left text-[9px] font-bold uppercase tracking-wide text-muted"
+              style={headerCellBorder}
+            >
               Descripción
             </th>
-            <th className="border px-2 py-1.5 text-right font-semibold text-white" style={{ borderColor: color }}>
+            <th
+              className="bg-white px-2 py-1.5 text-right text-[9px] font-bold uppercase tracking-wide text-muted"
+              style={headerCellBorder}
+            >
               Cant.
             </th>
-            <th className="border px-2 py-1.5 text-right font-semibold text-white" style={{ borderColor: color }}>
+            <th
+              className="bg-white px-2 py-1.5 text-right text-[9px] font-bold uppercase tracking-wide text-muted"
+              style={headerCellBorder}
+            >
+              P. unit.
+            </th>
+            <th
+              className="bg-white px-2 py-1.5 text-right text-[9px] font-bold uppercase tracking-wide text-muted"
+              style={headerCellBorder}
+            >
               Total
             </th>
           </tr>
         </thead>
         <tbody>
-          {PREVIEW_ITEMS.map((it, i) => (
-            <tr key={it.desc} className={i % 2 === 1 ? 'bg-cream-soft' : undefined}>
-              <td className="border border-line/70 px-2 py-1.5 text-ink">{it.desc}</td>
-              <td className="border border-line/70 px-2 py-1.5 text-right text-ink">{it.cant}</td>
-              <td className="border border-line/70 px-2 py-1.5 text-right text-ink">{it.total}</td>
+          {PREVIEW_ITEMS_DEMO.map((it) => (
+            <tr key={it.desc}>
+              <td className="border border-[#cbd5e1] px-2 py-1.5 text-ink">
+                {it.desc}{' '}
+                <span className="text-muted">({it.iva})</span>
+              </td>
+              <td className="border border-[#cbd5e1] px-2 py-1.5 text-right text-ink">{it.cant}</td>
+              <td className="border border-[#cbd5e1] px-2 py-1.5 text-right text-ink">{it.unitPrice}</td>
+              <td className="border border-[#cbd5e1] px-2 py-1.5 text-right text-ink">{it.total}</td>
             </tr>
           ))}
         </tbody>
@@ -200,15 +335,22 @@ function PreviewTable({ color, variant }: { color: string; variant: 'corporativa
             Cant.
           </th>
           <th className="pb-1.5 text-right text-[9px] font-bold uppercase tracking-wide text-muted">
+            Precio unit.
+          </th>
+          <th className="pb-1.5 text-right text-[9px] font-bold uppercase tracking-wide text-muted">
             Total
           </th>
         </tr>
       </thead>
       <tbody>
-        {PREVIEW_ITEMS.map((it) => (
+        {PREVIEW_ITEMS_DEMO.map((it) => (
           <tr key={it.desc} className="border-b border-line/40">
-            <td className="py-2 text-ink">{it.desc}</td>
+            <td className="py-2 text-ink">
+              {it.desc}{' '}
+              <span className="text-muted">(IVA {it.iva})</span>
+            </td>
             <td className="py-2 text-right text-ink">{it.cant}</td>
+            <td className="py-2 text-right text-ink">{it.unitPrice}</td>
             <td className="py-2 text-right text-ink">{it.total}</td>
           </tr>
         ))}
@@ -220,33 +362,44 @@ function PreviewTable({ color, variant }: { color: string; variant: 'corporativa
 function ResumenPreview({ color, variant }: { color: string; variant: 'corporativa' | 'minimalista' }) {
   if (variant === 'corporativa') {
     return (
-      <div className="mt-3 flex justify-end">
+      <div className="mt-3 flex flex-col items-end">
         <div className="overflow-hidden rounded-md border border-line/70 text-[10px]">
           <div className="flex justify-between gap-6 px-3 py-1.5">
             <span className="text-muted">Subtotal</span>
             <span className="font-semibold text-ink">1.050.000</span>
           </div>
-          <div className="flex justify-between gap-6 px-3 py-1.5 text-white" style={{ backgroundColor: color }}>
-            <span className="font-bold">Total a pagar</span>
-            <span className="font-bold">1.050.000</span>
+          <div
+            className="flex justify-between gap-6 border-t-2 px-3 py-2 text-sm font-extrabold"
+            style={{ borderColor: color }}
+          >
+            <span className="text-ink">Total a pagar {PREVIEW_DEMO.moneda}</span>
+            <span style={{ color }}>1.050.000</span>
           </div>
         </div>
+        <p className="mt-1.5 whitespace-nowrap text-right text-[9px] text-muted">
+          Liquidación del IVA: (5%) {PREVIEW_DEMO.iva5} | (10%) {PREVIEW_DEMO.iva10} | Total IVA:{' '}
+          {PREVIEW_DEMO.totalIva}
+        </p>
       </div>
     )
   }
 
   return (
-    <div className="mt-2 flex justify-end">
+    <div className="mt-2 flex flex-col items-end">
       <div className="min-w-[170px] text-[10px]">
         <div className="flex justify-between py-1 text-muted">
           <span>Subtotal</span>
           <span>1.050.000</span>
         </div>
         <div className="flex justify-between pt-2 text-sm font-extrabold" style={{ borderTop: `2px solid ${color}` }}>
-          <span className="text-ink">Total Gs.</span>
+          <span className="text-ink">Total {PREVIEW_DEMO.moneda}</span>
           <span style={{ color }}>1.050.000</span>
         </div>
       </div>
+      <p className="mt-1.5 whitespace-nowrap text-right text-[9px] text-muted">
+        Liquidación de IVA: Exento: {PREVIEW_DEMO.ivaExento} | 5%: {PREVIEW_DEMO.iva5} | 10%:{' '}
+        {PREVIEW_DEMO.iva10} | Total IVA: {PREVIEW_DEMO.totalIva}
+      </p>
     </div>
   )
 }
@@ -443,7 +596,13 @@ export default function DisenoKude() {
                     )}
                   >
                     {logoUrl ? (
-                      <img src={logoUrl} alt="logo actual" className="h-14 max-w-[180px] object-contain" />
+                      <div className="flex h-20 w-full max-w-[240px] items-center justify-center">
+                        <img
+                          src={logoUrl}
+                          alt="Logo actual"
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      </div>
                     ) : (
                       <span className="text-brand-600">
                         <IconUpload />
@@ -460,7 +619,13 @@ export default function DisenoKude() {
                   </button>
                 ) : (
                   logoUrl && (
-                    <img src={logoUrl} alt="logo actual" className="mt-4 h-14 max-w-[180px] object-contain" />
+                    <div className="mt-4 flex h-20 max-w-[240px] items-center">
+                      <img
+                        src={logoUrl}
+                        alt="Logo actual"
+                        className="max-h-full max-w-full object-contain object-left"
+                      />
+                    </div>
                   )
                 )}
               </section>
@@ -495,6 +660,7 @@ export default function DisenoKude() {
                   onClick={() => save.mutate()}
                   disabled={!isValidHex(color)}
                 >
+                  <IconSave />
                   Guardar cambios
                 </Button>
               </div>
@@ -513,10 +679,6 @@ export default function DisenoKude() {
               footer={footer || 'KuDE — Comprobante Único de DE'}
               businessName={session?.businessName ?? ''}
             />
-            <p className="mt-3 text-xs text-muted">
-              El PDF final se genera con Gotenberg a partir de la misma configuración; puede haber
-              pequeñas diferencias tipográficas respecto de esta vista previa.
-            </p>
           </div>
         </div>
       )}

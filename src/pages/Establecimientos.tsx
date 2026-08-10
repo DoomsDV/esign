@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
-import { Alert, Badge, Button, Drawer, PageHeader, SearchSelect, SuccessAlert, TextField, panelClass } from '@/components/ui'
+import { Alert, Badge, Button, Drawer, IconSave, InfoTip, PageHeader, SearchSelect, SuccessAlert, TextField, panelClass } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
@@ -24,6 +24,9 @@ import {
   findDistrito,
   geoLabel,
 } from '@/lib/geo'
+
+const ESTABLECIMIENTOS_TIP =
+  'Cada establecimiento define la geo del local emisor (dEst). Los puntos son las cajas desde las que emitís.'
 
 /** Tarjeta individual por establecimiento. */
 const EST_CARD = panelClass
@@ -70,14 +73,6 @@ function IconMap() {
         strokeLinejoin="round"
       />
       <circle cx="12" cy="10" r="2.2" className="stroke-current" strokeWidth="1.8" />
-    </svg>
-  )
-}
-function IconInfo() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="9" className="stroke-current" strokeWidth="1.8" />
-      <path d="M12 11v5M12 8h.01" className="stroke-current" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
   )
 }
@@ -285,8 +280,9 @@ export default function Establecimientos() {
 
         {!q.isLoading && (
           <PageHeader
+            compactOnMobile
             title="Sucursales y puntos de expedición"
-            description="Cada establecimiento define la geo del local emisor (dEst). Los puntos son las cajas desde las que emitís."
+            description={ESTABLECIMIENTOS_TIP}
             action={
               canEdit && establecimientos.length > 0 ? (
                 <Button onClick={openNew} className="gap-1.5">
@@ -310,7 +306,7 @@ export default function Establecimientos() {
               ]
                 .filter(Boolean)
                 .join(' · ')
-              const geoTip = `dep ${e.dep?.cod} · dis ${e.dis?.cod ?? '—'} · ciu ${e.ciu?.cod}`
+              const geoTip = `${dir || 'Sin dirección'} · dep ${e.dep?.cod} · dis ${e.dis?.cod ?? '—'} · ciu ${e.ciu?.cod}`
               const puntos = e.puntos ?? []
 
               return (
@@ -327,17 +323,13 @@ export default function Establecimientos() {
                           {e.is_active ? 'Activo' : 'Inactivo'}
                         </Badge>
                       </div>
-                      <div className="mt-2 flex items-start gap-2 text-sm text-muted">
-                        <span className="mt-0.5 shrink-0 text-brand-600/70">
+                      <div className="mt-2 flex items-center gap-2 text-sm text-muted">
+                        <span className="shrink-0 text-brand-600/70">
                           <IconMap />
                         </span>
-                        <p className="min-w-0 leading-snug">{dir || 'Sin dirección'}</p>
-                        <span className="group relative mt-0.5 shrink-0 text-muted" title={geoTip}>
-                          <IconInfo />
-                          <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-lg bg-ink px-2.5 py-1.5 text-[11px] font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
-                            {geoTip}
-                          </span>
-                        </span>
+                        <p className="min-w-0 flex-1 truncate leading-snug sm:whitespace-normal">{dir || 'Sin dirección'}</p>
+                        <InfoTip text={geoTip} className="shrink-0 sm:hidden" />
+                        <span className="hidden shrink-0 text-xs text-muted/80 sm:inline">{geoTip}</span>
                       </div>
                     </div>
 
@@ -459,6 +451,7 @@ export default function Establecimientos() {
               disabled={!formValido}
               onClick={() => saveEstab.mutate()}
             >
+              <IconSave />
               Guardar
             </Button>
           </div>
@@ -568,6 +561,7 @@ export default function Establecimientos() {
               disabled={!/^\d{3}$/.test(punto.codigo.trim())}
               onClick={() => savePunto.mutate()}
             >
+              <IconSave />
               {editingPunto ? 'Guardar cambios' : 'Guardar punto'}
             </Button>
           </div>

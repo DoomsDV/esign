@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
-import { Alert, Button, Card, PageHeader, SearchSelect, SuccessAlert, TextField } from '@/components/ui'
+import { Alert, Button, Card, PageHeader, SectionHint, SearchSelect, SuccessAlert, TextField, IconSave } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
@@ -11,6 +11,12 @@ import {
   TIPOS_REGIMEN,
   actividadLabel,
 } from '@/lib/sifen-catalogs'
+
+const EMPRESA_TIP =
+  'Datos fiscales de solo lectura y parámetros SIFEN que definen cómo se arma el XML del DE.'
+
+const EMISOR_TIP =
+  'Tipo de contribuyente, régimen y actividad económica. La descripción debe coincidir exactamente con el catálogo SET (error 1261/1262 si no).'
 
 function formatClientStatus(status: string): string {
   switch (status.toUpperCase()) {
@@ -129,8 +135,9 @@ export default function Empresa() {
         {q.data && (
           <>
             <PageHeader
+              compactOnMobile
               title="Configuración del emisor"
-              description="Datos fiscales de solo lectura y parámetros SIFEN que definen cómo se arma el XML del DE."
+              description={EMPRESA_TIP}
               action={
                 canEdit ? (
                   <Button
@@ -138,6 +145,7 @@ export default function Empresa() {
                     onClick={() => save.mutate()}
                     disabled={!actCod || !actDesc}
                   >
+                    <IconSave />
                     Guardar cambios
                   </Button>
                 ) : undefined
@@ -154,8 +162,10 @@ export default function Empresa() {
             <Card className="overflow-hidden">
               <div className="flex flex-col gap-8 px-5 py-6 sm:px-7 sm:py-8">
                 <section>
-                  <h3 className="text-[15px] font-semibold tracking-tight text-ink">Identidad del negocio</h3>
-                  <p className="mt-1 text-sm text-muted">Datos fiscales del cliente (solo lectura).</p>
+                  <SectionHint
+                    title="Identidad del negocio"
+                    tip="Datos fiscales del cliente (solo lectura)."
+                  />
                   <div className="mt-5 grid gap-3 sm:grid-cols-2">
                     <ReadOnlyField
                       label="Razón social"
@@ -173,11 +183,7 @@ export default function Empresa() {
                 <hr className="border-t border-line/60" />
 
                 <section>
-                  <h3 className="text-[15px] font-semibold tracking-tight text-ink">Emisor SIFEN</h3>
-                  <p className="mt-1 text-sm leading-relaxed text-muted">
-                    Tipo de contribuyente, régimen y actividad económica. La descripción debe coincidir exactamente
-                    con el catálogo SET (error 1261/1262 si no).
-                  </p>
+                  <SectionHint title="Emisor SIFEN" tip={EMISOR_TIP} />
 
                   <div className="mt-5 grid gap-4 sm:grid-cols-2">
                     <SearchSelect

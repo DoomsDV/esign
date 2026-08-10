@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState, type ReactNode } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
-import { Alert, Badge, Button, InfoTip, PageHeader, SuccessAlert, TextField, panelClass } from '@/components/ui'
+import { Alert, Badge, Button, InfoTip, PageHeader, SectionHint, SuccessAlert, TextField, panelClass } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
@@ -141,15 +141,6 @@ const CERT_PAGE_TIP =
 const STORAGE_TIP =
   'Cifrado AES-256-GCM en servidor · identidad del titular no expuesta en el panel'
 
-function PanelSubtitle({ tip, children }: { tip: string; children: ReactNode }) {
-  return (
-    <>
-      <p className="mt-0.5 hidden text-sm text-muted sm:block">{children}</p>
-      <InfoTip text={tip} className="mt-1 sm:hidden" />
-    </>
-  )
-}
-
 export default function Certificado() {
   const { session } = useAuth()
   const token = session!.accessToken
@@ -246,16 +237,7 @@ export default function Certificado() {
   return (
     <AppShell title="Certificado">
       <div className="dashboard-canvas -m-4 space-y-5 p-4 sm:-m-6 sm:space-y-6 sm:p-6">
-        <PageHeader
-          compactOnMobile
-          title={
-            <span className="inline-flex items-center gap-1.5">
-              Certificado digital
-              <InfoTip text={CERT_PAGE_TIP} className="sm:hidden" />
-            </span>
-          }
-          description={CERT_PAGE_TIP}
-        />
+        <PageHeader compactOnMobile title="Certificado digital" description={CERT_PAGE_TIP} />
 
         {q.error && <Alert>{(q.error as Error).message}</Alert>}
 
@@ -263,8 +245,7 @@ export default function Certificado() {
           {/* Subida: izquierda en desktop, debajo del estado en mobile */}
           <div className={cn(panelClass, 'order-2 flex h-full min-h-0 flex-col overflow-hidden lg:order-1')}>
             <div className="border-b border-line/60 px-5 py-4 sm:px-6">
-              <h3 className="text-[15px] font-semibold tracking-tight text-ink">{uploadTitle}</h3>
-              <PanelSubtitle tip={uploadTip}>{uploadTip}</PanelSubtitle>
+              <SectionHint title={uploadTitle} tip={uploadTip} />
             </div>
 
             <div className="flex flex-1 flex-col px-5 py-5 sm:px-6">
@@ -389,7 +370,7 @@ export default function Certificado() {
           {/* Estado: derecha en desktop, arriba en mobile */}
           <div className={cn(panelClass, 'order-1 flex h-full min-h-0 flex-col overflow-hidden lg:order-2')}>
             <div className="border-b border-line/60 px-5 py-4 sm:px-6">
-              <div className="flex items-start gap-3">
+              <div className="flex items-center gap-3">
                 <span
                   className={cn(
                     'grid h-9 w-9 shrink-0 place-items-center rounded-xl',
@@ -402,10 +383,7 @@ export default function Certificado() {
                 >
                   <IconShield />
                 </span>
-                <div>
-                  <h3 className="text-[15px] font-semibold tracking-tight text-ink">{statusTitle}</h3>
-                  <PanelSubtitle tip={statusTip}>{statusTip}</PanelSubtitle>
-                </div>
+                <SectionHint title={statusTitle} tip={statusTip} className="min-w-0 flex-1" />
               </div>
             </div>
 
@@ -461,11 +439,11 @@ export default function Certificado() {
                   {hasCert && (
                     <ReadOnlyTile label="Almacenamiento">
                       <span className="inline-flex items-center gap-1.5 text-sm font-normal text-muted">
-                        <span className="sm:hidden">Cifrado en servidor</span>
-                        <span className="hidden sm:inline">
-                          Cifrado AES-256-GCM en servidor · identidad del titular no expuesta en el panel
-                        </span>
+                        Cifrado en servidor
                         <InfoTip text={STORAGE_TIP} className="sm:hidden" />
+                        <span className="hidden sm:inline">
+                          · AES-256-GCM · identidad del titular no expuesta en el panel
+                        </span>
                       </span>
                     </ReadOnlyTile>
                   )}

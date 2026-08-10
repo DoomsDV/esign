@@ -5,6 +5,7 @@ import {
   Alert,
   Badge,
   Button,
+  IconSave,
   InfoTip,
   Modal,
   PageHeader,
@@ -152,6 +153,7 @@ export default function Ambientes() {
                 loading={saving}
                 disabled={!canSave || saving}
               >
+                <IconSave />
                 Guardar {environment}
               </Button>
             ) : undefined
@@ -259,6 +261,7 @@ export default function Ambientes() {
                   loading={saving}
                   disabled={!canSave || saving}
                 >
+                  <IconSave />
                   Guardar {environment}
                 </Button>
               </div>
@@ -285,6 +288,7 @@ export default function Ambientes() {
             Cancelar
           </Button>
           <Button variant="danger-outline" loading={saving} onClick={submitSave}>
+            <IconSave />
             Confirmar guardado PROD
           </Button>
         </div>

@@ -65,6 +65,28 @@ export function Button({ variant = 'primary', loading, className, children, disa
   )
 }
 
+/** Disco / guardar — trazo uniforme para botones de persistencia. */
+export function IconSave({ className }: { className?: string }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden className={className}>
+      <path
+        d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"
+        className="stroke-current"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M17 21v-8H7v8M7 3v5h8"
+        className="stroke-current"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 interface FieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
   hint?: ReactNode
@@ -124,13 +146,22 @@ export function PageHeader({
   description?: string
   action?: ReactNode
   className?: string
-  /** Oculta la descripción en mobile (usar con InfoTip junto al título). */
+  /** Oculta la descripción en mobile y muestra InfoTip junto al título. */
   compactOnMobile?: boolean
 }) {
+  const titleIsPlain = typeof title === 'string'
+
   return (
-    <div className={cn('flex flex-wrap items-start justify-between gap-4', className)}>
+    <div className={cn('flex flex-wrap items-center justify-between gap-3', className)}>
       <div className="min-w-0">
-        <h2 className="text-lg font-semibold tracking-tight text-ink">{title}</h2>
+        {titleIsPlain ? (
+          <h2 className="inline-flex max-w-full items-center gap-1.5 text-lg font-semibold tracking-tight text-ink">
+            <span className="truncate">{title}</span>
+            {description && compactOnMobile ? <InfoTip text={description} className="sm:hidden" /> : null}
+          </h2>
+        ) : (
+          <h2 className="text-lg font-semibold tracking-tight text-ink">{title}</h2>
+        )}
         {description && (
           <p
             className={cn(
@@ -142,7 +173,37 @@ export function PageHeader({
           </p>
         )}
       </div>
-      {action ? <div className="shrink-0">{action}</div> : null}
+      {action ? <div className="shrink-0 max-sm:w-full">{action}</div> : null}
+    </div>
+  )
+}
+
+/** Título de sección/panel: texto completo en desktop, InfoTip inline en mobile. */
+export function SectionHint({
+  as: Tag = 'h3',
+  title,
+  tip,
+  className,
+  titleClassName,
+}: {
+  as?: 'h2' | 'h3' | 'h4'
+  title: ReactNode
+  tip?: string
+  className?: string
+  titleClassName?: string
+}) {
+  return (
+    <div className={className}>
+      <Tag
+        className={cn(
+          'inline-flex max-w-full items-center gap-1.5 tracking-tight text-ink',
+          titleClassName ?? 'text-[15px] font-semibold',
+        )}
+      >
+        <span className="min-w-0">{title}</span>
+        {tip ? <InfoTip text={tip} className="sm:hidden" /> : null}
+      </Tag>
+      {tip ? <p className="mt-1 hidden text-sm leading-relaxed text-muted sm:block">{tip}</p> : null}
     </div>
   )
 }
@@ -172,7 +233,7 @@ export function InfoTip({ text, className }: { text: string; className?: string 
           e.stopPropagation()
           setOpen((v) => !v)
         }}
-        className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted/80 transition-colors hover:bg-cream hover:text-ink"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted/80 transition-colors hover:bg-cream hover:text-ink sm:h-5 sm:w-5"
       >
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
           <circle cx="12" cy="12" r="9" className="stroke-current" strokeWidth="1.8" />
