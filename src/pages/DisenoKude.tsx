@@ -2,7 +2,7 @@
 // de inmediato a OCI (vía ORDS); el resto se guarda con "Guardar cambios". El panel
 // derecho es un preview en React que imita visualmente cada plantilla (no llama a
 // Gotenberg en cada cambio: eso solo ocurre al emitir un documento real).
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
 import { Alert, Button, Card, IconSave, SuccessAlert, TextField } from '@/components/ui'
@@ -57,7 +57,7 @@ const PREVIEW_DEMO = {
   vigenciaTimbrado: '09/07/2026',
   fechaEmision: '25/07/2026 14:30:00',
   moneda: 'PYG',
-  monedaDesc: 'Guaraníes',
+  monedaDesc: 'Guarani',
   tipoCambio: null as string | null,
   cdc: '01060389648001001000012312026080912345678901',
   urlConsulta: 'https://ekuatia.set.gov.py/consultas/',
@@ -273,9 +273,20 @@ function KudePreview({
   )
 }
 
-function PreviewTable({ color, variant }: { color: string; variant: 'corporativa' | 'minimalista' }) {
-  const headerCellBorder = { border: '1px solid #cbd5e1' } as const
+function solidEdgeBorder(color: string, edge: 'top' | 'bottom', widthPx = 2): CSSProperties {
+  if (edge === 'top') {
+    return { borderTopWidth: widthPx, borderTopStyle: 'solid', borderTopColor: color }
+  }
+  return { borderBottomWidth: widthPx, borderBottomStyle: 'solid', borderBottomColor: color }
+}
 
+const HEADER_CELL_BORDER: CSSProperties = {
+  borderWidth: 1,
+  borderStyle: 'solid',
+  borderColor: '#cbd5e1',
+}
+
+function PreviewTable({ color, variant }: { color: string; variant: 'corporativa' | 'minimalista' }) {
   if (variant === 'corporativa') {
     return (
       <table className="mt-4 w-full border-separate border-spacing-0 text-[10px]">
@@ -283,25 +294,25 @@ function PreviewTable({ color, variant }: { color: string; variant: 'corporativa
           <tr>
             <th
               className="bg-white px-2 py-1.5 text-left text-[9px] font-bold uppercase tracking-wide text-muted"
-              style={headerCellBorder}
+              style={HEADER_CELL_BORDER}
             >
               Descripción
             </th>
             <th
               className="bg-white px-2 py-1.5 text-right text-[9px] font-bold uppercase tracking-wide text-muted"
-              style={headerCellBorder}
+              style={HEADER_CELL_BORDER}
             >
               Cant.
             </th>
             <th
               className="bg-white px-2 py-1.5 text-right text-[9px] font-bold uppercase tracking-wide text-muted"
-              style={headerCellBorder}
+              style={HEADER_CELL_BORDER}
             >
               P. unit.
             </th>
             <th
               className="bg-white px-2 py-1.5 text-right text-[9px] font-bold uppercase tracking-wide text-muted"
-              style={headerCellBorder}
+              style={HEADER_CELL_BORDER}
             >
               Total
             </th>
@@ -327,7 +338,7 @@ function PreviewTable({ color, variant }: { color: string; variant: 'corporativa
   return (
     <table className="mt-4 w-full text-[10px]">
       <thead>
-        <tr style={{ borderBottom: `2px solid ${color}` }}>
+        <tr style={solidEdgeBorder(color, 'bottom')}>
           <th className="pb-1.5 text-left text-[9px] font-bold uppercase tracking-wide text-muted">
             Descripción
           </th>
@@ -369,8 +380,8 @@ function ResumenPreview({ color, variant }: { color: string; variant: 'corporati
             <span className="font-semibold text-ink">1.050.000</span>
           </div>
           <div
-            className="flex justify-between gap-6 border-t-2 px-3 py-2 text-sm font-extrabold"
-            style={{ borderColor: color }}
+            className="flex justify-between gap-6 px-3 py-2 text-sm font-extrabold"
+            style={solidEdgeBorder(color, 'top')}
           >
             <span className="text-ink">Total a pagar {PREVIEW_DEMO.moneda}</span>
             <span style={{ color }}>1.050.000</span>
@@ -391,7 +402,7 @@ function ResumenPreview({ color, variant }: { color: string; variant: 'corporati
           <span>Subtotal</span>
           <span>1.050.000</span>
         </div>
-        <div className="flex justify-between pt-2 text-sm font-extrabold" style={{ borderTop: `2px solid ${color}` }}>
+        <div className="flex justify-between pt-2 text-sm font-extrabold" style={solidEdgeBorder(color, 'top')}>
           <span className="text-ink">Total {PREVIEW_DEMO.moneda}</span>
           <span style={{ color }}>1.050.000</span>
         </div>
