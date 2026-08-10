@@ -73,6 +73,18 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+/* Bottom nav móvil: safe area iOS + sombra tintada al fondo */
+.mobile-bottom-nav__surface {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-shadow:
+    0 -1px 0 rgba(26, 29, 35, 0.04),
+    0 -8px 24px -12px rgba(26, 29, 35, 0.12);
+}
+
+.mobile-config-sheet {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
 /* Auth: panel decorativo derecho */
 .auth-panel-grid {
   background-image:
@@ -277,6 +289,13 @@ body {
   opacity: 0.85;
 }
 
+@media (max-width: 639px) {
+  .dashboard-canvas .kpi-card::before {
+    width: 2px;
+    border-radius: 2px 0 0 2px;
+  }
+}
+
 /* Overlays modales: fade del backdrop + slide-up del panel en mobile */
 @keyframes overlay-fade-in {
   from {
@@ -314,6 +333,10 @@ body {
   .modal-backdrop-enter,
   .modal-sheet-enter {
     animation: none !important;
+  }
+
+  .mobile-config-sheet {
+    transition: none !important;
   }
 
   .auth-doc-ground,

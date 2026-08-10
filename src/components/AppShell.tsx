@@ -1,6 +1,6 @@
 // App shell del panel: sidebar colapsable + topbar + banner de ambiente.
-import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/cn'
 import { EnvToggle } from './EnvToggle'
@@ -135,6 +135,32 @@ const CONFIG: NavItem[] = [
   { label: 'Equipo', to: '/equipo', icon: <IconTeam /> },
 ]
 
+const CONFIG_PATHS = new Set(CONFIG.map((item) => item.to))
+
+function IconMore() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="6" cy="12" r="1.6" className="fill-current" />
+      <circle cx="12" cy="12" r="1.6" className="fill-current" />
+      <circle cx="18" cy="12" r="1.6" className="fill-current" />
+    </svg>
+  )
+}
+
+interface MobileNavItem {
+  label: string
+  to?: string
+  icon: ReactNode
+  action?: 'menu'
+}
+
+const MOBILE_NAV: MobileNavItem[] = [
+  { label: 'Inicio', to: '/', icon: <IconDash /> },
+  { label: 'Documentos', to: '/documentos', icon: <IconDocs /> },
+  { label: 'Locales', to: '/establecimientos', icon: <IconStore /> },
+  { label: 'Más', icon: <IconMore />, action: 'menu' },
+]
+
 function NavList({
   items,
   collapsed,
@@ -171,6 +197,92 @@ function NavList({
   )
 }
 
+function MobileBottomNav({
+  onToggleMenu,
+  menuOpen,
+  moreButtonRef,
+}: {
+  onToggleMenu: () => void
+  menuOpen: boolean
+  moreButtonRef: RefObject<HTMLButtonElement | null>
+}) {
+  const { pathname } = useLocation()
+  const onConfigRoute = CONFIG_PATHS.has(pathname)
+
+  return (
+    <nav
+      inert={menuOpen ? true : undefined}
+      className={cn(
+        'mobile-bottom-nav fixed inset-x-0 bottom-0 z-30 md:hidden',
+        'transition-transform duration-200 ease-out',
+        menuOpen && 'pointer-events-none translate-y-full',
+      )}
+      aria-label="Navegación principal"
+      aria-hidden={menuOpen ? true : undefined}
+    >
+      <div className="mobile-bottom-nav__surface border-t border-line/70 bg-white/92 backdrop-blur-xl">
+        <ul className="mx-auto flex max-w-lg items-stretch justify-around px-1 pt-1.5">
+          {MOBILE_NAV.map((item) => {
+            const isMenu = item.action === 'menu'
+
+            const itemClass = (active: boolean) =>
+              cn(
+                'flex min-h-[3.25rem] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1',
+                'text-[10px] font-semibold tracking-wide transition-[color,transform,background-color] duration-200',
+                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 focus-visible:ring-offset-2',
+                active
+                  ? 'text-brand-700'
+                  : 'text-muted active:scale-[0.97] active:text-ink',
+              )
+
+            const iconWrap = (active: boolean) =>
+              cn(
+                'grid h-8 w-8 place-items-center rounded-xl transition-colors duration-200',
+                active && 'bg-brand-100 text-brand-700',
+              )
+
+            if (isMenu) {
+              const isHighlighted = onConfigRoute || menuOpen
+              return (
+                <li key={item.label} className="flex min-w-0 flex-1">
+                  <button
+                    ref={moreButtonRef}
+                    type="button"
+                    onClick={onToggleMenu}
+                    className={itemClass(isHighlighted)}
+                    aria-expanded={menuOpen}
+                    aria-label={menuOpen ? 'Cerrar menú de configuración' : 'Abrir menú de configuración'}
+                  >
+                    <span className={iconWrap(isHighlighted)}>{item.icon}</span>
+                    <span className="truncate">{item.label}</span>
+                  </button>
+                </li>
+              )
+            }
+
+            return (
+              <li key={item.to} className="flex min-w-0 flex-1">
+                <NavLink
+                  to={item.to!}
+                  end={item.to === '/'}
+                  className={({ isActive }) => itemClass(isActive)}
+                >
+                  {({ isActive }) => (
+                    <>
+                      <span className={iconWrap(isActive)}>{item.icon}</span>
+                      <span className="truncate">{item.label}</span>
+                    </>
+                  )}
+                </NavLink>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
+    </nav>
+  )
+}
+
 export function AppShell({
   title,
   actions,
@@ -190,9 +302,7 @@ export function AppShell({
   )
   const [mobileOpen, setMobileOpen] = useState(false)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
-  const [isDesktop, setIsDesktop] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches,
-  )
+  const mobileMoreButtonRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
     localStorage.setItem('esign.sidebarCollapsed', collapsed ? '1' : '0')
@@ -201,7 +311,6 @@ export function AppShell({
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 768px)')
     const onChange = () => {
-      setIsDesktop(mq.matches)
       if (mq.matches) setMobileOpen(false)
     }
     onChange()
@@ -209,7 +318,7 @@ export function AppShell({
     return () => mq.removeEventListener('change', onChange)
   }, [])
 
-  // Bloquea scroll del body cuando el drawer móvil está abierto.
+  // Bloquea scroll del body cuando el bottom sheet móvil está abierto.
   useEffect(() => {
     if (!mobileOpen) return
     const prev = document.body.style.overflow
@@ -226,45 +335,45 @@ export function AppShell({
 
   function closeMobileMenu() {
     setMobileOpen(false)
-    requestAnimationFrame(() => menuButtonRef.current?.focus())
+    requestAnimationFrame(() => mobileMoreButtonRef.current?.focus())
   }
 
-  function toggleMenu() {
-    if (isDesktop) {
-      setCollapsed((v) => !v)
-    } else if (mobileOpen) {
-      closeMobileMenu()
-    } else {
-      setMobileOpen(true)
-    }
+  function openMobileMenu() {
+    setMobileOpen(true)
   }
 
-  // Desktop: siempre hamburguesa (colapsar/expandir). X solo en móvil con drawer abierto
-  // — una X junto a una vista principal se lee como "cerrar modal" y confunde.
-  const menuOpen = isDesktop ? false : mobileOpen
-  const menuHighlighted = isDesktop ? collapsed : mobileOpen
+  function toggleMobileMenu() {
+    if (mobileOpen) closeMobileMenu()
+    else openMobileMenu()
+  }
+
+  function toggleDesktopSidebar() {
+    setCollapsed((v) => !v)
+  }
 
   const isTest = environment === 'TEST'
 
   usePageTitle(title)
 
-  // Contenido del sidebar con ancho fijo (16rem). El aside padre lo recorta
-  // vía overflow-hidden cuando colapsa: no animamos textos individuales, así
-  // evitamos layout thrash y lag.
-  const sidebarContent = (isCollapsed: boolean) => (
+  // Contenido del sidebar desktop (ancho fijo 16rem).
+  const sidebarContent = (isCollapsed: boolean, includePrimary = true) => (
     <div className="flex h-full w-full flex-col overflow-y-auto px-3 py-5">
       <BrandLogo asLink collapsed={isCollapsed} className="mb-6" />
 
-      <div className="mb-5">
-        <NavList items={PRIMARY} collapsed={isCollapsed} onNavigate={closeMobileMenu} />
-      </div>
+      {includePrimary && (
+        <div className="mb-5">
+          <NavList items={PRIMARY} collapsed={isCollapsed} onNavigate={closeMobileMenu} />
+        </div>
+      )}
 
-      {isCollapsed ? (
+      {includePrimary && isCollapsed ? (
         <div className="mx-auto mb-2 h-px w-8 bg-line" />
       ) : (
-        <p className="mb-2 h-4 whitespace-nowrap px-3 text-[11px] font-semibold uppercase tracking-wider text-ink/55">
-          Configuración
-        </p>
+        !isCollapsed && (
+          <p className="mb-2 h-4 whitespace-nowrap px-3 text-[11px] font-semibold uppercase tracking-wider text-ink/55">
+            Configuración
+          </p>
+        )
       )}
       <NavList items={CONFIG} collapsed={isCollapsed} onNavigate={closeMobileMenu} />
 
@@ -282,6 +391,26 @@ export function AppShell({
             <IconLogout />
           </span>
           {!isCollapsed && <span className="whitespace-nowrap">Cerrar sesión</span>}
+        </button>
+      </div>
+    </div>
+  )
+
+  const mobileConfigSheet = (
+    <div className="flex flex-col px-3 pb-2">
+      <NavList items={CONFIG} collapsed={false} onNavigate={closeMobileMenu} />
+      <div className="mt-3 border-t border-line pt-3">
+        <button
+          onClick={handleLogout}
+          className={cn(
+            'flex h-10 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium text-muted transition-colors hover:bg-cream',
+            isTest ? 'hover:text-danger' : 'hover:text-ok-strong',
+          )}
+        >
+          <span className="grid h-5 w-5 shrink-0 place-items-center">
+            <IconLogout />
+          </span>
+          <span>Cerrar sesión</span>
         </button>
       </div>
     </div>
@@ -306,7 +435,7 @@ export function AppShell({
     <div className={cn('flex h-dvh overflow-hidden bg-white', !isTest && 'env-prod')}>
       {desktopSidebar}
 
-      {/* Drawer móvil — inert al cerrar; no aria-hidden en ancestro con foco */}
+      {/* Bottom sheet móvil — configuración */}
       <div
         className={cn(
           'fixed inset-0 z-40 md:hidden',
@@ -316,21 +445,37 @@ export function AppShell({
         <div
           onClick={closeMobileMenu}
           className={cn(
-            'absolute inset-0 bg-ink/40 transition-opacity duration-200 ease-out',
+            'absolute inset-0 bg-ink/40 backdrop-blur-sm transition-opacity duration-200 ease-out',
             mobileOpen ? 'opacity-100' : 'opacity-0',
           )}
           aria-hidden
         />
         <aside
+          role="dialog"
+          aria-modal={mobileOpen ? true : undefined}
           inert={!mobileOpen ? true : undefined}
-          aria-label="Menú de navegación"
+          aria-label="Configuración"
           className={cn(
-            'absolute inset-y-0 left-0 w-64 bg-white shadow-2xl',
-            'transition-transform duration-200 ease-out',
-            mobileOpen ? 'translate-x-0' : '-translate-x-full',
+            'mobile-config-sheet absolute inset-x-0 bottom-0 flex max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-bottom,0px)))] flex-col bg-white shadow-2xl',
+            'rounded-t-2xl transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
+            mobileOpen ? 'translate-y-0' : 'translate-y-full',
           )}
         >
-          {sidebarContent(false)}
+          <div className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-line" aria-hidden />
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-4 py-3">
+            <h2 className="text-base font-bold text-ink">Configuración</h2>
+            <button
+              type="button"
+              onClick={closeMobileMenu}
+              className="grid h-9 w-9 place-items-center rounded-xl text-muted transition-colors hover:bg-cream hover:text-ink active:scale-[0.97]"
+              aria-label="Cerrar configuración"
+            >
+              <IconMenu isX />
+            </button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2">
+            {mobileConfigSheet}
+          </div>
         </aside>
       </div>
 
@@ -346,35 +491,31 @@ export function AppShell({
               <button
                 ref={menuButtonRef}
                 type="button"
-                onClick={toggleMenu}
+                onClick={toggleDesktopSidebar}
                 className={cn(
-                  'grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-line bg-white text-ink',
+                  'hidden h-10 w-10 shrink-0 place-items-center rounded-xl border border-line bg-white text-ink md:grid',
                   'transition-colors duration-150 hover:bg-cream active:bg-cream',
-                  menuHighlighted && 'border-brand-300 bg-brand-50 text-brand-700',
+                  collapsed && 'border-brand-300 bg-brand-50 text-brand-700',
                 )}
-                aria-label={
-                  isDesktop
-                    ? collapsed
-                      ? 'Expandir menú'
-                      : 'Colapsar menú'
-                    : mobileOpen
-                      ? 'Cerrar menú'
-                      : 'Abrir menú'
-                }
-                aria-expanded={isDesktop ? !collapsed : mobileOpen}
+                aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
+                aria-expanded={!collapsed}
               >
-                <IconMenu isX={menuOpen} />
+                <IconMenu isX={false} />
               </button>
               <div className="min-w-0 flex-1">
                 <h1 className="truncate text-base font-bold text-ink sm:text-lg">{title}</h1>
-                <p className="hidden truncate text-xs text-muted sm:block">{session?.businessName}</p>
+                <p className="truncate text-[11px] text-muted sm:text-xs">{session?.businessName}</p>
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
               {actions && <div className="hidden sm:block">{actions}</div>}
               <EnvToggle />
-              <div className="hidden h-9 w-9 place-items-center rounded-full bg-brand-100 text-[11px] font-bold tracking-wide text-brand-700 sm:grid">
+              <div
+                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-100 text-[10px] font-bold tracking-wide text-brand-700 sm:h-9 sm:w-9 sm:text-[11px]"
+                title={session?.businessName ?? 'Cuenta'}
+                aria-label={session?.businessName ? `Cuenta: ${session.businessName}` : 'Cuenta'}
+              >
                 {(session?.businessName ?? 'ES')
                   .split(/\s+/)
                   .filter(Boolean)
@@ -392,8 +533,16 @@ export function AppShell({
           )}
         </header>
 
-        <main className="min-h-0 flex-1 overflow-auto bg-cream-soft p-4 sm:p-6">{children}</main>
+        <main className="min-h-0 flex-1 overflow-auto bg-cream-soft p-4 pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:pt-6 md:pb-6">
+          {children}
+        </main>
       </div>
+
+      <MobileBottomNav
+        onToggleMenu={toggleMobileMenu}
+        menuOpen={mobileOpen}
+        moreButtonRef={mobileMoreButtonRef}
+      />
     </div>
   )
 }
