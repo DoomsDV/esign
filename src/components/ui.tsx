@@ -393,6 +393,18 @@ export function SuccessAlert({ children }: { children: ReactNode }) {
   )
 }
 
+type SidePanelSize = 'narrow' | 'default' | 'wide'
+
+/** Anchos desktop (< 50vw). Clases literales para que Tailwind las incluya en el build. */
+const sidePanelDesktopWidth: Record<SidePanelSize, string> = {
+  narrow: 'sm:w-[min(380px,40vw)]',
+  default: 'sm:w-[min(42rem,45vw)]',
+  wide: 'sm:w-[min(48rem,45vw)]',
+}
+
+const sidePanelDesktopShell =
+  'sm:inset-x-auto sm:inset-y-0 sm:right-0 sm:top-0 sm:bottom-0 sm:h-full sm:max-h-none sm:rounded-none sm:pb-0 sm:translate-y-0'
+
 export function Modal({
   open,
   onClose,
@@ -404,13 +416,37 @@ export function Modal({
   title?: ReactNode
   children: ReactNode
 }) {
-  const dialogRef = useRef<HTMLDivElement>(null)
+  if (!open) return null
+  return (
+    <Drawer open onClose={onClose} title={title} size="default">
+      {children}
+    </Drawer>
+  )
+}
+
+/** Panel lateral que entra desde la derecha (side drawer). */
+export function Drawer({
+  open,
+  onClose,
+  title,
+  children,
+  footer,
+  size = 'default',
+}: {
+  open: boolean
+  onClose: () => void
+  title?: ReactNode
+  children: ReactNode
+  footer?: ReactNode
+  size?: SidePanelSize
+}) {
+  const panelRef = useRef<HTMLElement>(null)
   const titleId = useId()
 
   useEffect(() => {
     if (!open) return
     const previousFocus = document.activeElement as HTMLElement | null
-    dialogRef.current?.focus()
+    panelRef.current?.focus()
 
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
@@ -426,107 +462,40 @@ export function Modal({
     }
   }, [open, onClose])
 
-  if (!open) return null
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
-      <div
-        className="modal-backdrop-enter absolute inset-0 bg-ink/40 backdrop-blur-sm"
-        onClick={onClose}
-        aria-hidden
-      />
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby={title ? titleId : undefined}
-        tabIndex={-1}
-        className={cn(
-          'modal-sheet-enter relative z-10 flex w-full max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-bottom,0px)))] flex-col bg-white shadow-2xl outline-none',
-          'rounded-t-2xl pb-[max(0px,env(safe-area-inset-bottom))]',
-          'sm:max-h-[90vh] sm:max-w-2xl sm:overflow-auto sm:rounded-3xl sm:p-6 sm:pb-6',
-        )}
-      >
-        <div className="relative shrink-0 px-5 pt-3 sm:px-0 sm:pt-0">
-          <div
-            className="mx-auto mb-3 h-1 w-10 rounded-full bg-line sm:hidden"
-            aria-hidden
-          />
-          <div className="flex items-start justify-between gap-4 sm:mb-4">
-            <div id={titleId} className="text-lg font-bold text-ink">
-              {title}
-            </div>
-            <button
-              type="button"
-              onClick={onClose}
-              className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted hover:bg-cream hover:text-ink"
-              aria-label="Cerrar"
-            >
-              ✕
-            </button>
-          </div>
-        </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 sm:overflow-visible sm:px-0 sm:pb-0">
-          {children}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-/** Convierte clases max-w-* para aplicarlas solo desde sm+ (side drawer desktop). */
-function smWidthClass(widthClass: string): string {
-  return widthClass
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((c) => (c.startsWith('max-w-') ? `sm:${c}` : c))
-    .join(' ')
-}
-
-/** Panel lateral que entra desde la derecha (side drawer). */
-export function Drawer({
-  open,
-  onClose,
-  title,
-  children,
-  footer,
-  widthClass = 'max-w-lg',
-}: {
-  open: boolean
-  onClose: () => void
-  title?: ReactNode
-  children: ReactNode
-  footer?: ReactNode
-  widthClass?: string
-}) {
   return (
     <div
       className={cn('fixed inset-0 z-50', open ? 'pointer-events-auto' : 'pointer-events-none')}
     >
       <div
         className={cn(
-          'absolute inset-0 bg-ink/40 backdrop-blur-sm transition-opacity duration-200',
-          open ? 'opacity-100' : 'opacity-0',
+          'absolute inset-0 bg-ink/40 transition-opacity duration-200',
+          open ? 'opacity-100 backdrop-blur-sm' : 'opacity-0',
         )}
         onClick={onClose}
         aria-hidden
       />
       <aside
+        ref={panelRef}
         role="dialog"
         aria-modal={open}
+        aria-labelledby={title ? titleId : undefined}
+        tabIndex={-1}
         inert={!open ? true : undefined}
         className={cn(
-          'absolute flex w-full max-w-none flex-col bg-white shadow-2xl',
+          'absolute z-10 flex w-full flex-col bg-white shadow-2xl outline-none',
           'inset-x-0 bottom-0 top-auto max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-bottom,0px)))] rounded-t-2xl pb-[max(0px,env(safe-area-inset-bottom))]',
           'transition-transform duration-200 ease-out',
           open ? 'translate-y-0' : 'translate-y-full',
-          'sm:inset-x-auto sm:inset-y-0 sm:right-0 sm:top-0 sm:bottom-0 sm:h-full sm:max-h-none sm:rounded-none sm:pb-0',
-          open ? 'sm:translate-x-0 sm:translate-y-0' : 'sm:translate-x-full sm:translate-y-0',
-          smWidthClass(widthClass),
+          sidePanelDesktopShell,
+          sidePanelDesktopWidth[size],
+          open ? 'sm:translate-x-0' : 'sm:translate-x-full',
         )}
       >
         <div className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-line sm:hidden" aria-hidden />
         <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-5 py-4 sm:mt-0 sm:px-6">
-          <div className="text-lg font-bold text-ink">{title}</div>
+          <div id={titleId} className="text-lg font-bold text-ink">
+            {title}
+          </div>
           <button
             type="button"
             onClick={onClose}

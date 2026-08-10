@@ -478,7 +478,7 @@ export default function Establecimientos() {
         open={editOpen}
         onClose={() => setEditOpen(false)}
         title={editingCodigo ? 'Editar establecimiento' : 'Nuevo establecimiento'}
-        widthClass="max-w-xl"
+        size="default"
         footer={
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setEditOpen(false)}>
@@ -588,7 +588,7 @@ export default function Establecimientos() {
             ? `Editar punto · est. ${puntoOpen?.codigo ?? ''}`
             : `Nuevo punto · est. ${puntoOpen?.codigo ?? ''}`
         }
-        widthClass="max-w-[380px]"
+        size="narrow"
         footer={
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setPuntoOpen(null)}>
