@@ -42,6 +42,15 @@ function formatFechaKey(iso: string | null): string {
   return `${base} h`
 }
 
+/** Máscara estilo Stripe: sk_test_••••••••••••••••ac41 */
+function maskKeyPrefix(prefix: string): string {
+  const match = prefix.match(/^(sk_(?:test|prod)_)(.+)$/i)
+  if (!match) return prefix
+  const [, head, tail] = match
+  const suffix = tail.length >= 4 ? tail.slice(-4) : tail
+  return `${head}${'•'.repeat(Math.max(12, 16 - suffix.length))}${suffix}`
+}
+
 function CopyIcon({ className }: { className?: string }) {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
@@ -65,14 +74,14 @@ function RotateIcon({ className }: { className?: string }) {
   )
 }
 
-function KeyIcon() {
+function KeyIconSmall({ className }: { className?: string }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="8" cy="15" r="4" className="stroke-current" strokeWidth="1.8" />
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
+      <circle cx="8" cy="15" r="4" className="stroke-current" strokeWidth="1.7" />
       <path
         d="m11.5 12.5 8.5-8.5M16 4l4 4M19 7l-3 3"
         className="stroke-current"
-        strokeWidth="1.8"
+        strokeWidth="1.7"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
@@ -80,76 +89,90 @@ function KeyIcon() {
   )
 }
 
-function KeyRow({
+function ActiveKeyCard({
   keyMeta,
   canRotate,
-  copiedPrefix,
-  onCopyPrefix,
+  copied,
+  onCopy,
   onRotate,
 }: {
   keyMeta: ApiKeyMeta
   canRotate: boolean
-  copiedPrefix: string | null
-  onCopyPrefix: (prefix: string) => void
+  copied: boolean
+  onCopy: () => void
   onRotate: () => void
 }) {
-  const revoked = keyMeta.status === 'REVOKED'
+  const meta = [
+    `Creada ${formatFechaKey(keyMeta.created_at)}`,
+    keyMeta.label ?? null,
+  ]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
-    <div
-      className={cn(
-        'flex flex-wrap items-center justify-between gap-3 border-b border-line/50 px-5 py-4 last:border-0 sm:px-6',
-        revoked && 'opacity-75',
-      )}
-    >
-      <div className="flex min-w-0 items-start gap-3">
-        <span
-          className={cn(
-            'mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl',
-            revoked ? 'bg-neutral/10 text-neutral' : 'bg-brand-100 text-brand-700',
-          )}
-        >
-          <KeyIcon />
-        </span>
-        <div className="min-w-0">
-          <p className="font-mono text-sm font-semibold tabular-nums text-ink">
-            {keyMeta.prefix}
-            <span className="text-muted">…</span>
-          </p>
-          <p className="mt-0.5 text-xs text-muted">
-            Creada {formatFechaKey(keyMeta.created_at)}
-            {keyMeta.label ? ` · ${keyMeta.label}` : ''}
-          </p>
+    <article className={cn(panelClass, 'p-5 sm:p-6')}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-2.5">
+          <span className="mt-0.5 shrink-0 text-muted/60">
+            <KeyIconSmall />
+          </span>
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-ink">Secret key</p>
+            <p className="mt-0.5 text-xs leading-relaxed text-muted">{meta}</p>
+          </div>
         </div>
+        {canRotate && (
+          <Menu
+            items={[
+              {
+                label: 'Rotar key',
+                onClick: onRotate,
+                icon: <RotateIcon />,
+                danger: true,
+              },
+            ]}
+          />
+        )}
       </div>
 
-      <div className="flex shrink-0 items-center gap-3">
-        <Badge className={statusClass(keyMeta.status)}>{formatKeyStatus(keyMeta.status)}</Badge>
-        <Menu
-          items={[
-            {
-              label: copiedPrefix === keyMeta.prefix ? 'Copiado' : 'Copiar prefijo',
-              onClick: () => onCopyPrefix(keyMeta.prefix),
-              icon: <CopyIcon />,
-            },
-            ...(canRotate
-              ? [
-                  {
-                    label: `Rotar key ${keyMeta.environment}`,
-                    onClick: onRotate,
-                    icon: <RotateIcon />,
-                  },
-                ]
-              : []),
-          ]}
-        />
+      <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+        <code className="block min-w-0 flex-1 rounded-xl border border-line/80 bg-cream-soft/60 px-3.5 py-3 font-mono text-sm leading-none tracking-tight text-ink sm:text-[15px]">
+          {maskKeyPrefix(keyMeta.prefix)}
+        </code>
+        <Button
+          variant={copied ? 'success-outline' : 'secondary'}
+          className="shrink-0 gap-1.5 sm:px-5"
+          onClick={onCopy}
+        >
+          <CopyIcon />
+          {copied ? 'Copiado' : 'Copiar'}
+        </Button>
       </div>
+
+      <div className="mt-4">
+        <Badge className={statusClass(keyMeta.status)}>{formatKeyStatus(keyMeta.status)}</Badge>
+      </div>
+    </article>
+  )
+}
+
+function RevokedKeyRow({ keyMeta }: { keyMeta: ApiKeyMeta }) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 sm:px-6">
+      <div className="min-w-0">
+        <p className="font-mono text-xs tabular-nums text-muted">{maskKeyPrefix(keyMeta.prefix)}</p>
+        <p className="mt-0.5 text-xs text-muted/80">
+          Revocada · {formatFechaKey(keyMeta.created_at)}
+          {keyMeta.label ? ` · ${keyMeta.label}` : ''}
+        </p>
+      </div>
+      <Badge className={statusClass(keyMeta.status)}>{formatKeyStatus(keyMeta.status)}</Badge>
     </div>
   )
 }
 
 const API_KEYS_TIP =
-  'Claves para integrar tu backend con etick. El prefijo define el ambiente SIFEN (sk_test_ homologación, sk_prod_ producción). La key completa solo se muestra una vez al rotar; la anterior queda revocada de inmediato.'
+  'Claves para integrar tu backend con etick. El prefijo sk_test_ / sk_prod_ define el ambiente SIFEN. La key completa solo se muestra una vez al rotar; la anterior queda revocada de inmediato.'
 
 export default function ApiKeys() {
   const { session, environment } = useAuth()
@@ -190,7 +213,7 @@ export default function ApiKeys() {
   async function copyPrefix(prefix: string) {
     await navigator.clipboard.writeText(prefix)
     setCopiedPrefix(prefix)
-    window.setTimeout(() => setCopiedPrefix((cur) => (cur === prefix ? null : cur)), 1600)
+    window.setTimeout(() => setCopiedPrefix((cur) => (cur === prefix ? null : cur)), 2000)
   }
 
   function openRotateConfirm() {
@@ -201,83 +224,53 @@ export default function ApiKeys() {
   const keys = q.data ?? []
   const scoped = keys.filter((k) => k.environment === environment)
   const activeKey = scoped.find((k) => k.status === 'ACTIVE')
+  const revokedKeys = scoped.filter((k) => k.status === 'REVOKED')
 
   return (
     <AppShell title="API keys">
       <div className="dashboard-canvas -m-4 space-y-5 p-4 sm:-m-6 sm:space-y-6 sm:p-6">
-        <PageHeader
-          compactOnMobile
-          title="Keys de emisión"
-          description={API_KEYS_TIP}
-          action={
-            canRotate ? (
-              <Button
-                variant={isProd ? 'success' : 'primary'}
-                className="gap-1.5 max-sm:w-full"
-                onClick={openRotateConfirm}
-              >
-                <RotateIcon />
-                Rotar key {environment}
-              </Button>
-            ) : undefined
-          }
-        />
+        <PageHeader compactOnMobile title="Keys de emisión" description={API_KEYS_TIP} />
 
         {err && <Alert>{err}</Alert>}
-
-        <p className="text-xs text-muted sm:hidden">
-          Ambiente: <strong className="text-ink">{environment}</strong>{' '}
-          <span className="font-mono">({isProd ? 'sk_prod_' : 'sk_test_'})</span>
-        </p>
-
-        <div className={cn(panelClass, 'hidden px-5 py-4 sm:block sm:px-6')}>
-          <p className="text-sm leading-relaxed text-muted">
-            Ambiente actual: <strong className="text-ink">{environment}</strong> (
-            {isProd ? 'sk_prod_' : 'sk_test_'}). El prefijo define el ambiente SIFEN. Al rotar, la key
-            activa anterior pasa a revocada de inmediato.
-          </p>
-        </div>
 
         {q.isLoading && <p className="text-sm text-muted">Cargando…</p>}
         {q.error && <Alert>{(q.error as Error).message}</Alert>}
 
         {!q.isLoading && !q.error && scoped.length === 0 && (
           <div className={cn(panelClass, 'px-6 py-12 text-center')}>
-            <p className="text-base font-semibold text-ink">No hay keys en {environment}</p>
-            <p className="mx-auto mt-2 max-w-md text-sm text-muted">
-              Generá la primera key de emisión para conectar tu sistema vía API.
+            <p className="text-base font-semibold text-ink">Todavía no hay keys</p>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted">
+              Generá tu primera secret key para conectar tu sistema vía API.
             </p>
             {canRotate && (
-              <Button className="mt-6 gap-1.5" variant={isProd ? 'success' : 'primary'} onClick={openRotateConfirm}>
+              <Button className="mt-6 gap-1.5" variant="secondary" onClick={openRotateConfirm}>
                 <RotateIcon />
-                Crear key {environment}
+                Generar key
               </Button>
             )}
           </div>
         )}
 
-        {!q.isLoading && !q.error && scoped.length > 0 && (
-          <div className={cn(panelClass, 'overflow-hidden')}>
-            <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 border-b border-line/60 px-5 py-3.5 sm:px-6">
-              <p className="text-sm font-semibold text-ink">
-                {scoped.length} key{scoped.length === 1 ? '' : 's'} en {environment}
-              </p>
-              {activeKey && (
-                <span className="text-xs text-muted">
-                  Activa: <span className="font-mono text-ink">{activeKey.prefix}…</span>
-                </span>
-              )}
+        {!q.isLoading && !q.error && activeKey && (
+          <ActiveKeyCard
+            keyMeta={activeKey}
+            canRotate={canRotate}
+            copied={copiedPrefix === activeKey.prefix}
+            onCopy={() => copyPrefix(activeKey.prefix)}
+            onRotate={openRotateConfirm}
+          />
+        )}
+
+        {!q.isLoading && !q.error && revokedKeys.length > 0 && (
+          <div className={panelClass}>
+            <p className="border-b border-line/60 px-5 py-3 text-xs font-medium uppercase tracking-wide text-muted sm:px-6">
+              Revocadas
+            </p>
+            <div className="divide-y divide-line/40">
+              {revokedKeys.map((k) => (
+                <RevokedKeyRow key={`${k.environment}-${k.prefix}-${k.created_at}`} keyMeta={k} />
+              ))}
             </div>
-            {scoped.map((k) => (
-              <KeyRow
-                key={`${k.environment}-${k.prefix}-${k.created_at}`}
-                keyMeta={k}
-                canRotate={canRotate}
-                copiedPrefix={copiedPrefix}
-                onCopyPrefix={copyPrefix}
-                onRotate={openRotateConfirm}
-              />
-            ))}
           </div>
         )}
       </div>
@@ -285,7 +278,7 @@ export default function ApiKeys() {
       <Modal
         open={confirmOpen}
         onClose={() => !rotate.isPending && setConfirmOpen(false)}
-        title={`Rotar key ${environment}`}
+        title="Rotar secret key"
       >
         <div
           className={cn(
@@ -295,26 +288,25 @@ export default function ApiKeys() {
         >
           {isProd ? (
             <>
-              Estás en <strong>producción</strong>. La key <code>sk_prod_</code> activa quedará{' '}
-              <strong>revocada</strong> y las integraciones que la usen dejarán de autenticarse.
+              Estás en <strong>producción</strong>. La key activa quedará <strong>revocada</strong> y las
+              integraciones que la usen dejarán de autenticarse.
             </>
           ) : (
             <>
-              La key <code>sk_test_</code> activa quedará <strong>revocada</strong>. La nueva key se
-              mostrará una sola vez.
+              La key activa quedará <strong>revocada</strong>. La nueva key se mostrará una sola vez.
             </>
           )}
         </div>
         <p className="mt-3 text-sm text-muted">
-          Actualizá el secreto en tus integraciones al guardar la key nueva; la anterior dejará de
-          funcionar de inmediato.
+          Actualizá el secreto en tus integraciones al guardar la key nueva; la anterior dejará de funcionar
+          de inmediato.
         </p>
         <div className="mt-5 flex justify-end gap-2">
           <Button variant="secondary" disabled={rotate.isPending} onClick={() => setConfirmOpen(false)}>
             Cancelar
           </Button>
           <Button
-            variant={isProd ? 'success' : 'primary'}
+            variant={isProd ? 'danger' : 'primary'}
             loading={rotate.isPending}
             onClick={() => rotate.mutate(environment)}
           >
@@ -329,17 +321,16 @@ export default function ApiKeys() {
             <SuccessAlert>
               Esta es la única vez que verás la key completa. Guardala en un gestor de secretos.
             </SuccessAlert>
-            <div className="mt-4 rounded-xl border border-line bg-cream-soft/50 p-4 font-mono text-sm break-all text-ink">
-              {revealed.api_key}
-            </div>
-            <p className="mt-2 text-xs text-muted">
-              Ambiente {revealed.environment} · prefijo {revealed.prefix}
-            </p>
-            <div className="mt-5 flex justify-end gap-2">
-              <Button variant="secondary" onClick={copyKey} className="gap-1.5">
+            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-stretch">
+              <code className="block min-w-0 flex-1 rounded-xl border border-line bg-cream-soft/50 px-3.5 py-3 font-mono text-sm break-all text-ink">
+                {revealed.api_key}
+              </code>
+              <Button variant={copied ? 'success-outline' : 'secondary'} onClick={copyKey} className="shrink-0 gap-1.5">
                 <CopyIcon />
                 {copied ? 'Copiada' : 'Copiar'}
               </Button>
+            </div>
+            <div className="mt-5 flex justify-end">
               <Button onClick={() => setRevealed(null)}>Listo</Button>
             </div>
           </>

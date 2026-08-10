@@ -208,19 +208,78 @@ export function SectionHint({
   )
 }
 
-export function InfoTip({ text, className }: { text: string; className?: string }) {
+export function InfoTip({
+  text,
+  className,
+  align = 'start',
+  side = 'bottom',
+}: {
+  text: string
+  className?: string
+  /** Alineación horizontal del popover en mobile (tap). */
+  align?: 'start' | 'end'
+  /** Lado vertical del popover en mobile (tap). */
+  side?: 'top' | 'bottom'
+}) {
   const [open, setOpen] = useState(false)
+  const [coords, setCoords] = useState<{
+    top: number
+    left: number
+    width: number
+    openUp: boolean
+  } | null>(null)
   const id = useId()
   const rootRef = useRef<HTMLSpanElement>(null)
+  const panelRef = useRef<HTMLSpanElement>(null)
+
+  const placePanel = () => {
+    const el = rootRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const margin = 12
+    const width = Math.min(288, window.innerWidth - margin * 2)
+    let left = align === 'end' ? rect.right - width : rect.left
+    left = Math.max(margin, Math.min(left, window.innerWidth - margin - width))
+
+    const gap = 6
+    const spaceBelow = window.innerHeight - rect.bottom - gap - margin
+    const spaceAbove = rect.top - gap - margin
+    const openUp =
+      side === 'top' || (side === 'bottom' && spaceBelow < 72 && spaceAbove > spaceBelow)
+
+    setCoords({
+      top: openUp ? rect.top - gap : rect.bottom + gap,
+      left,
+      width,
+      openUp,
+    })
+  }
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setCoords(null)
+      return
+    }
+    placePanel()
+  }, [open, align, side])
 
   useEffect(() => {
     if (!open) return
     function onDocClick(e: MouseEvent) {
-      if (!rootRef.current?.contains(e.target as Node)) setOpen(false)
+      const t = e.target as Node
+      if (rootRef.current?.contains(t) || panelRef.current?.contains(t)) return
+      setOpen(false)
     }
-    document.addEventListener('click', onDocClick)
-    return () => document.removeEventListener('click', onDocClick)
-  }, [open])
+    const onReposition = () => placePanel()
+    document.addEventListener('mousedown', onDocClick)
+    window.addEventListener('resize', onReposition)
+    window.addEventListener('scroll', onReposition, true)
+    return () => {
+      document.removeEventListener('mousedown', onDocClick)
+      window.removeEventListener('resize', onReposition)
+      window.removeEventListener('scroll', onReposition, true)
+    }
+  }, [open, align, side])
 
   return (
     <span ref={rootRef} className={cn('group/info relative inline-flex shrink-0 align-middle', className)}>
@@ -240,18 +299,41 @@ export function InfoTip({ text, className }: { text: string; className?: string 
           <path d="M12 11v5M12 8h.01" className="stroke-current" strokeWidth="1.8" strokeLinecap="round" />
         </svg>
       </button>
-      <span
-        id={id}
-        role="tooltip"
-        className={cn(
-          'absolute left-0 top-[calc(100%+6px)] z-50 w-[min(18rem,calc(100vw-2.5rem))] rounded-xl bg-ink px-3 py-2.5 text-left text-xs font-normal leading-relaxed text-white shadow-lg',
-          open ? 'visible opacity-100' : 'pointer-events-none invisible opacity-0',
-          'sm:left-1/2 sm:w-64 sm:-translate-x-1/2',
-          'sm:group-hover/info:visible sm:group-hover/info:pointer-events-auto sm:group-hover/info:opacity-100',
+      {/* Desktop: hover */}
+      {!open && (
+        <span
+          id={id}
+          role="tooltip"
+          className={cn(
+            'pointer-events-none absolute left-1/2 top-[calc(100%+6px)] z-50 hidden w-64 -translate-x-1/2 rounded-xl bg-ink px-3 py-2.5 text-left text-xs font-normal leading-relaxed text-white opacity-0 shadow-lg invisible sm:block',
+            'sm:group-hover/info:visible sm:group-hover/info:opacity-100',
+          )}
+        >
+          {text}
+        </span>
+      )}
+      {/* Tap (mobile/tablet): portal fijo para no quedar recortado por overflow de padres */}
+      {open &&
+        coords &&
+        createPortal(
+          <span
+            ref={panelRef}
+            id={id}
+            role="tooltip"
+            style={{
+              position: 'fixed',
+              top: coords.top,
+              left: coords.left,
+              width: coords.width,
+              transform: coords.openUp ? 'translateY(-100%)' : undefined,
+              zIndex: 80,
+            }}
+            className="rounded-xl bg-ink px-3 py-2.5 text-left text-xs font-normal leading-relaxed text-white shadow-lg"
+          >
+            {text}
+          </span>,
+          document.body,
         )}
-      >
-        {text}
-      </span>
     </span>
   )
 }
@@ -346,33 +428,58 @@ export function Modal({
 
   if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-ink/40 backdrop-blur-sm" onClick={onClose} aria-hidden />
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4">
+      <div
+        className="modal-backdrop-enter absolute inset-0 bg-ink/40 backdrop-blur-sm"
+        onClick={onClose}
+        aria-hidden
+      />
       <div
         ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
         tabIndex={-1}
-        className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-auto rounded-3xl bg-white p-6 shadow-2xl outline-none"
+        className={cn(
+          'modal-sheet-enter relative z-10 flex w-full max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-bottom,0px)))] flex-col bg-white shadow-2xl outline-none',
+          'rounded-t-2xl pb-[max(0px,env(safe-area-inset-bottom))]',
+          'sm:max-h-[90vh] sm:max-w-2xl sm:overflow-auto sm:rounded-3xl sm:p-6 sm:pb-6',
+        )}
       >
-        <div className="mb-4 flex items-start justify-between gap-4">
-          <div id={titleId} className="text-lg font-bold text-ink">
-            {title}
+        <div className="relative shrink-0 px-5 pt-3 sm:px-0 sm:pt-0">
+          <div
+            className="mx-auto mb-3 h-1 w-10 rounded-full bg-line sm:hidden"
+            aria-hidden
+          />
+          <div className="flex items-start justify-between gap-4 sm:mb-4">
+            <div id={titleId} className="text-lg font-bold text-ink">
+              {title}
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted hover:bg-cream hover:text-ink"
+              aria-label="Cerrar"
+            >
+              ✕
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-cream hover:text-ink"
-            aria-label="Cerrar"
-          >
-            ✕
-          </button>
         </div>
-        {children}
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-5 sm:overflow-visible sm:px-0 sm:pb-0">
+          {children}
+        </div>
       </div>
     </div>
   )
+}
+
+/** Convierte clases max-w-* para aplicarlas solo desde sm+ (side drawer desktop). */
+function smWidthClass(widthClass: string): string {
+  return widthClass
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((c) => (c.startsWith('max-w-') ? `sm:${c}` : c))
+    .join(' ')
 }
 
 /** Panel lateral que entra desde la derecha (side drawer). */
@@ -394,7 +501,6 @@ export function Drawer({
   return (
     <div
       className={cn('fixed inset-0 z-50', open ? 'pointer-events-auto' : 'pointer-events-none')}
-      aria-hidden={!open}
     >
       <div
         className={cn(
@@ -402,18 +508,24 @@ export function Drawer({
           open ? 'opacity-100' : 'opacity-0',
         )}
         onClick={onClose}
+        aria-hidden
       />
       <aside
         role="dialog"
         aria-modal={open}
+        inert={!open ? true : undefined}
         className={cn(
-          'absolute inset-y-0 right-0 flex w-full flex-col bg-white shadow-2xl',
+          'absolute flex w-full max-w-none flex-col bg-white shadow-2xl',
+          'inset-x-0 bottom-0 top-auto max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-bottom,0px)))] rounded-t-2xl pb-[max(0px,env(safe-area-inset-bottom))]',
           'transition-transform duration-200 ease-out',
-          open ? 'translate-x-0' : 'translate-x-full',
-          widthClass,
+          open ? 'translate-y-0' : 'translate-y-full',
+          'sm:inset-x-auto sm:inset-y-0 sm:right-0 sm:top-0 sm:bottom-0 sm:h-full sm:max-h-none sm:rounded-none sm:pb-0',
+          open ? 'sm:translate-x-0 sm:translate-y-0' : 'sm:translate-x-full sm:translate-y-0',
+          smWidthClass(widthClass),
         )}
       >
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-5 py-4 sm:px-6">
+        <div className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-line sm:hidden" aria-hidden />
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-5 py-4 sm:mt-0 sm:px-6">
           <div className="text-lg font-bold text-ink">{title}</div>
           <button
             type="button"
@@ -678,12 +790,17 @@ export function SearchSelect({
         disabled={disabled}
         onClick={() => !disabled && setOpen((o) => !o)}
         className={cn(
-          'flex w-full items-center justify-between gap-2 rounded-xl border border-line bg-white px-4 py-3 text-sm shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-200 disabled:cursor-not-allowed disabled:opacity-60',
+          'flex w-full min-w-0 items-start justify-between gap-2 rounded-xl border border-line bg-white px-4 py-3 text-sm shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-200 disabled:cursor-not-allowed disabled:opacity-60',
           open && 'border-brand-300 ring-2 ring-brand-200',
           error && 'border-danger',
         )}
       >
-        <span className={cn('truncate text-left', current ? 'text-ink' : 'text-muted/70')}>
+        <span
+          className={cn(
+            'min-w-0 flex-1 text-left leading-snug break-words whitespace-normal',
+            current ? 'text-ink' : 'text-muted/70',
+          )}
+        >
           {current?.label ?? placeholder}
         </span>
         <svg
@@ -691,7 +808,7 @@ export function SearchSelect({
           height="16"
           viewBox="0 0 24 24"
           fill="none"
-          className={cn('shrink-0 text-muted transition-transform', open && 'rotate-180')}
+          className={cn('mt-0.5 shrink-0 text-muted transition-transform', open && 'rotate-180')}
           aria-hidden
         >
           <path
@@ -751,11 +868,11 @@ export function SearchSelect({
                     setQ('')
                   }}
                   className={cn(
-                    'flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-ink transition-colors hover:bg-cream',
+                    'flex w-full items-start justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-ink transition-colors hover:bg-cream',
                     value === o.value && 'bg-cream font-medium',
                   )}
                 >
-                  <span>{o.label}</span>
+                  <span className="min-w-0 flex-1 leading-snug break-words">{o.label}</span>
                   {value === o.value && (
                     <svg
                       width="14"

@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
 import {
@@ -9,6 +9,7 @@ import {
   InfoTip,
   Modal,
   PageHeader,
+  SectionHint,
   SuccessAlert,
   TextField,
   panelClass,
@@ -26,15 +27,6 @@ const TIMBRADO_TIP =
 
 const CSC_TIP =
   'Código alfanumérico de 32 caracteres para el QR. Se envía por HTTPS al servidor, donde se cifra antes de guardar; el panel nunca muestra el valor almacenado.'
-
-function SectionHint({ tip, children }: { tip: string; children: ReactNode }) {
-  return (
-    <>
-      <p className="mt-1 hidden text-sm text-muted sm:block">{children}</p>
-      <InfoTip text={tip} className="mt-1.5 sm:hidden" />
-    </>
-  )
-}
 
 function validateTimbrado(value: string): string | null {
   const v = value.trim()
@@ -166,8 +158,7 @@ export default function Ambientes() {
           <div className={cn(panelClass, 'overflow-hidden')}>
             <form id="ambientes-form" onSubmit={handleSubmit} className="flex flex-col gap-8 px-5 py-6 sm:px-7 sm:py-8">
               <section>
-                <h3 className="text-[15px] font-semibold tracking-tight text-ink">Timbrado SIFEN</h3>
-                <SectionHint tip={TIMBRADO_TIP}>{TIMBRADO_TIP}</SectionHint>
+                <SectionHint title="Timbrado SIFEN" tip={TIMBRADO_TIP} />
                 <div className="mt-5 grid gap-4 sm:grid-cols-2">
                   <TextField
                     label="Número de timbrado"
@@ -199,10 +190,7 @@ export default function Ambientes() {
               <hr className="border-t border-line/60" />
 
               <section>
-                <h3 className="text-[15px] font-semibold tracking-tight text-ink">
-                  Código de seguridad (CSC)
-                </h3>
-                <SectionHint tip={CSC_TIP}>{CSC_TIP}</SectionHint>
+                <SectionHint title="Código de seguridad (CSC)" tip={CSC_TIP} />
                 <div className="mt-5 grid gap-4 sm:grid-cols-2">
                   <TextField
                     label="Número del código"

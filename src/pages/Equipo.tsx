@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type FormEvent, type ReactNode } from 'react'
+import { useState, useRef, useEffect, type FormEvent } from 'react'
 import { useMutation } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
 import {
@@ -7,6 +7,7 @@ import {
   InfoTip,
   Modal,
   PageHeader,
+  SectionHint,
   SuccessAlert,
   TextField,
   panelClass,
@@ -72,15 +73,6 @@ function formatExpira(iso: string): string {
       hour12: false,
     })
     .replace(/\./g, '')
-}
-
-function SectionHint({ tip, children }: { tip: string; children: ReactNode }) {
-  return (
-    <>
-      <p className="mt-0.5 hidden text-sm text-muted sm:block">{children}</p>
-      <InfoTip text={tip} className="mt-1.5 sm:hidden" />
-    </>
-  )
 }
 
 function CopyIcon({ className }: { className?: string }) {
@@ -183,10 +175,7 @@ export default function Equipo() {
         >
           <div className={cn(panelClass, 'order-1 flex h-full min-h-0 flex-col overflow-hidden lg:order-1')}>
             <div className="border-b border-line/60 px-5 py-4 sm:px-6">
-              <h3 className="text-[15px] font-semibold tracking-tight text-ink">Invitar miembro</h3>
-              <SectionHint tip={INVITE_TIP}>
-                Generá un token seguro de un solo uso para sumar a alguien a tu negocio.
-              </SectionHint>
+              <SectionHint title="Invitar miembro" tip={INVITE_TIP} />
             </div>
 
             <div className="flex flex-1 flex-col px-5 py-5 sm:px-6">
@@ -211,43 +200,64 @@ export default function Equipo() {
                   />
 
                   <div>
-                    <p className="mb-2 text-sm font-medium text-ink">
+                    <p className="mb-1.5 text-sm font-medium text-ink">
                       Rol <span className="text-danger/45">*</span>
                     </p>
-                    <div className="grid gap-2" role="radiogroup" aria-label="Rol del invitado">
+                    <div className="flex flex-col gap-1" role="radiogroup" aria-label="Rol del invitado">
                       {ROLES.map((r) => {
                         const active = role === r.value
                         return (
                           <div
                             key={r.value}
+                            role="radio"
+                            aria-checked={active}
+                            tabIndex={inviting ? -1 : 0}
+                            onClick={() => !inviting && setRole(r.value)}
+                            onKeyDown={(e) => {
+                              if (inviting) return
+                              if (e.key === ' ' || e.key === 'Enter') {
+                                e.preventDefault()
+                                setRole(r.value)
+                              }
+                            }}
                             className={cn(
-                              'rounded-xl border transition-colors',
+                              'flex w-full cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors disabled:opacity-60 sm:gap-2.5 sm:px-3',
+                              inviting && 'pointer-events-none opacity-60',
                               active && r.value === 'owner'
-                                ? 'border-warn/50 bg-warn/5 ring-2 ring-warn/25'
+                                ? 'border-warn/50 bg-warn/5 ring-1 ring-warn/25'
                                 : active
-                                  ? 'border-brand-400 bg-brand-50/60 ring-2 ring-brand-200'
+                                  ? 'border-brand-400 bg-brand-50/60 ring-1 ring-brand-200'
                                   : 'border-line hover:border-ink/25 hover:bg-cream',
                             )}
                           >
-                            <button
-                              type="button"
-                              disabled={inviting}
-                              role="radio"
-                              aria-checked={active}
-                              onClick={() => setRole(r.value)}
-                              className="flex w-full items-start justify-between gap-2 px-4 py-3 text-left disabled:opacity-60"
+                            <span
+                              aria-hidden
+                              className={cn(
+                                'flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border transition-colors',
+                                active
+                                  ? r.value === 'owner'
+                                    ? 'border-warn bg-warn'
+                                    : 'border-brand-500 bg-brand-500'
+                                  : 'border-line bg-white',
+                              )}
                             >
-                              <span>
-                                <span className="text-sm font-semibold text-ink">{r.label}</span>
-                                <p className="mt-0.5 text-xs text-muted sm:hidden">{r.short}</p>
-                                <p className="mt-0.5 hidden text-xs leading-relaxed text-muted sm:block">
-                                  {r.desc}
-                                </p>
+                              {active ? (
+                                <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                              ) : null}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                              <span className="inline-flex flex-wrap items-center gap-x-1 gap-y-0">
+                                <span className="text-sm font-medium text-ink">{r.label}</span>
+                                <span className="text-xs text-muted">· {r.short}</span>
+                                <InfoTip
+                                  text={r.tip}
+                                  className="-my-1 [&_button]:h-5 [&_button]:w-5 [&_svg]:h-3 [&_svg]:w-3"
+                                />
                               </span>
-                            </button>
-                            <div className="flex justify-end px-3 pb-2 sm:hidden">
-                              <InfoTip text={r.tip} />
-                            </div>
+                              <p className="mt-0.5 hidden text-xs leading-snug text-muted sm:block">
+                                {r.desc}
+                              </p>
+                            </span>
                           </div>
                         )
                       })}
@@ -274,10 +284,7 @@ export default function Equipo() {
           {canInvite && (
           <div className={cn(panelClass, 'order-2 flex h-full min-h-0 flex-col overflow-hidden lg:order-2')}>
             <div className="border-b border-line/60 px-5 py-4 sm:px-6">
-              <h3 className="text-[15px] font-semibold tracking-tight text-ink">Última invitación</h3>
-              <SectionHint tip={LAST_INVITE_TIP}>
-                El token se muestra una sola vez. Compartilo por un canal seguro con el invitado.
-              </SectionHint>
+              <SectionHint title="Última invitación" tip={LAST_INVITE_TIP} />
             </div>
 
             <div className="flex flex-1 flex-col px-5 py-5 sm:px-6">

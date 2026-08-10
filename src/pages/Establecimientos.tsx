@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
-import { Alert, Badge, Button, Drawer, IconSave, InfoTip, PageHeader, SearchSelect, SuccessAlert, TextField, panelClass } from '@/components/ui'
+import { Alert, Badge, Button, Drawer, IconSave, Menu, PageHeader, SearchSelect, SuccessAlert, TextField, panelClass } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
@@ -285,7 +285,7 @@ export default function Establecimientos() {
             description={ESTABLECIMIENTOS_TIP}
             action={
               canEdit && establecimientos.length > 0 ? (
-                <Button onClick={openNew} className="gap-1.5">
+                <Button onClick={openNew} className="w-full gap-1.5 sm:w-auto">
                   <IconPlus />
                   Nuevo establecimiento
                 </Button>
@@ -306,48 +306,108 @@ export default function Establecimientos() {
               ]
                 .filter(Boolean)
                 .join(' · ')
-              const geoTip = `${dir || 'Sin dirección'} · dep ${e.dep?.cod} · dis ${e.dis?.cod ?? '—'} · ciu ${e.ciu?.cod}`
               const puntos = e.puntos ?? []
 
+              const puntoActions = (p: PuntoExpedicion) =>
+                canEdit ? (
+                  <div className="flex shrink-0 items-center justify-end gap-0.5">
+                    <button
+                      type="button"
+                      title="Editar punto"
+                      aria-label="Editar punto"
+                      className={iconBtn}
+                      onClick={() => openEditPunto(e, p)}
+                    >
+                      <IconEdit />
+                    </button>
+                    <button
+                      type="button"
+                      title={p.is_active ? 'Inactivar punto' : 'Activar punto'}
+                      aria-label={p.is_active ? 'Inactivar punto' : 'Activar punto'}
+                      className={cn(iconBtn, !p.is_active && 'text-ok hover:text-ok')}
+                      disabled={togglePunto.isPending}
+                      onClick={() => togglePunto.mutate({ est: e, p })}
+                    >
+                      <IconPower />
+                    </button>
+                  </div>
+                ) : null
+
               return (
-                <article key={e.codigo} className={cn(EST_CARD, 'overflow-hidden')}>
-                  <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line/60 px-5 py-4 sm:px-6">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-base font-semibold tracking-tight text-ink">
-                          <span className="font-mono text-sm text-muted">{e.codigo}</span>
-                          <span className="mx-2 text-muted/40">·</span>
-                          {e.denominacion || 'Sin denominación'}
-                        </h3>
-                        <Badge className={e.is_active ? 'bg-ok/10 text-ok-strong' : 'bg-warn/10 text-warn'}>
+                <article key={e.codigo} className={EST_CARD}>
+                  <div className="flex flex-col gap-3 px-5 py-5 sm:gap-4 sm:px-6 sm:py-6">
+                    <div className="flex items-start justify-between gap-3">
+                      <h3 className="min-w-0 text-base font-semibold tracking-tight text-ink">
+                        <span className="font-mono text-sm tabular-nums text-muted">{e.codigo}</span>
+                        <span className="mx-2 text-muted/40">·</span>
+                        {e.denominacion || 'Sin denominación'}
+                      </h3>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <Badge
+                          className={cn(
+                            e.is_active ? 'bg-ok/10 text-ok-strong' : 'bg-warn/10 text-warn',
+                          )}
+                        >
                           {e.is_active ? 'Activo' : 'Inactivo'}
                         </Badge>
-                      </div>
-                      <div className="mt-2 flex items-center gap-2 text-sm text-muted">
-                        <span className="shrink-0 text-brand-600/70">
-                          <IconMap />
-                        </span>
-                        <p className="min-w-0 flex-1 truncate leading-snug sm:whitespace-normal">{dir || 'Sin dirección'}</p>
-                        <InfoTip text={geoTip} className="shrink-0 sm:hidden" />
-                        <span className="hidden shrink-0 text-xs text-muted/80 sm:inline">{geoTip}</span>
+                        {canEdit && (
+                          <Menu
+                            items={[
+                              { label: 'Editar', onClick: () => openEdit(e), icon: <IconEdit /> },
+                              { label: 'Nuevo punto', onClick: () => openNewPunto(e), icon: <IconPlus /> },
+                            ]}
+                          />
+                        )}
                       </div>
                     </div>
 
-                    {canEdit && (
-                      <div className="flex shrink-0 items-center gap-1.5">
-                        <Button variant="ghost" className="gap-1.5 px-3" onClick={() => openEdit(e)}>
-                          <IconEdit />
-                          Editar
-                        </Button>
-                        <Button variant="soft" className="gap-1.5" onClick={() => openNewPunto(e)}>
-                          <IconPlus />
-                          Nuevo punto
-                        </Button>
-                      </div>
+                    <div className="flex items-start gap-1.5">
+                      <span className="mt-0.5 flex w-[15px] shrink-0 items-start justify-center text-brand-600/70">
+                        <IconMap />
+                      </span>
+                      <p className="min-w-0 flex-1 text-sm leading-relaxed text-muted">
+                        {dir || 'Sin dirección'}
+                      </p>
+                    </div>
+
+                  </div>
+
+                  <div className="border-t border-line/60" />
+
+                  {/* Móvil: lista compacta sin encabezados de tabla */}
+                  <div className="px-5 py-3 sm:hidden">
+                    {puntos.length === 0 ? (
+                      <p className="py-2 text-sm text-muted">
+                        Sin puntos de expedición. Agregá al menos el 001.
+                      </p>
+                    ) : (
+                      <ul className="divide-y divide-line/40">
+                        {puntos.map((p) => (
+                          <li key={p.codigo} className="flex items-center gap-2 py-3">
+                            <p className="min-w-0 flex-1 text-sm text-ink">
+                              <span className="font-mono text-xs font-semibold tabular-nums text-muted">
+                                {p.codigo}
+                              </span>
+                              <span className="mx-1.5 text-muted/40">·</span>
+                              {p.descripcion || '—'}
+                            </p>
+                            <Badge
+                              className={cn(
+                                'shrink-0',
+                                p.is_active ? 'bg-ok/10 text-ok-strong' : 'bg-warn/10 text-warn',
+                              )}
+                            >
+                              {p.is_active ? 'Activo' : 'Inactivo'}
+                            </Badge>
+                            {puntoActions(p)}
+                          </li>
+                        ))}
+                      </ul>
                     )}
                   </div>
 
-                  <div className="overflow-x-auto px-3 py-2 sm:px-4">
+                  {/* Desktop: tabla clásica */}
+                  <div className="hidden overflow-x-auto px-4 py-2 sm:block sm:px-5">
                     <table className="w-full text-sm">
                       <thead>
                         <tr className="border-b border-line/60 text-left text-xs font-medium text-muted">
@@ -383,29 +443,7 @@ export default function Establecimientos() {
                                 </Badge>
                               </td>
                               {canEdit && (
-                                <td className="pl-3.5 align-middle">
-                                  <div className="flex items-center justify-end gap-0.5">
-                                    <button
-                                      type="button"
-                                      title="Editar punto"
-                                      aria-label="Editar punto"
-                                      className={iconBtn}
-                                      onClick={() => openEditPunto(e, p)}
-                                    >
-                                      <IconEdit />
-                                    </button>
-                                    <button
-                                      type="button"
-                                      title={p.is_active ? 'Inactivar punto' : 'Activar punto'}
-                                      aria-label={p.is_active ? 'Inactivar punto' : 'Activar punto'}
-                                      className={cn(iconBtn, !p.is_active && 'text-ok hover:text-ok')}
-                                      disabled={togglePunto.isPending}
-                                      onClick={() => togglePunto.mutate({ est: e, p })}
-                                    >
-                                      <IconPower />
-                                    </button>
-                                  </div>
-                                </td>
+                                <td className="pl-3.5 align-middle">{puntoActions(p)}</td>
                               )}
                             </tr>
                           ))
@@ -427,7 +465,7 @@ export default function Establecimientos() {
               expedición (caja 001).
             </p>
             {canEdit && (
-              <Button className="mt-6 gap-1.5" onClick={openNew}>
+              <Button className="mt-6 w-full gap-1.5 sm:w-auto" onClick={openNew}>
                 <IconPlus />
                 Nuevo establecimiento
               </Button>

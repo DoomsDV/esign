@@ -1,5 +1,5 @@
 // App shell del panel: sidebar colapsable + topbar + banner de ambiente.
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/cn'
@@ -106,15 +106,6 @@ function IconLogout() {
     </svg>
   )
 }
-function IconInfo() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="shrink-0" aria-hidden>
-      <circle cx="12" cy="12" r="9" className="stroke-current" strokeWidth="1.8" />
-      <path d="M12 11v5M12 8h.01" className="stroke-current" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  )
-}
-
 // IconMenu: hamburguesa ↔ X con trazo vectorial uniforme (evita líneas gruesas por subpíxeles).
 function IconMenu({ isX }: { isX: boolean }) {
   return (
@@ -198,6 +189,7 @@ export function AppShell({
     () => localStorage.getItem('esign.sidebarCollapsed') === '1',
   )
   const [mobileOpen, setMobileOpen] = useState(false)
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
   const [isDesktop, setIsDesktop] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches,
   )
@@ -232,11 +224,18 @@ export function AppShell({
     navigate('/login', { replace: true })
   }
 
+  function closeMobileMenu() {
+    setMobileOpen(false)
+    requestAnimationFrame(() => menuButtonRef.current?.focus())
+  }
+
   function toggleMenu() {
     if (isDesktop) {
       setCollapsed((v) => !v)
+    } else if (mobileOpen) {
+      closeMobileMenu()
     } else {
-      setMobileOpen((v) => !v)
+      setMobileOpen(true)
     }
   }
 
@@ -257,7 +256,7 @@ export function AppShell({
       <BrandLogo asLink collapsed={isCollapsed} className="mb-6" />
 
       <div className="mb-5">
-        <NavList items={PRIMARY} collapsed={isCollapsed} onNavigate={() => setMobileOpen(false)} />
+        <NavList items={PRIMARY} collapsed={isCollapsed} onNavigate={closeMobileMenu} />
       </div>
 
       {isCollapsed ? (
@@ -267,7 +266,7 @@ export function AppShell({
           Configuración
         </p>
       )}
-      <NavList items={CONFIG} collapsed={isCollapsed} onNavigate={() => setMobileOpen(false)} />
+      <NavList items={CONFIG} collapsed={isCollapsed} onNavigate={closeMobileMenu} />
 
       <div className={cn('mt-auto flex pt-4', isCollapsed && 'justify-center')}>
         <button
@@ -307,22 +306,24 @@ export function AppShell({
     <div className={cn('flex h-dvh overflow-hidden bg-white', !isTest && 'env-prod')}>
       {desktopSidebar}
 
-      {/* Drawer móvil */}
+      {/* Drawer móvil — inert al cerrar; no aria-hidden en ancestro con foco */}
       <div
         className={cn(
           'fixed inset-0 z-40 md:hidden',
           mobileOpen ? 'pointer-events-auto' : 'pointer-events-none',
         )}
-        aria-hidden={!mobileOpen}
       >
         <div
-          onClick={() => setMobileOpen(false)}
+          onClick={closeMobileMenu}
           className={cn(
             'absolute inset-0 bg-ink/40 transition-opacity duration-200 ease-out',
             mobileOpen ? 'opacity-100' : 'opacity-0',
           )}
+          aria-hidden
         />
         <aside
+          inert={!mobileOpen ? true : undefined}
+          aria-label="Menú de navegación"
           className={cn(
             'absolute inset-y-0 left-0 w-64 bg-white shadow-2xl',
             'transition-transform duration-200 ease-out',
@@ -343,6 +344,7 @@ export function AppShell({
           <div className="flex items-center gap-2 px-4 py-3 sm:gap-4 sm:px-6">
             <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
               <button
+                ref={menuButtonRef}
                 type="button"
                 onClick={toggleMenu}
                 className={cn(
@@ -364,25 +366,7 @@ export function AppShell({
                 <IconMenu isX={menuOpen} />
               </button>
               <div className="min-w-0 flex-1">
-                <div className="flex min-w-0 items-center gap-1.5">
-                  <h1 className="truncate text-base font-bold text-ink sm:text-lg">{title}</h1>
-                  <span
-                    title={
-                      isTest
-                        ? 'Homologación sifen-test — sin valor comercial ni fiscal'
-                        : 'Producción — emisión real bloqueada en el motor'
-                    }
-                    className={cn(
-                      'inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] font-semibold sm:px-2',
-                      isTest ? 'bg-brand-100 text-brand-700' : 'bg-ok/10 text-ok-strong',
-                    )}
-                  >
-                    <IconInfo />
-                    <span className="hidden sm:inline">
-                      {isTest ? 'sifen-test · sin valor fiscal' : 'PROD · emisión bloqueada'}
-                    </span>
-                  </span>
-                </div>
+                <h1 className="truncate text-base font-bold text-ink sm:text-lg">{title}</h1>
                 <p className="hidden truncate text-xs text-muted sm:block">{session?.businessName}</p>
               </div>
             </div>

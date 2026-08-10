@@ -159,7 +159,7 @@ export default function Empresa() {
               </div>
             )}
 
-            <Card className="overflow-hidden">
+            <Card>
               <div className="flex flex-col gap-8 px-5 py-6 sm:px-7 sm:py-8">
                 <section>
                   <SectionHint
