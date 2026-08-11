@@ -92,14 +92,10 @@ function KeyIconSmall({ className }: { className?: string }) {
 function ActiveKeyCard({
   keyMeta,
   canRotate,
-  copied,
-  onCopy,
   onRotate,
 }: {
   keyMeta: ApiKeyMeta
   canRotate: boolean
-  copied: boolean
-  onCopy: () => void
   onRotate: () => void
 }) {
   const meta = [
@@ -135,18 +131,13 @@ function ActiveKeyCard({
         )}
       </div>
 
-      <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:items-stretch">
-        <code className="block min-w-0 flex-1 rounded-xl border border-line/80 bg-cream-soft/60 px-3.5 py-3 font-mono text-sm leading-none tracking-tight text-ink sm:text-[15px]">
+      <div className="mt-5">
+        <code className="block min-w-0 rounded-xl border border-line/80 bg-cream-soft/60 px-3.5 py-3 font-mono text-sm leading-none tracking-tight text-ink sm:text-[15px]">
           {maskKeyPrefix(keyMeta.prefix)}
         </code>
-        <Button
-          variant={copied ? 'success-outline' : 'secondary'}
-          className="shrink-0 gap-1.5 sm:px-5"
-          onClick={onCopy}
-        >
-          <CopyIcon />
-          {copied ? 'Copiado' : 'Copiar'}
-        </Button>
+        <p className="mt-2 text-xs leading-relaxed text-muted">
+          La key completa solo se muestra al generar o rotar. Si la perdiste, rotá para obtener una nueva.
+        </p>
       </div>
 
       <div className="mt-4">
@@ -187,7 +178,6 @@ export default function ApiKeys() {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
-  const [copiedPrefix, setCopiedPrefix] = useState<string | null>(null)
 
   const rotate = useMutation({
     mutationFn: (env: Environment) => rotateApiKey(token, env.toLowerCase() as Lowercase<Environment>),
@@ -208,12 +198,6 @@ export default function ApiKeys() {
     if (!revealed) return
     await navigator.clipboard.writeText(revealed.api_key)
     setCopied(true)
-  }
-
-  async function copyPrefix(prefix: string) {
-    await navigator.clipboard.writeText(prefix)
-    setCopiedPrefix(prefix)
-    window.setTimeout(() => setCopiedPrefix((cur) => (cur === prefix ? null : cur)), 2000)
   }
 
   function openRotateConfirm() {
@@ -255,8 +239,6 @@ export default function ApiKeys() {
           <ActiveKeyCard
             keyMeta={activeKey}
             canRotate={canRotate}
-            copied={copiedPrefix === activeKey.prefix}
-            onCopy={() => copyPrefix(activeKey.prefix)}
             onRotate={openRotateConfirm}
           />
         )}
