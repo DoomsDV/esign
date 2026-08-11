@@ -10,6 +10,7 @@ import { cn } from '@/lib/cn'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
 import {
+  getClient,
   getKudeConfig,
   upsertKudeConfig,
   uploadKudeLogo,
@@ -147,12 +148,14 @@ function KudePreview({
   logo,
   footer,
   businessName,
+  fantasia,
 }: {
   template: KudeTemplateId
   color: string
   logo: string | null
   footer: string
   businessName: string
+  fantasia: string
 }) {
   const safeColor = isValidHex(color) ? color : '#0f172a'
 
@@ -163,7 +166,14 @@ function KudePreview({
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             {logo ? <PreviewLogo src={logo} variant="corporativa" /> : null}
-            <p className="text-sm font-bold text-ink">{businessName || 'Tu empresa'}</p>
+            {fantasia ? (
+              <>
+                <p className="text-sm font-bold text-ink">{fantasia}</p>
+                <p className="mt-0.5 text-[10px] italic text-muted">{businessName || 'Tu empresa'}</p>
+              </>
+            ) : (
+              <p className="text-sm font-bold text-ink">{businessName || 'Tu empresa'}</p>
+            )}
             <p className="mt-0.5 text-[10px] text-muted">RUC: {PREVIEW_DEMO.ruc}</p>
             <p className="mt-0.5 text-[10px] text-muted">{PREVIEW_DEMO.direccion}</p>
           </div>
@@ -228,7 +238,14 @@ function KudePreview({
           {logo ? <PreviewLogo src={logo} variant="minimalista" /> : null}
         </div>
         <div className="text-right">
-          <p className="text-[11px] font-bold text-ink">{businessName || 'Tu empresa'}</p>
+          {fantasia ? (
+            <>
+              <p className="text-[11px] font-bold text-ink">{fantasia}</p>
+              <p className="mt-0.5 text-[10px] italic text-muted">{businessName || 'Tu empresa'}</p>
+            </>
+          ) : (
+            <p className="text-[11px] font-bold text-ink">{businessName || 'Tu empresa'}</p>
+          )}
           <p className="mt-0.5 text-[10px] text-muted">RUC {PREVIEW_DEMO.ruc}</p>
           <p className="text-[10px] text-muted">{PREVIEW_DEMO.ciudad}</p>
         </div>
@@ -425,6 +442,7 @@ export default function DisenoKude() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   const q = useQuery({ queryKey: ['kude-config'], queryFn: () => getKudeConfig(token) })
+  const clientQ = useQuery({ queryKey: ['client'], queryFn: () => getClient(token) })
 
   const [template, setTemplate] = useState<KudeTemplateId>('minimalista')
   const [color, setColor] = useState('#0f172a')
@@ -689,6 +707,7 @@ export default function DisenoKude() {
               logo={logoUrl}
               footer={footer || 'KuDE — Comprobante Único de DE'}
               businessName={session?.businessName ?? ''}
+              fantasia={clientQ.data?.emisor?.nombre_fantasia ?? ''}
             />
           </div>
         </div>
