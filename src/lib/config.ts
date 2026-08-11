@@ -159,12 +159,14 @@ export interface KudeConfig {
   color_primario: string
   logo_url: string | null
   notas_footer: string | null
+  mostrar_fantasia: number
 }
 
 export interface KudeConfigUpdate {
   template_id?: KudeTemplateId
   color_primario?: string
   notas_footer?: string
+  mostrar_fantasia?: number
 }
 
 export async function getKudeConfig(token: string): Promise<KudeConfig> {

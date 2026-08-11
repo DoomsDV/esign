@@ -2,6 +2,7 @@
 // de inmediato a OCI (vía ORDS); el resto se guarda con "Guardar cambios". El panel
 // derecho es un preview en React que imita visualmente cada plantilla (no llama a
 // Gotenberg en cada cambio: eso solo ocurre al emitir un documento real).
+import { Link } from 'react-router-dom'
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
@@ -149,6 +150,7 @@ function KudePreview({
   footer,
   businessName,
   fantasia,
+  mostrarFantasia,
 }: {
   template: KudeTemplateId
   color: string
@@ -156,6 +158,7 @@ function KudePreview({
   footer: string
   businessName: string
   fantasia: string
+  mostrarFantasia: boolean
 }) {
   const safeColor = isValidHex(color) ? color : '#0f172a'
 
@@ -166,7 +169,7 @@ function KudePreview({
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
             {logo ? <PreviewLogo src={logo} variant="corporativa" /> : null}
-            {fantasia ? (
+            {fantasia && mostrarFantasia ? (
               <>
                 <p className="text-sm font-bold text-ink">{fantasia}</p>
                 <p className="mt-0.5 text-[10px] italic text-muted">{businessName || 'Tu empresa'}</p>
@@ -238,7 +241,7 @@ function KudePreview({
           {logo ? <PreviewLogo src={logo} variant="minimalista" /> : null}
         </div>
         <div className="text-right">
-          {fantasia ? (
+          {fantasia && mostrarFantasia ? (
             <>
               <p className="text-[11px] font-bold text-ink">{fantasia}</p>
               <p className="mt-0.5 text-[10px] italic text-muted">{businessName || 'Tu empresa'}</p>
@@ -448,6 +451,7 @@ export default function DisenoKude() {
   const [color, setColor] = useState('#0f172a')
   const [footer, setFooter] = useState('')
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
+  const [mostrarFantasia, setMostrarFantasia] = useState(true)
   const [dragging, setDragging] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
@@ -458,10 +462,17 @@ export default function DisenoKude() {
     setColor(q.data.color_primario || '#0f172a')
     setFooter(q.data.notas_footer || '')
     setLogoUrl(q.data.logo_url || null)
+    setMostrarFantasia((q.data.mostrar_fantasia ?? 1) !== 0)
   }, [q.data])
 
   const save = useMutation({
-    mutationFn: () => upsertKudeConfig(token, { template_id: template, color_primario: color, notas_footer: footer }),
+    mutationFn: () =>
+      upsertKudeConfig(token, {
+        template_id: template,
+        color_primario: color,
+        notas_footer: footer,
+        mostrar_fantasia: mostrarFantasia ? 1 : 0,
+      }),
     onSuccess: async () => {
       setErr(null)
       setMsg('Diseño guardado')
@@ -500,6 +511,9 @@ export default function DisenoKude() {
     [uploadLogo],
   )
 
+  const nombreFantasia = clientQ.data?.emisor?.nombre_fantasia?.trim() ?? ''
+  const puedeMostrarFantasia = nombreFantasia.length > 0
+
   return (
     <AppShell title="Diseño del KuDE">
       {q.isLoading && <p className="text-sm text-muted">Cargando…</p>}
@@ -532,6 +546,43 @@ export default function DisenoKude() {
                     </button>
                   ))}
                 </div>
+              </section>
+
+              <section>
+                <h2 className="text-base font-bold text-ink">Nombre de fantasía</h2>
+                <p className="mt-1 text-sm text-muted">
+                  Controla si el nombre comercial aparece en el encabezado del KuDE (ambas plantillas).
+                </p>
+                <label
+                  className={cn(
+                    'mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-line px-4 py-3',
+                    !puedeMostrarFantasia && 'cursor-not-allowed opacity-60',
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={mostrarFantasia}
+                    onChange={(e) => setMostrarFantasia(e.target.checked)}
+                    disabled={!canEdit || !puedeMostrarFantasia}
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-line text-brand-400 focus:ring-brand-300 disabled:cursor-not-allowed"
+                  />
+                  <span>
+                    <span className="text-sm font-semibold text-ink">Mostrar nombre de fantasía</span>
+                    {puedeMostrarFantasia ? (
+                      <span className="mt-0.5 block text-xs text-muted">
+                        Si está activo, «{nombreFantasia}» se muestra arriba de la razón social.
+                      </span>
+                    ) : (
+                      <span className="mt-0.5 block text-xs text-muted">
+                        Cargá un nombre de fantasía en{' '}
+                        <Link to="/empresa" className="font-medium text-brand-600 hover:underline">
+                          Empresa
+                        </Link>{' '}
+                        para habilitar esta opción.
+                      </span>
+                    )}
+                  </span>
+                </label>
               </section>
 
               <hr className="border-t border-line/70" />
@@ -707,7 +758,8 @@ export default function DisenoKude() {
               logo={logoUrl}
               footer={footer || 'KuDE — Comprobante Único de DE'}
               businessName={session?.businessName ?? ''}
-              fantasia={clientQ.data?.emisor?.nombre_fantasia ?? ''}
+              fantasia={nombreFantasia}
+              mostrarFantasia={mostrarFantasia}
             />
           </div>
         </div>
