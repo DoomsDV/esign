@@ -4,192 +4,6 @@
  */
 
 export interface paths {
-    "/v1/health": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Salud del servicio */
-        get: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Servicio operativo */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["HealthResponse"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/documents": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Crear, firmar y enviar un documento electrónico (FE/NCE/NDE)
-         * @description Resuelve el tenant por la API key, valida establecimiento/punto, pide el correlativo,
-         *     genera el CDC, firma con el certificado descifrado y envía a SIFEN (test o prod según
-         *     el prefijo de la key). Persiste el resultado. `201` si SIFEN aprueba (0260); `200` si
-         *     rechaza (el detalle va en `data`).
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["CreateDocumentRequest"];
-                };
-            };
-            responses: {
-                /** @description Documento rechazado por SIFEN (código distinto de 0260) */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["DocumentResponseEnvelope"];
-                    };
-                };
-                /** @description Documento aprobado por SIFEN (0260) */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["DocumentResponseEnvelope"];
-                    };
-                };
-                401: components["responses"]["Unauthorized"];
-                403: components["responses"]["Forbidden"];
-                422: components["responses"]["Unprocessable"];
-                502: components["responses"]["BadGateway"];
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/documents/{cdc}/cancel": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Emitir un evento de cancelación sobre un CDC */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    /** @description CDC (44 dígitos) del documento aprobado a cancelar */
-                    cdc: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        /** @example Error en los datos del documento */
-                        motivo: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Resultado del evento (REGISTRADO si 0600) */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["EventResponseEnvelope"];
-                    };
-                };
-                401: components["responses"]["Unauthorized"];
-                422: components["responses"]["Unprocessable"];
-                502: components["responses"]["BadGateway"];
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/events/inutilizacion": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Inutilizar un rango de numeración */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["InutilizacionRequest"];
-                };
-            };
-            responses: {
-                /** @description Resultado del evento (REGISTRADO si 0600) */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["EventResponseEnvelope"];
-                    };
-                };
-                401: components["responses"]["Unauthorized"];
-                422: components["responses"]["Unprocessable"];
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/v1/panel/certificate": {
         parameters: {
             query?: never;
@@ -202,7 +16,7 @@ export interface paths {
         /**
          * Subir .p12 + password en claro (Go cifra y guarda)
          * @description El navegador envía el P12 (base64) y la password en claro. Go cifra con AES-256-GCM
-         *     (`ESIGN_MASTER_KEY`) y guarda vía `POST /internal/v1/certificate/store`.
+         *     (`ESIGN_MASTER_KEY`) y guarda vía ORDS interno.
          *     El panel NUNCA cifra ni ve la master key.
          */
         post: {
@@ -248,8 +62,8 @@ export interface paths {
         get?: never;
         /**
          * Upsert timbrado + CSC en claro (Go cifra el CSC y guarda)
-         * @description El navegador envía timbrado/CSC en claro. Go cifra el CSC y persiste vía
-         *     `POST /internal/v1/environments/store`. Scopeado por ambiente TEST/PROD.
+         * @description El navegador envía timbrado/CSC en claro. Go cifra el CSC y persiste vía ORDS interno.
+         *     Scopeado por ambiente TEST/PROD.
          */
         put: {
             parameters: {
@@ -856,6 +670,113 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/kude-config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Configuración de branding del KuDE (PDF) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Plantilla, color, logo URL, footer, mostrar_fantasia */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Envelope"] & {
+                            data?: components["schemas"]["KudeConfig"];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+            };
+        };
+        /** Upsert de branding KuDE (sin logo; solo owner) */
+        put: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["KudeConfigUpsertRequest"];
+                };
+            };
+            responses: {
+                /** @description Configuración actualizada */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Envelope"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/kude-config/logo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Subir logo al bucket OCI (solo owner) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["KudeLogoUploadRequest"];
+                };
+            };
+            responses: {
+                /** @description Logo almacenado; respuesta incluye logo_url actualizado */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Envelope"];
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/documents/search": {
         parameters: {
             query?: never;
@@ -1080,449 +1001,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/internal/v1/context": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Resolver API key → client_id + config + establecimientos */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        /** @example sk_test_... */
-                        api_key: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Envelope"];
-                    };
-                };
-                401: components["responses"]["Unauthorized"];
-                403: components["responses"]["Forbidden"];
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/internal/v1/next-number": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Correlativo con bloqueo para (est, punto, tipo_de) */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        client_id: number;
-                        /** @enum {string} */
-                        environment: "TEST" | "PROD";
-                        establecimiento: string;
-                        punto_expedicion: string;
-                        tipo_de: number;
-                    };
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Envelope"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/internal/v1/certificate": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Blobs cifrados del certificado ACTIVE (hex) */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        client_id: number;
-                    };
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Envelope"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/internal/v1/certificate/store": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Persistir P12 cifrado (mediacion Go del panel) */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["CertificateRequest"] & {
-                        client_id: number;
-                        /** @default owner */
-                        role?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Envelope"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/internal/v1/csc": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** CSC cifrado (hex) del ambiente para el QR */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        client_id: number;
-                        environment: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Envelope"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/internal/v1/environments/store": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Persistir timbrado + CSC cifrado (mediacion Go del panel) */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["EnvironmentRequest"] & {
-                        client_id: number;
-                        /** @default owner */
-                        role?: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Envelope"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/internal/v1/documents": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Registrar/actualizar documento emitido */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Envelope"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/internal/v1/documents/pending-retry": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Listar documentos FIRMADO pendientes de reenvio (con xml_firmado)
-         * @description Usado por el worker de Go. `mode=flagged` solo `retry_requested=1`;
-         *     `mode=all` todos los FIRMADO con XML. Bypass VPD (multi-tenant).
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        /**
-                         * @default flagged
-                         * @enum {string}
-                         */
-                        mode?: "flagged" | "all";
-                        /** @default 50 */
-                        limit?: number;
-                    };
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Envelope"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/internal/v1/events": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Registrar evento (cancelacion/inutilizacion) */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": Record<string, never>;
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Envelope"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/internal/v1/logs": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Registrar una llamada en api_log (lo usa el middleware de Go) */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": {
-                        client_id?: number;
-                        environment?: string;
-                        endpoint: string;
-                        http_status: number;
-                        latency_ms: number;
-                    };
-                };
-            };
-            responses: {
-                /** @description OK */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["Envelope"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1553,137 +1031,11 @@ export interface components {
                 message?: string;
             };
         };
-        HealthResponse: components["schemas"]["Envelope"] & {
-            data?: {
-                /** @example ok */
-                status?: string;
-                /** Format: date-time */
-                time?: string;
-            };
-        };
         Geo: {
             /** @example 12 */
             cod?: number;
             /** @example CENTRAL */
             desc?: string;
-        };
-        ReceptorRequest: {
-            /** @enum {string} */
-            tipo: "ci" | "ruc" | "innominado" | "extranjero";
-            documento?: string;
-            /** @description DV (receptor RUC) */
-            dv?: number;
-            /** @description 1 física, 2 jurídica (RUC) */
-            tipoContribuyente?: number;
-            /** @description iTiOpe (RUC) */
-            tipoOperacion?: number;
-            nombre?: string;
-            /** @description ISO-3 ≠ PRY (extranjero) */
-            pais?: string;
-            desPais?: string;
-            /** @description iTipIDRec (extranjero) */
-            tipoIdentificacion?: number;
-        };
-        ItemRequest: {
-            /** @example SERV-001 */
-            codigo?: string;
-            descripcion: string;
-            /** @example 1 */
-            cantidad: number;
-            /** @example 150000 */
-            precioUnitario: number;
-            /**
-             * @description 1 gravado, 2 exonerado, 3 exento, 4 parcial
-             * @enum {integer}
-             */
-            afectacionIVA: 1 | 2 | 3 | 4;
-            /** @enum {integer} */
-            tasaIVA: 10 | 5 | 0;
-            unidadMedida?: number;
-            desUnidadMedida?: string;
-            /** @description gravado parcial */
-            propIVA?: number;
-        };
-        CreateDocumentRequest: {
-            /**
-             * @example fe
-             * @enum {string}
-             */
-            tipo: "fe" | "nce" | "nde";
-            /**
-             * @example contado
-             * @enum {string}
-             */
-            condicion?: "contado" | "credito";
-            /**
-             * @description días (crédito a plazo)
-             * @example 30
-             */
-            plazo?: string;
-            datos_operacion?: {
-                /** @example 001 */
-                establecimiento?: string;
-                /** @example 001 */
-                punto_expedicion?: string;
-            };
-            receptor?: components["schemas"]["ReceptorRequest"];
-            /** @example PYG */
-            moneda: string;
-            tipoCambio?: number | null;
-            items: components["schemas"]["ItemRequest"][];
-            /** @description NCE/NDE: CDC de la factura referenciada */
-            cdcRef?: string;
-            /** @description NCE/NDE: motivo de emisión */
-            motivo?: number;
-        };
-        DocumentResponseEnvelope: components["schemas"]["Envelope"] & {
-            data?: {
-                /** @example 01060389648001001000000812026072514730603957 */
-                cdc?: string;
-                /**
-                 * @example APROBADO
-                 * @enum {string}
-                 */
-                estado?: "APROBADO" | "RECHAZADO" | "FIRMADO";
-                /** @example 0260 */
-                codRes?: string;
-                /** @example 49767439 */
-                protAut?: string;
-                mensaje?: string;
-                qr?: string;
-                /** @example 0000008 */
-                numeroDocumento?: string;
-                /** @example test */
-                ambiente?: string;
-            };
-        };
-        InutilizacionRequest: {
-            /** @example 001 */
-            establecimiento?: string;
-            /** @example 001 */
-            punto_expedicion?: string;
-            /** @example 1000 */
-            numeroInicial: number;
-            /** @example 1005 */
-            numeroFinal: number;
-            /** @example 1 */
-            tipoDE: number;
-            motivo: string;
-        };
-        EventResponseEnvelope: components["schemas"]["Envelope"] & {
-            data?: {
-                /**
-                 * @example REGISTRADO
-                 * @enum {string}
-                 */
-                estado?: "REGISTRADO" | "RECHAZADO";
-                /** @example 0600 */
-                codRes?: string;
-                protAut?: string;
-                mensaje?: string;
-                /** @example test */
-                ambiente?: string;
-            };
         };
         RegisterRequest: {
             /** Format: email */
@@ -1776,14 +1128,14 @@ export interface components {
         /** @description Metadata del ambiente configurado. Nunca incluye el CSC (ni cifrado). */
         EnvironmentMeta: {
             /** @example 06038964 */
-            num_timbrado: string | null;
+            num_timbrado?: string | null;
             /**
              * Format: date
              * @example 2026-07-09
              */
-            fecha_inicio_vigencia: string | null;
+            fecha_inicio_vigencia?: string | null;
             /** @example 0001 */
-            id_csc: string | null;
+            id_csc?: string | null;
             /** @example 1 */
             key_version?: number | null;
             /** @description true si ya hay un CSC guardado para este ambiente */
@@ -1805,6 +1157,46 @@ export interface components {
             /** @example 1 */
             key_version?: number;
         };
+        KudeConfig: {
+            /**
+             * @example minimalista
+             * @enum {string}
+             */
+            template_id?: "minimalista" | "corporativa";
+            /** @example #0f172a */
+            color_primario?: string;
+            /** @description URL pública del logo en OCI */
+            logo_url?: string | null;
+            /** @example Gracias por su compra */
+            notas_footer?: string | null;
+            /**
+             * @description 1=mostrar nombre fantasía en PDF si existe; 0=solo razón social
+             * @default 1
+             * @enum {integer}
+             */
+            mostrar_fantasia: 0 | 1;
+        };
+        KudeConfigUpsertRequest: {
+            /** @enum {string} */
+            template_id?: "minimalista" | "corporativa";
+            /** @example #0f172a */
+            color_primario?: string;
+            notas_footer?: string | null;
+            /**
+             * @default 1
+             * @enum {integer}
+             */
+            mostrar_fantasia: 0 | 1;
+        };
+        KudeLogoUploadRequest: {
+            /** @description Contenido de la imagen en hexadecimal */
+            image_hex: string;
+            /**
+             * @example image/png
+             * @enum {string}
+             */
+            mime_type: "image/png" | "image/jpeg" | "image/webp";
+        };
     };
     responses: {
         /** @description No autenticado / token inválido */
@@ -1816,7 +1208,7 @@ export interface components {
                 "application/json": components["schemas"]["ErrorEnvelope"];
             };
         };
-        /** @description Sin permiso (rol o key revocada/cliente inactivo) */
+        /** @description Sin permiso (rol insuficiente) */
         Forbidden: {
             headers: {
                 [name: string]: unknown;
@@ -1836,15 +1228,6 @@ export interface components {
         };
         /** @description Payload válido pero inconsistente (validación de negocio) */
         Unprocessable: {
-            headers: {
-                [name: string]: unknown;
-            };
-            content: {
-                "application/json": components["schemas"]["ErrorEnvelope"];
-            };
-        };
-        /** @description Error al comunicarse con SIFEN u ORDS */
-        BadGateway: {
             headers: {
                 [name: string]: unknown;
             };

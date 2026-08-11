@@ -1,4 +1,4 @@
-// Clientes openapi-fetch tipados desde firmador/docs/openapi.yaml.
+// Clientes openapi-fetch tipados desde firmador/docs/openapi-panel.yaml.
 // ORDS: panel (JWT). Go: emision + mediacion de secretos (JWT del panel).
 import createClient from 'openapi-fetch'
 import type { paths } from './api-schema'

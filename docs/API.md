@@ -7,7 +7,9 @@ El frontend **no** implementa la lógica SIFEN: consume dos bases HTTP documenta
 | Recurso | Ubicación | Uso |
 |---|---|---|
 | Guía práctica (URLs, tokens, JSON) | [`firmador/docs/guia-integracion-api.md`](../../firmador/docs/guia-integracion-api.md) | Integradores y desarrollo del panel |
-| Contrato completo | [`firmador/docs/openapi.yaml`](../../firmador/docs/openapi.yaml) | OpenAPI 3.0 — fuente de verdad |
+| OpenAPI panel | [`firmador/docs/openapi-panel.yaml`](../../firmador/docs/openapi-panel.yaml) | Spec del panel — fuente de tipos TS |
+| OpenAPI emisión | [`firmador/docs/openapi-emision.yaml`](../../firmador/docs/openapi-emision.yaml) | Spec para integradores externos |
+| Índice OpenAPI | [`firmador/docs/openapi/README.md`](../../firmador/docs/openapi/README.md) | Qué spec usar según audiencia |
 | Contrato narrativo | [`firmador/docs/api-contract.md`](../../firmador/docs/api-contract.md) | Detalle por plano y estados del DE |
 
 ## Bases URL (`.env` / Vite)
@@ -30,7 +32,7 @@ Implementación en código:
 
 ## OpenAPI → TypeScript
 
-Los tipos del panel se generan desde el OpenAPI del backend:
+Los tipos del panel se generan desde `openapi-panel.yaml` del backend:
 
 ```bash
 npm run generate:api
@@ -39,7 +41,7 @@ npm run generate:api
 Eso ejecuta:
 
 ```bash
-openapi-typescript ../../firmador/docs/openapi.yaml -o src/lib/api-schema.d.ts
+openapi-typescript ../../firmador/docs/openapi-panel.yaml -o src/lib/api-schema.d.ts
 ```
 
 Tras cambiar endpoints en `firmador`, regenerar tipos y commitear `api-schema.d.ts` si aplica.
