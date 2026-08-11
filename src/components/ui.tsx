@@ -442,25 +442,33 @@ export function Drawer({
 }) {
   const panelRef = useRef<HTMLElement>(null)
   const titleId = useId()
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
 
+  // Solo al abrir/cerrar: si onClose cambia en cada render del padre (inline arrow),
+  // re-ejecutar este efecto robaba el foco del input tras cada tecla.
   useEffect(() => {
     if (!open) return
     const previousFocus = document.activeElement as HTMLElement | null
     panelRef.current?.focus()
+    return () => {
+      previousFocus?.focus()
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
 
     function onKeyDown(e: KeyboardEvent) {
       if (e.key === 'Escape') {
         e.preventDefault()
-        onClose()
+        onCloseRef.current()
       }
     }
 
     document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('keydown', onKeyDown)
-      previousFocus?.focus()
-    }
-  }, [open, onClose])
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [open])
 
   return (
     <div
