@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react'
-import { useMutation } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
 import {
   Alert,
@@ -17,7 +17,10 @@ import {
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
-import { upsertEnvironment } from '@/lib/secrets'
+import { getEnvironment, upsertEnvironment } from '@/lib/secrets'
+
+const CONFIGURED_HINT =
+  'Ya existe una configuración para este ambiente. El CSC no se muestra por seguridad — volvé a ingresarlo si vas a modificar cualquier valor.'
 
 const PAGE_TIP =
   'El selector TEST/PROD del header define qué ambiente estás configurando. No mezcles credenciales de homologación con las de producción.'
@@ -53,6 +56,8 @@ export default function Ambientes() {
   const canEdit = session!.role === 'owner'
   const isProd = environment === 'PROD'
 
+  const qc = useQueryClient()
+
   const [numTimbrado, setNumTimbrado] = useState('')
   const [fechaIni, setFechaIni] = useState('')
   const [idCsc, setIdCsc] = useState('0001')
@@ -61,15 +66,31 @@ export default function Ambientes() {
   const [err, setErr] = useState<string | null>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
 
+  const envQuery = useQuery({
+    queryKey: ['environment', environment],
+    queryFn: () => getEnvironment(token, environment),
+  })
+
   useEffect(() => {
-    setNumTimbrado('')
-    setFechaIni('')
-    setIdCsc('0001')
-    setCsc('')
     setMsg(null)
     setErr(null)
     setConfirmOpen(false)
+    setCsc('')
   }, [environment])
+
+  useEffect(() => {
+    if (envQuery.isLoading) return
+    const data = envQuery.data
+    if (data) {
+      setNumTimbrado(data.num_timbrado ?? '')
+      setFechaIni(data.fecha_inicio_vigencia ?? '')
+      setIdCsc(data.id_csc ?? '0001')
+    } else {
+      setNumTimbrado('')
+      setFechaIni('')
+      setIdCsc('0001')
+    }
+  }, [environment, envQuery.data, envQuery.isLoading])
 
   const save = useMutation({
     mutationFn: () =>
@@ -80,11 +101,12 @@ export default function Ambientes() {
         id_csc: idCsc.trim(),
         csc: csc.trim(),
       }),
-    onSuccess: () => {
+    onSuccess: async () => {
       setErr(null)
       setConfirmOpen(false)
       setMsg(`Ambiente ${environment} guardado. El CSC quedó cifrado en el servidor.`)
       setCsc('')
+      await qc.invalidateQueries({ queryKey: ['environment', environment] })
     },
     onError: (e: Error) => {
       setConfirmOpen(false)
@@ -104,6 +126,8 @@ export default function Ambientes() {
     !cscError
 
   const saving = save.isPending
+  const loadingEnv = envQuery.isLoading
+  const formDisabled = saving || loadingEnv
 
   function submitSave() {
     if (!canSave || saving) return
@@ -143,7 +167,7 @@ export default function Ambientes() {
                 variant={isProd ? 'danger-outline' : 'primary'}
                 className="hidden sm:inline-flex"
                 loading={saving}
-                disabled={!canSave || saving}
+                disabled={!canSave || formDisabled}
               >
                 <IconSave />
                 Guardar {environment}
@@ -157,6 +181,14 @@ export default function Ambientes() {
         ) : (
           <div className={cn(panelClass, 'overflow-hidden')}>
             <form id="ambientes-form" onSubmit={handleSubmit} className="flex flex-col gap-8 px-5 py-6 sm:px-7 sm:py-8">
+              {loadingEnv && <p className="text-sm text-muted">Cargando configuración guardada…</p>}
+
+              {!loadingEnv && envQuery.data && (
+                <div className="rounded-xl border border-line/60 bg-cream-soft/50 px-4 py-3 text-sm text-muted">
+                  {CONFIGURED_HINT}
+                </div>
+              )}
+
               <section>
                 <SectionHint title="Timbrado SIFEN" tip={TIMBRADO_TIP} />
                 <div className="mt-5 grid gap-4 sm:grid-cols-2">
@@ -170,7 +202,7 @@ export default function Ambientes() {
                     maxLength={8}
                     autoComplete="off"
                     requiredMark
-                    disabled={saving}
+                    disabled={formDisabled}
                     error={timbradoError ?? undefined}
                     className="tabular-nums"
                   />
@@ -182,7 +214,7 @@ export default function Ambientes() {
                     onChange={(e) => setFechaIni(e.target.value)}
                     autoComplete="off"
                     requiredMark
-                    disabled={saving}
+                    disabled={formDisabled}
                   />
                 </div>
               </section>
@@ -203,7 +235,7 @@ export default function Ambientes() {
                     maxLength={4}
                     autoComplete="off"
                     requiredMark
-                    disabled={saving}
+                    disabled={formDisabled}
                     error={idCscError ?? undefined}
                     className="tabular-nums"
                   />
@@ -218,7 +250,7 @@ export default function Ambientes() {
                     placeholder="32 caracteres"
                     maxLength={32}
                     requiredMark
-                    disabled={saving}
+                    disabled={formDisabled}
                     error={cscError ?? undefined}
                   />
                 </div>
@@ -247,7 +279,7 @@ export default function Ambientes() {
                   variant={isProd ? 'danger-outline' : 'primary'}
                   className="w-full"
                   loading={saving}
-                  disabled={!canSave || saving}
+                  disabled={!canSave || formDisabled}
                 >
                   <IconSave />
                   Guardar {environment}

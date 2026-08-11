@@ -669,6 +669,53 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/environments/{env}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Metadata de timbrado/CSC del ambiente (solo owner, nunca el CSC)
+         * @description Devuelve `num_timbrado`, `fecha_inicio_vigencia`, `id_csc`, `key_version` y `has_csc`
+         *     para precargar el panel. `data` es `null` si el ambiente todavía no fue configurado.
+         *     El CSC (ni cifrado) nunca se expone por este endpoint.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    env: "test" | "prod";
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Envelope"] & {
+                            data?: components["schemas"]["EnvironmentMeta"];
+                        };
+                    };
+                };
+                401: components["responses"]["Unauthorized"];
+                403: components["responses"]["Forbidden"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/api-keys": {
         parameters: {
             query?: never;
@@ -1167,6 +1214,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/internal/v1/certificate/store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Persistir P12 cifrado (mediacion Go del panel) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["CertificateRequest"] & {
+                        client_id: number;
+                        /** @default owner */
+                        role?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Envelope"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/internal/v1/csc": {
         parameters: {
             query?: never;
@@ -1190,6 +1281,182 @@ export interface paths {
                         client_id: number;
                         environment: string;
                     };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Envelope"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/v1/environments/store": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Persistir timbrado + CSC cifrado (mediacion Go del panel) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": components["schemas"]["EnvironmentRequest"] & {
+                        client_id: number;
+                        /** @default owner */
+                        role?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Envelope"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/v1/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Registrar/actualizar documento emitido */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": Record<string, never>;
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Envelope"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/v1/documents/pending-retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Listar documentos FIRMADO pendientes de reenvio (con xml_firmado)
+         * @description Usado por el worker de Go. `mode=flagged` solo `retry_requested=1`;
+         *     `mode=all` todos los FIRMADO con XML. Bypass VPD (multi-tenant).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": {
+                        /**
+                         * @default flagged
+                         * @enum {string}
+                         */
+                        mode?: "flagged" | "all";
+                        /** @default 50 */
+                        limit?: number;
+                    };
+                };
+            };
+            responses: {
+                /** @description OK */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["Envelope"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/internal/v1/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Registrar evento (cancelacion/inutilizacion) */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "application/json": Record<string, never>;
                 };
             };
             responses: {
@@ -1489,23 +1756,39 @@ export interface components {
         /** @description El CSC llega YA cifrado (hex) por el cliente/Go; ORDS nunca ve el claro. */
         EnvironmentRequest: {
             /** @enum {string} */
-            environment: "TEST" | "PROD";
+            environment?: "TEST" | "PROD";
             /** @example 06038964 */
-            num_timbrado: string;
+            num_timbrado?: string;
             /**
              * Format: date
              * @example 2026-07-09
              */
-            fecha_inicio_vigencia: string;
+            fecha_inicio_vigencia?: string;
             /** @example 0001 */
-            id_csc: string;
+            id_csc?: string;
             /** @description hex */
-            csc_ciphertext: string;
+            csc_ciphertext?: string;
             /** @description hex */
-            csc_nonce: string;
+            csc_nonce?: string;
             /** @example 1 */
             key_version?: number;
         };
+        /** @description Metadata del ambiente configurado. Nunca incluye el CSC (ni cifrado). */
+        EnvironmentMeta: {
+            /** @example 06038964 */
+            num_timbrado: string | null;
+            /**
+             * Format: date
+             * @example 2026-07-09
+             */
+            fecha_inicio_vigencia: string | null;
+            /** @example 0001 */
+            id_csc: string | null;
+            /** @example 1 */
+            key_version?: number | null;
+            /** @description true si ya hay un CSC guardado para este ambiente */
+            has_csc?: boolean;
+        } | null;
         /** @description P12 y password YA cifrados (AES-256-GCM) por el cliente. */
         CertificateRequest: {
             subject_dn?: string;

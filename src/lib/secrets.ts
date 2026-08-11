@@ -25,6 +25,15 @@ export interface PanelEnvironmentUpsert {
   csc: string
 }
 
+/** Metadata de timbrado/CSC ya guardada para un ambiente. El CSC nunca se expone (ni cifrado). */
+export interface EnvironmentMeta {
+  num_timbrado: string | null
+  fecha_inicio_vigencia: string | null
+  id_csc: string | null
+  key_version: number | null
+  has_csc: boolean
+}
+
 export async function getCertificateMeta(token: string): Promise<CertificateMeta> {
   const raw = await apiData<CertificateMeta & { subject_dn?: string | null }>('/certificate', { token })
   // Defensa en profundidad: no guardar DN en React Query aunque ORDS aún lo emita.
@@ -41,6 +50,15 @@ export async function uploadCertificate(token: string, body: PanelCertificateUpl
     base: GO_BASE,
     prefix: '/v1',
   })
+}
+
+/**
+ * Metadata de timbrado/CSC ya guardada para el ambiente (nunca el CSC). `null` si el
+ * ambiente todavía no fue configurado (el backend puede omitir `data` en ese caso).
+ */
+export async function getEnvironment(token: string, environment: Environment): Promise<EnvironmentMeta | null> {
+  const env = await apiFetch<EnvironmentMeta>(`/environments/${environment.toLowerCase()}`, { token })
+  return env.data ?? null
 }
 
 /** Upsert de timbrado + CSC en claro a Go; Go cifra el CSC y persiste. */
