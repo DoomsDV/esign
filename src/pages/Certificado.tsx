@@ -283,7 +283,7 @@ export default function Certificado() {
                       type="button"
                       disabled={uploading}
                       onClick={() => inputRef.current?.click()}
-                      className="flex w-full items-center justify-between gap-3 rounded-xl border border-line bg-white px-4 py-3 text-left text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
+                      className="flex w-full items-center justify-between gap-3 rounded-xl border border-line bg-surface px-4 py-3 text-left text-sm shadow-sm disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       <span className={cn('truncate', file ? 'font-medium text-ink' : 'text-muted')}>
                         {fileLabel ?? 'Elegir archivo…'}
@@ -321,7 +321,7 @@ export default function Certificado() {
                           ? 'border-brand-400 bg-brand-50 text-ink'
                           : file
                             ? 'border-ok/40 bg-ok/5 text-ink'
-                            : 'border-muted/30 bg-white text-muted hover:border-brand-300 hover:bg-cream-soft',
+                            : 'border-muted/30 bg-surface text-muted hover:border-brand-300 hover:bg-cream-soft',
                       )}
                     >
                       <span className={cn(file ? 'text-ok' : 'text-brand-600')}>

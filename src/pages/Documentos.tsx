@@ -163,7 +163,7 @@ function FilterSelect({
         type="button"
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          'flex w-full items-center justify-between gap-2 rounded-xl border border-line bg-white px-3.5 py-2.5 text-sm shadow-sm transition-colors hover:border-brand-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-200',
+          'flex w-full items-center justify-between gap-2 rounded-xl border border-line bg-surface px-3.5 py-2.5 text-sm shadow-sm transition-colors hover:border-brand-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-200',
           open && 'border-brand-300 ring-2 ring-brand-200',
         )}
       >
@@ -171,7 +171,7 @@ function FilterSelect({
         <IconChevron className={cn('text-muted transition-transform', open && 'rotate-180')} />
       </button>
       {open && (
-        <div className="absolute z-30 mt-1.5 w-full min-w-[12rem] rounded-xl border border-line bg-white p-1.5 shadow-xl">
+        <div className="absolute z-30 mt-1.5 w-full min-w-[12rem] rounded-xl border border-line bg-surface p-1.5 shadow-xl">
           {searchable && (
             <div className="mb-1.5 flex items-center gap-2 rounded-lg bg-cream px-2.5 py-1.5 text-muted">
               <IconSearch />
@@ -279,7 +279,7 @@ function RowActions({
           <IconDots />
         </button>
         {open && (
-          <div className="absolute right-0 z-30 mt-1 w-52 rounded-xl border border-line bg-white p-1.5 text-left shadow-xl">
+          <div className="absolute right-0 z-30 mt-1 w-52 rounded-xl border border-line bg-surface p-1.5 text-left shadow-xl">
             <button
               type="button"
               className="flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm text-ink hover:bg-cream"
@@ -432,7 +432,7 @@ export default function Documentos() {
   }
 
   const dateInput =
-    'w-full rounded-xl border border-line bg-white px-3 py-2.5 text-sm text-ink shadow-sm transition-colors hover:border-brand-300 focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-200'
+    'w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-ink shadow-sm transition-colors hover:border-brand-300 focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-200'
 
   const activeChips: Array<{ key: string; label: string; onClear: () => void }> = []
   if (estado) {
@@ -462,7 +462,7 @@ export default function Documentos() {
         {/* Toolbar: búsqueda + botón de filtros agrupados */}
         <div className={cn(SECTION, 'p-2.5')}>
           <div className="flex items-center gap-2.5">
-            <div className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-line bg-white px-3.5 py-2.5 text-muted transition-colors focus-within:border-brand-300 focus-within:ring-2 focus-within:ring-brand-200">
+            <div className="flex min-w-0 flex-1 items-center gap-2.5 rounded-xl border border-line bg-surface px-3.5 py-2.5 text-muted transition-colors focus-within:border-brand-300 focus-within:ring-2 focus-within:ring-brand-200">
               <IconSearch />
               <input
                 value={query}
@@ -489,9 +489,9 @@ export default function Documentos() {
                 aria-expanded={filtersOpen}
                 title="Filtros"
                 className={cn(
-                  'relative grid h-11 w-11 place-items-center rounded-2xl border bg-white text-ink shadow-sm transition-colors',
+                  'relative grid h-11 w-11 place-items-center rounded-2xl border bg-surface text-ink shadow-sm transition-colors',
                   filtersOpen || panelFiltersActive
-                    ? 'border-ink bg-ink text-white'
+                    ? 'border-ink bg-ink text-surface'
                     : 'border-line hover:border-ink/40 hover:bg-cream',
                 )}
               >
@@ -504,7 +504,7 @@ export default function Documentos() {
               </button>
 
               {filtersOpen && (
-                <div className="absolute right-0 z-40 mt-2 w-[min(100vw-2rem,20rem)] rounded-2xl border border-line bg-white p-4 shadow-xl">
+                <div className="absolute right-0 z-40 mt-2 w-[min(100vw-2rem,20rem)] rounded-2xl border border-line bg-surface p-4 shadow-xl">
                   <div className="mb-3 flex items-center justify-between gap-2">
                     <p className="text-sm font-semibold text-ink">Filtros</p>
                     {panelFiltersActive && (

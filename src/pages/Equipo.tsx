@@ -238,7 +238,7 @@ export default function Equipo() {
                                   ? r.value === 'owner'
                                     ? 'border-warn bg-warn'
                                     : 'border-brand-500 bg-brand-500'
-                                  : 'border-line bg-white',
+                                  : 'border-line bg-surface',
                               )}
                             >
                               {active ? (

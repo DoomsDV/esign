@@ -94,7 +94,7 @@ export function EnvToggle() {
       <span
         aria-hidden
         className={cn(
-          'pointer-events-none absolute top-1 bottom-1 rounded-full bg-white',
+          'pointer-events-none absolute top-1 bottom-1 rounded-full bg-surface',
           'shadow-[0_1px_2px_rgba(15,23,42,0.07),0_2px_8px_rgba(15,23,42,0.05)]',
           'transition-[left,width,opacity] duration-200 ease-out motion-reduce:transition-none',
           indicatorReady ? 'opacity-100' : 'opacity-0',

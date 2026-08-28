@@ -4,6 +4,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/cn'
 import { EnvToggle } from './EnvToggle'
+import { ThemeToggle } from './ThemeToggle'
 import { BrandLogo } from './BrandLogo'
 import { usePageTitle } from '@/lib/usePageTitle'
 
@@ -220,7 +221,7 @@ function MobileBottomNav({
       aria-label="Navegación principal"
       aria-hidden={menuOpen ? true : undefined}
     >
-      <div className="mobile-bottom-nav__surface border-t border-line/70 bg-white/92 backdrop-blur-xl">
+      <div className="mobile-bottom-nav__surface border-t border-line/70 bg-surface/92 backdrop-blur-xl">
         <ul className="mx-auto flex max-w-lg items-stretch justify-around px-1 pt-1.5">
           {MOBILE_NAV.map((item) => {
             const isMenu = item.action === 'menu'
@@ -421,7 +422,7 @@ export function AppShell({
   const desktopSidebar = (
     <aside
       className={cn(
-        'hidden h-full shrink-0 overflow-hidden border-r border-line bg-white md:block',
+        'hidden h-full shrink-0 overflow-hidden border-r border-line bg-surface md:block',
         'transition-[width] duration-200 ease-out',
         collapsed ? 'w-[4.5rem]' : 'w-64',
       )}
@@ -432,7 +433,7 @@ export function AppShell({
   )
 
   return (
-    <div className={cn('flex h-dvh overflow-hidden bg-white', !isTest && 'env-prod')}>
+    <div className={cn('flex h-dvh overflow-hidden bg-surface', !isTest && 'env-prod')}>
       {desktopSidebar}
 
       {/* Bottom sheet móvil — configuración */}
@@ -456,7 +457,7 @@ export function AppShell({
           inert={!mobileOpen ? true : undefined}
           aria-label="Configuración"
           className={cn(
-            'mobile-config-sheet absolute inset-x-0 bottom-0 flex max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-bottom,0px)))] flex-col bg-white shadow-2xl',
+            'mobile-config-sheet absolute inset-x-0 bottom-0 flex max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-bottom,0px)))] flex-col bg-surface shadow-2xl',
             'rounded-t-2xl transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
             mobileOpen ? 'translate-y-0' : 'translate-y-full',
           )}
@@ -485,7 +486,7 @@ export function AppShell({
           className={cn('h-1 w-full shrink-0', isTest ? 'bg-brand-400' : 'bg-ok')}
           aria-hidden
         />
-        <header className="shrink-0 border-b border-line bg-white">
+        <header className="shrink-0 border-b border-line bg-surface">
           <div className="flex items-center gap-2 px-4 py-3 sm:gap-4 sm:px-6">
             <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
               <button
@@ -493,7 +494,7 @@ export function AppShell({
                 type="button"
                 onClick={toggleDesktopSidebar}
                 className={cn(
-                  'hidden h-10 w-10 shrink-0 place-items-center rounded-xl border border-line bg-white text-ink md:grid',
+                  'hidden h-10 w-10 shrink-0 place-items-center rounded-xl border border-line bg-surface text-ink md:grid',
                   'transition-colors duration-150 hover:bg-cream active:bg-cream',
                   collapsed && 'border-brand-300 bg-brand-50 text-brand-700',
                 )}
@@ -511,6 +512,7 @@ export function AppShell({
             <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
               {actions && <div className="hidden sm:block">{actions}</div>}
               <EnvToggle />
+              <ThemeToggle />
               <div
                 className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-100 text-[10px] font-bold tracking-wide text-brand-700 sm:h-9 sm:w-9 sm:text-[11px]"
                 title={session?.businessName ?? 'Cuenta'}

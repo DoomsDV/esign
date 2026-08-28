@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
-import { AuthLayout } from '@/components/AuthLayout'
-import { Alert, Button, TextField } from '@/components/ui'
+import { AuthCta, AuthLayout } from '@/components/AuthLayout'
+import { Alert, TextField } from '@/components/ui'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
 
@@ -11,10 +11,38 @@ interface LoginForm {
   password: string
 }
 
+function IconEye({ off }: { off: boolean }) {
+  if (off) {
+    return (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path
+          d="M3 3l18 18M10.5 10.7a3 3 0 004.1 4.1M9.9 5.6A10.8 10.8 0 0112 5.4c5.2 0 9.3 3.6 10.5 6.6a11.3 11.3 0 01-4.1 4.7M6.6 6.8C4 8.5 2.4 10.7 1.5 12c1.1 2.9 4.9 6.6 10.5 6.6 1.3 0 2.5-.2 3.6-.6"
+          stroke="currentColor"
+          strokeWidth="1.25"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    )
+  }
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M2.2 12.2C3.5 9 7.4 5.5 12 5.5s8.5 3.5 9.8 6.7c-1.3 3.2-5.2 6.6-9.8 6.6S3.5 15.4 2.2 12.2z"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12" r="2.6" stroke="currentColor" strokeWidth="1.25" />
+    </svg>
+  )
+}
+
 export default function Login() {
   const { login, selectClient } = useAuth()
   const navigate = useNavigate()
   const [serverError, setServerError] = useState<string | null>(null)
+  const [showPassword, setShowPassword] = useState(false)
   const {
     register,
     handleSubmit,
@@ -42,13 +70,15 @@ export default function Login() {
 
   return (
     <AuthLayout
-      title="Iniciar sesión"
-      subtitle="Ingresá tus datos para acceder a tu panel de facturación electrónica."
+      eyebrow="Acceso"
+      title="Entrá al panel"
+      pageTitle="Iniciar sesión"
+      subtitle="Email y contraseña de tu cuenta etick."
       altText="¿No tenés cuenta?"
       altHref="/registro"
       altLabel="Crear cuenta"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
         {serverError && <Alert>{serverError}</Alert>}
 
         <TextField
@@ -61,20 +91,27 @@ export default function Login() {
         />
         <TextField
           label="Contraseña"
-          type="password"
-          placeholder="********"
+          type={showPassword ? 'text' : 'password'}
+          placeholder="Tu contraseña"
           autoComplete="current-password"
           error={errors.password?.message}
+          trailing={
+            <button
+              type="button"
+              className="auth-password-toggle"
+              onClick={() => setShowPassword((v) => !v)}
+              aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+              aria-pressed={showPassword}
+            >
+              <IconEye off={showPassword} />
+            </button>
+          }
           {...register('password', { required: 'Ingresá tu contraseña' })}
         />
 
-        <div className="text-right">
-          <span className="text-xs font-medium text-muted">¿Tenés problemas para ingresar?</span>
-        </div>
-
-        <Button type="submit" loading={isSubmitting} className="mt-1 w-full py-3">
+        <AuthCta loading={isSubmitting} className="mt-1">
           Ingresar
-        </Button>
+        </AuthCta>
       </form>
     </AuthLayout>
   )

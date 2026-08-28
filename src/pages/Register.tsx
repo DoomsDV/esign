@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
-import { AuthLayout } from '@/components/AuthLayout'
+import { AuthCta, AuthLayout } from '@/components/AuthLayout'
 import { PasswordStrengthMeter } from '@/components/PasswordStrengthMeter'
-import { Alert, Button, TextField } from '@/components/ui'
+import { Alert, TextField } from '@/components/ui'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
 import { analyzePassword } from '@/lib/passwordStrength'
@@ -58,8 +58,9 @@ export default function Register() {
   return (
     <AuthLayout
       compact
+      eyebrow="Alta"
       title="Crear cuenta"
-      subtitle="Registra tu negocio para empezar a emitir documentos electrónicos."
+      subtitle="Datos de tu negocio y de quien va a administrar el panel."
       altText="¿Ya tenés cuenta?"
       altHref="/login"
       altLabel="Iniciar sesión"
@@ -118,16 +119,15 @@ export default function Register() {
               'Usá al menos 8 caracteres y 3 tipos: mayúscula, minúscula, número o símbolo',
           })}
         />
-        <PasswordStrengthMeter password={passwordValue} />
+        <PasswordStrengthMeter password={passwordValue} className="auth-meter" />
 
-        <Button
-          type="submit"
+        <AuthCta
           loading={isSubmitting}
           disabled={passwordValue.length > 0 && !analyzePassword(passwordValue).isAcceptable}
-          className="mt-0.5 w-full py-2.5"
+          className="mt-1 py-3"
         >
           Crear cuenta
-        </Button>
+        </AuthCta>
       </form>
     </AuthLayout>
   )

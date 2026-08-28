@@ -23,7 +23,7 @@ export function SessionExpiredModal() {
     >
       <div className="modal-backdrop-enter absolute inset-0 bg-ink/50 backdrop-blur-sm" />
       <div
-        className="modal-sheet-enter relative z-10 w-full max-w-none rounded-t-2xl bg-white px-5 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:max-w-md sm:rounded-3xl sm:p-6 sm:pb-6"
+        className="modal-sheet-enter relative z-10 w-full max-w-none rounded-t-2xl bg-surface px-5 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:max-w-md sm:rounded-3xl sm:p-6 sm:pb-6"
       >
         <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line sm:hidden" aria-hidden />
         <h2 id="session-expired-title" className="text-lg font-bold text-ink">

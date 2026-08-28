@@ -33,17 +33,17 @@ const variantClasses: Record<ButtonVariant, string> = {
   primary:
     'bg-brand-400 text-ink hover:bg-brand-500 active:bg-brand-600 shadow-sm disabled:opacity-60',
   secondary:
-    'bg-white text-ink border border-line hover:bg-cream disabled:opacity-60',
+    'bg-surface text-ink border border-line hover:bg-cream disabled:opacity-60',
   soft: 'bg-cream text-ink hover:bg-line/70 disabled:opacity-60',
   ghost: 'bg-transparent text-muted hover:text-ink hover:bg-cream',
   danger:
     'bg-danger text-white hover:bg-danger-strong active:bg-danger-strong shadow-sm disabled:opacity-60',
   'danger-outline':
-    'bg-white text-danger border border-danger/40 hover:bg-danger/5 active:bg-danger/10 disabled:opacity-60',
+    'bg-surface text-danger border border-danger/40 hover:bg-danger/5 active:bg-danger/10 disabled:opacity-60',
   success:
     'bg-ok text-white hover:bg-ok-strong active:bg-ok-strong shadow-sm disabled:opacity-60',
   'success-outline':
-    'bg-white text-ok-strong border border-ok/40 hover:bg-ok/5 active:bg-ok/10 disabled:opacity-60',
+    'bg-surface text-ok-strong border border-ok/40 hover:bg-ok/5 active:bg-ok/10 disabled:opacity-60',
 }
 
 export function Button({ variant = 'primary', loading, className, children, disabled, ...rest }: ButtonProps) {
@@ -92,13 +92,27 @@ interface FieldProps extends InputHTMLAttributes<HTMLInputElement> {
   hint?: ReactNode
   error?: string
   requiredMark?: boolean
+  trailing?: ReactNode
 }
 
 export const TextField = forwardRef<HTMLInputElement, FieldProps>(function TextField(
-  { label, hint, error, requiredMark, className, id, ...rest },
+  { label, hint, error, requiredMark, className, id, trailing, ...rest },
   ref,
 ) {
   const inputId = id ?? rest.name
+  const input = (
+    <input
+      ref={ref}
+      id={inputId}
+      className={cn(
+        'w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink placeholder:text-muted/55 placeholder:italic shadow-sm transition-colors focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-300/50',
+        trailing ? 'pr-12' : undefined,
+        error && 'border-danger focus:border-danger focus:ring-danger/20',
+        className,
+      )}
+      {...rest}
+    />
+  )
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
@@ -107,16 +121,14 @@ export const TextField = forwardRef<HTMLInputElement, FieldProps>(function TextF
           {requiredMark && <span className="ml-0.5 text-danger/45">*</span>}
         </label>
       )}
-      <input
-        ref={ref}
-        id={inputId}
-        className={cn(
-          'w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink placeholder:text-muted/55 placeholder:italic shadow-sm transition-colors focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-300/50',
-          error && 'border-danger focus:border-danger focus:ring-danger/20',
-          className,
-        )}
-        {...rest}
-      />
+      {trailing ? (
+        <div className="relative">
+          {input}
+          <div className="absolute inset-y-0 right-0 flex items-center pr-2.5">{trailing}</div>
+        </div>
+      ) : (
+        input
+      )}
       {error ? (
         <span className="text-xs text-danger">{error}</span>
       ) : hint ? (
@@ -126,10 +138,8 @@ export const TextField = forwardRef<HTMLInputElement, FieldProps>(function TextF
   )
 })
 
-/** Superficie blanca "flotante" estilo Vercel/Stripe: borde sutil + sombra ligera.
- *  Reutilizable en páginas que no usan el componente `Card` directamente. */
-export const panelClass =
-  'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-16px_rgba(16,24,40,0.16)]'
+/** Superficie de panel: elevación sin anillo gris. Sombra por tema en `.panel-surface`. */
+export const panelClass = 'panel-surface rounded-2xl bg-surface'
 
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
   return <div className={cn(panelClass, className)}>{children}</div>
@@ -305,7 +315,7 @@ export function InfoTip({
           id={id}
           role="tooltip"
           className={cn(
-            'pointer-events-none absolute left-1/2 top-[calc(100%+6px)] z-50 hidden w-64 -translate-x-1/2 rounded-xl bg-ink px-3 py-2.5 text-left text-xs font-normal leading-relaxed text-white opacity-0 shadow-lg invisible sm:block',
+            'pointer-events-none absolute left-1/2 top-[calc(100%+6px)] z-50 hidden w-64 -translate-x-1/2 rounded-xl bg-ink px-3 py-2.5 text-left text-xs font-normal leading-relaxed text-surface opacity-0 shadow-lg invisible sm:block',
             'sm:group-hover/info:visible sm:group-hover/info:opacity-100',
           )}
         >
@@ -328,7 +338,7 @@ export function InfoTip({
               transform: coords.openUp ? 'translateY(-100%)' : undefined,
               zIndex: 80,
             }}
-            className="rounded-xl bg-ink px-3 py-2.5 text-left text-xs font-normal leading-relaxed text-white shadow-lg"
+            className="rounded-xl bg-ink px-3 py-2.5 text-left text-xs font-normal leading-relaxed text-surface shadow-lg"
           >
             {text}
           </span>,
@@ -370,7 +380,7 @@ export function Select({ label, className, children, id, ...rest }: SelectProps)
       <select
         id={selectId}
         className={cn(
-          'rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink shadow-sm transition-colors focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-300/50',
+          'rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink shadow-sm transition-colors focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-300/50',
           className,
         )}
         {...rest}
@@ -490,7 +500,7 @@ export function Drawer({
         tabIndex={-1}
         inert={!open ? true : undefined}
         className={cn(
-          'absolute z-10 flex w-full flex-col bg-white shadow-2xl outline-none',
+          'absolute z-10 flex w-full flex-col bg-surface shadow-2xl outline-none',
           'inset-x-0 bottom-0 top-auto max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-bottom,0px)))] rounded-t-2xl pb-[max(0px,env(safe-area-inset-bottom))]',
           'transition-transform duration-200 ease-out',
           open ? 'translate-y-0' : 'translate-y-full',
@@ -515,7 +525,7 @@ export function Drawer({
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">{children}</div>
         {footer && (
-          <div className="shrink-0 border-t border-line bg-white px-5 py-4 sm:px-6">{footer}</div>
+          <div className="shrink-0 border-t border-line bg-surface px-5 py-4 sm:px-6">{footer}</div>
         )}
       </aside>
     </div>
@@ -630,7 +640,7 @@ export function Menu({
             ref={menuRef}
             role="menu"
             style={{ position: 'fixed', top: coords.top, left: coords.left, zIndex: 80 }}
-            className="w-48 rounded-xl border border-line bg-white p-1.5 shadow-xl"
+            className="w-48 rounded-xl border border-line bg-surface p-1.5 shadow-xl"
           >
             {items.map((item) => (
               <button
@@ -767,7 +777,7 @@ export function SearchSelect({
         disabled={disabled}
         onClick={() => !disabled && setOpen((o) => !o)}
         className={cn(
-          'flex w-full min-w-0 items-start justify-between gap-2 rounded-xl border border-line bg-white px-4 py-3 text-sm shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-200 disabled:cursor-not-allowed disabled:opacity-60',
+          'flex w-full min-w-0 items-start justify-between gap-2 rounded-xl border border-line bg-surface px-4 py-3 text-sm shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-200 disabled:cursor-not-allowed disabled:opacity-60',
           open && 'border-brand-300 ring-2 ring-brand-200',
           error && 'border-danger',
         )}
@@ -812,7 +822,7 @@ export function SearchSelect({
               transform: coords.openUp ? 'translateY(-100%)' : undefined,
               zIndex: 80,
             }}
-            className="flex flex-col rounded-xl border border-line bg-white p-1.5 shadow-xl"
+            className="flex flex-col rounded-xl border border-line bg-surface p-1.5 shadow-xl"
           >
             {searchable && (
               <div className="mb-1.5 flex shrink-0 items-center gap-2 rounded-lg bg-cream px-2.5 py-1.5 text-muted">

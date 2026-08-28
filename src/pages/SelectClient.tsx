@@ -33,8 +33,10 @@ export default function SelectClient() {
 
   return (
     <AuthLayout
+      eyebrow="Negocios"
       title="Elegí tu negocio"
-      subtitle="Tenés acceso a varios negocios. Seleccioná uno para continuar."
+      pageTitle="Elegí tu negocio"
+      subtitle="Tenés acceso a varios. Seleccioná uno para continuar."
       altText="¿No es tu cuenta?"
       altHref="/login"
       altLabel="Cambiar de usuario"
@@ -42,18 +44,13 @@ export default function SelectClient() {
       <div className="flex flex-col gap-3">
         {error && <Alert>{error}</Alert>}
         {state.clients.map((c) => (
-          <button
-            key={c.client_id}
-            type="button"
-            onClick={() => choose(c)}
-            className="flex items-center justify-between rounded-2xl border border-line bg-white px-4 py-4 text-left shadow-sm transition-colors hover:border-brand-300 hover:bg-brand-50"
-          >
-            <span>
-              <span className="block font-semibold text-ink">{c.business_name}</span>
-              <span className="block text-xs text-muted">RUC {c.ruc}</span>
-            </span>
-            <span className="rounded-full bg-cream px-3 py-1 text-xs font-medium capitalize text-muted">
-              {c.role}
+          <button key={c.client_id} type="button" onClick={() => choose(c)} className="auth-client-card">
+            <span className="auth-client-card-inner">
+              <span>
+                <span className="auth-client-name">{c.business_name}</span>
+                <span className="auth-client-meta">RUC {c.ruc}</span>
+              </span>
+              <span className="auth-client-role">{c.role}</span>
             </span>
           </button>
         ))}

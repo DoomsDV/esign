@@ -17,7 +17,7 @@ const LABEL_COLORS: Record<ReturnType<typeof analyzePassword>['strength'], strin
   strong: 'text-ok-strong',
 }
 
-export function PasswordStrengthMeter({ password }: { password: string }) {
+export function PasswordStrengthMeter({ password, className }: { password: string; className?: string }) {
   const analysis = analyzePassword(password)
 
   if (!password) return null
@@ -26,7 +26,7 @@ export function PasswordStrengthMeter({ password }: { password: string }) {
 
   return (
     <div
-      className="space-y-2.5 rounded-xl border border-line/70 bg-cream-soft/50 px-3 py-2.5"
+      className={cn('space-y-2.5 rounded-xl border border-line/70 bg-cream-soft/50 px-3 py-2.5', className)}
       aria-live="polite"
       aria-atomic="true"
     >

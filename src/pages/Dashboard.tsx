@@ -16,7 +16,7 @@ import {
 } from 'recharts'
 import { Link } from 'react-router-dom'
 import { AppShell } from '@/components/AppShell'
-import { Alert, Badge } from '@/components/ui'
+import { Alert, Badge, panelClass } from '@/components/ui'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
 import {
@@ -38,36 +38,33 @@ const COLORS = {
   BAR: '#f5a94c',
 }
 
-const CARD =
-  'rounded-2xl bg-white ring-1 ring-line/60 shadow-[0_1px_2px_rgba(16,24,40,0.03),0_8px_24px_-8px_rgba(16,24,40,0.12)]'
-
 function IconCheck() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="m5 13 4 4L19 7" className="stroke-current" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="m5 13 4 4L19 7" className="stroke-current" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
 function IconX() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M6 6l12 12M18 6 6 18" className="stroke-current" strokeWidth="2.2" strokeLinecap="round" />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M6 6l12 12M18 6 6 18" className="stroke-current" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   )
 }
 function IconClock() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="8.5" className="stroke-current" strokeWidth="1.8" />
-      <path d="M12 7.5V12l3 2" className="stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="12" r="8.5" className="stroke-current" strokeWidth="1.6" />
+      <path d="M12 7.5V12l3 2" className="stroke-current" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
 function IconReceipt() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M6 3h12v18l-3-1.8L12 21l-3-1.8L6 21V3Z" className="stroke-current" strokeWidth="1.8" strokeLinejoin="round" />
-      <path d="M9 8h6M9 12h6" className="stroke-current" strokeWidth="1.8" strokeLinecap="round" />
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M6 3h12v18l-3-1.8L12 21l-3-1.8L6 21V3Z" className="stroke-current" strokeWidth="1.6" strokeLinejoin="round" />
+      <path d="M9 8h6M9 12h6" className="stroke-current" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   )
 }
@@ -97,8 +94,6 @@ interface Kpi {
   label: string
   value: number
   icon: ReactNode
-  iconWrap: string
-  accent: string
   delta: string
   deltaTone: 'up' | 'down' | 'warn' | 'neutral'
   context: string
@@ -108,46 +103,38 @@ const deltaToneClass: Record<Kpi['deltaTone'], string> = {
   up: 'text-ok',
   down: 'text-danger-strong',
   warn: 'text-warn',
-  neutral: 'text-brand-700',
+  neutral: 'text-brand-600',
 }
 
-function KpiCell({ kpi, loading, compact }: { kpi: Kpi; loading: boolean; compact?: boolean }) {
+function KpiCell({ kpi, loading }: { kpi: Kpi; loading: boolean }) {
   return (
-    <div
-      className={cn('kpi-card', compact ? 'pl-3' : 'pl-4')}
-      style={{ '--kpi-accent': kpi.accent } as CSSProperties}
+    <article
+      className={cn(
+        panelClass,
+        'px-4 pb-4 pt-3.5 transition-transform duration-200 ease-out sm:px-5 sm:pb-5 sm:pt-4',
+        'hover:-translate-y-px active:scale-[0.99]',
+      )}
     >
-      <div className="flex items-start justify-between gap-2">
-        <p className={cn('font-medium tracking-tight text-muted', compact ? 'text-xs' : 'text-[13px]')}>
-          {kpi.label}
-        </p>
-        <span
-          className={cn(
-            'grid shrink-0 place-items-center rounded-xl',
-            compact ? 'h-7 w-7 [&_svg]:h-4 [&_svg]:w-4' : 'h-9 w-9',
-            kpi.iconWrap,
-          )}
-        >
-          {kpi.icon}
-        </span>
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[13px] font-medium text-muted">{kpi.label}</p>
+        <span className="text-muted/50">{kpi.icon}</span>
       </div>
-      <p
-        className={cn(
-          'mt-1.5 font-bold leading-none tracking-tight tabular-nums text-ink',
-          compact ? 'text-2xl' : 'mt-2 text-[2.125rem]',
+      <p className="mt-3 text-[2rem] font-semibold leading-none tracking-tight tabular-nums text-ink sm:text-[2.125rem]">
+        {loading ? (
+          <span className="inline-block h-[0.85em] w-[1.35ch] animate-pulse rounded-md bg-cream align-middle" />
+        ) : (
+          kpi.value
         )}
-      >
-        {loading ? '—' : kpi.value}
       </p>
-      <p className={cn('flex flex-wrap items-center gap-x-1 gap-y-0.5', compact ? 'mt-1.5 text-[11px]' : 'mt-2.5 text-xs')}>
-        <span className={cn('inline-flex items-center gap-0.5 font-semibold', deltaToneClass[kpi.deltaTone])}>
+      <p className="mt-3 flex flex-wrap items-center gap-x-1.5 gap-y-0.5 text-[11px] sm:text-xs">
+        <span className={cn('inline-flex items-center gap-0.5 font-medium', deltaToneClass[kpi.deltaTone])}>
           {kpi.deltaTone === 'up' && <IconTrendUp />}
           {kpi.deltaTone === 'down' && <IconTrendDown />}
           {kpi.delta}
         </span>
-        {!compact && <span className="text-muted/90">{kpi.context}</span>}
+        <span className="text-muted">{kpi.context}</span>
       </p>
-    </div>
+    </article>
   )
 }
 
@@ -165,10 +152,10 @@ function ChartCard({
   className?: string
 }) {
   return (
-    <div className={cn(CARD, 'flex flex-col p-4 sm:p-6', className)}>
+    <div className={cn(panelClass, 'flex flex-col p-4 sm:p-6', className)}>
       <div className="mb-3 flex items-start justify-between gap-2 sm:mb-4 sm:gap-3">
         <div className="min-w-0">
-          <h2 className="text-sm font-semibold tracking-tight text-ink sm:text-[15px]">{title}</h2>
+          <h2 className="text-sm font-medium tracking-tight text-ink sm:text-[15px]">{title}</h2>
           {subtitle && (
             <p className="mt-0.5 text-[11px] leading-relaxed text-muted sm:text-xs">{subtitle}</p>
           )}
@@ -180,8 +167,16 @@ function ChartCard({
   )
 }
 
-const AXIS_TICK = '#5c6370'
-const GRID_STROKE = '#e8eaee'
+const AXIS_TICK = 'var(--chart-tick)'
+const GRID_STROKE = 'var(--chart-grid)'
+const tooltipStyle: CSSProperties = {
+  borderRadius: 10,
+  border: '1px solid var(--chart-tooltip-border)',
+  background: 'var(--chart-tooltip-bg)',
+  color: 'var(--color-ink)',
+  boxShadow: '0 16px 40px -20px rgba(0,0,0,0.45)',
+  fontSize: 12,
+}
 
 const DAY_MS = 86_400_000
 
@@ -240,7 +235,7 @@ function sumMontos(items: DocumentListItem[]) {
 
 function EmptyChart({ label }: { label: string }) {
   return (
-    <div className="grid min-h-[11rem] flex-1 place-items-center rounded-xl border border-dashed border-line/80 bg-cream-soft/50 px-4 text-center sm:min-h-[14rem]">
+    <div className="grid min-h-[11rem] flex-1 place-items-center rounded-xl bg-cream-soft/70 px-4 text-center sm:min-h-[14rem]">
       <div>
         <p className="text-sm font-medium text-muted">{label}</p>
         <p className="mt-1 text-xs text-muted/70">Los datos aparecerán cuando emitas documentos</p>
@@ -295,20 +290,17 @@ export default function Dashboard() {
         { name: 'Rechazados', value: d.rechazado, color: COLORS.RECHAZADO },
         { name: 'Firmados', value: d.firmado, color: COLORS.FIRMADO },
         { name: 'Cancelados', value: d.cancelado, color: COLORS.OTROS },
-        { name: 'Otros', value: otros, color: '#cbd5e1' },
+        { name: 'Otros', value: otros, color: '#8a8580' },
       ].filter((s) => s.value > 0)
     : []
 
   const hayRechazos = (d?.rechazado ?? 0) > 0
   const hayPendientes = (d?.firmado ?? 0) > 0
-  const toneOk = isTest ? 'bg-brand-100 text-brand-600' : 'bg-ok/10 text-ok'
   const kpis: Kpi[] = [
     {
       label: 'Aprobadas',
       value: d?.aprobado ?? 0,
       icon: <IconCheck />,
-      iconWrap: toneOk,
-      accent: COLORS.APROBADO,
       delta: tasaAprob != null ? `${tasaAprob}%` : '—',
       deltaTone: tasaAprob != null ? 'up' : 'neutral',
       context: 'tasa de aprobación',
@@ -317,8 +309,6 @@ export default function Dashboard() {
       label: 'Rechazadas',
       value: d?.rechazado ?? 0,
       icon: <IconX />,
-      iconWrap: hayRechazos ? 'bg-danger/10 text-danger' : toneOk,
-      accent: hayRechazos ? COLORS.RECHAZADO : COLORS.APROBADO,
       delta: hayRechazos ? 'Acción' : 'OK',
       deltaTone: hayRechazos ? 'down' : 'up',
       context: hayRechazos ? 'requieren reemisión' : 'sin rechazos',
@@ -327,8 +317,6 @@ export default function Dashboard() {
       label: 'Firmadas',
       value: d?.firmado ?? 0,
       icon: <IconClock />,
-      iconWrap: hayPendientes ? 'bg-warn/10 text-warn' : toneOk,
-      accent: hayPendientes ? COLORS.FIRMADO : COLORS.APROBADO,
       delta: hayPendientes ? 'En cola' : 'OK',
       deltaTone: hayPendientes ? 'warn' : 'up',
       context: hayPendientes ? 'reintento automático' : 'todo enviado',
@@ -337,8 +325,6 @@ export default function Dashboard() {
       label: 'Total emitido',
       value: d?.total ?? 0,
       icon: <IconReceipt />,
-      iconWrap: 'bg-brand-100 text-brand-600',
-      accent: COLORS.AREA,
       delta: formatMoneda(montoMuestra, 'PYG'),
       deltaTone: 'neutral',
       context: 'en la muestra',
@@ -352,8 +338,8 @@ export default function Dashboard() {
   const envBadge = (
     <span
       className={cn(
-        'rounded-full px-2.5 py-1 text-[11px] font-semibold tracking-wide',
-        isTest ? 'bg-brand-100 text-brand-700' : 'bg-ok/10 text-ok-strong',
+        'shrink-0 text-[10px] font-medium tracking-[0.16em] uppercase',
+        isTest ? 'text-brand-600' : 'text-ok-strong',
       )}
     >
       {environment}
@@ -369,28 +355,10 @@ export default function Dashboard() {
           </Alert>
         )}
 
-        {/* KPIs: grid 2×2 en mobile, fila única en desktop */}
-        <div className="grid grid-cols-2 gap-2.5 sm:hidden">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
           {kpis.map((kpi) => (
-            <div
-              key={kpi.label}
-              className={cn(
-                CARD,
-                'p-3 transition-transform duration-200 active:scale-[0.98]',
-              )}
-            >
-              <KpiCell kpi={kpi} loading={summary.isLoading} compact />
-            </div>
+            <KpiCell key={kpi.label} kpi={kpi} loading={summary.isLoading} />
           ))}
-        </div>
-        <div className={cn(CARD, 'hidden overflow-hidden sm:block')}>
-          <div className="grid gap-px bg-line/80 sm:grid-cols-2 xl:grid-cols-4">
-            {kpis.map((kpi) => (
-              <div key={kpi.label} className="bg-white p-5">
-                <KpiCell kpi={kpi} loading={summary.isLoading} />
-              </div>
-            ))}
-          </div>
         </div>
 
         {/* Gráficos principales */}
@@ -418,7 +386,7 @@ export default function Dashboard() {
                     <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: AXIS_TICK }} axisLine={false} tickLine={false} width={24} />
                     <Tooltip
                       cursor={{ fill: 'rgba(245, 169, 76, 0.06)' }}
-                      contentStyle={{ borderRadius: 12, border: '1px solid #e8eaee', boxShadow: '0 8px 24px -8px rgba(16,24,40,0.15)', fontSize: 12 }}
+                      contentStyle={tooltipStyle}
                     />
                     <Bar dataKey="total" name="Total" radius={[6, 6, 0, 0]} maxBarSize={36} fill={COLORS.AREA} />
                     <Bar dataKey="aprobados" name="Aprobados" radius={[6, 6, 0, 0]} maxBarSize={36} fill={COLORS.APROBADO} />
@@ -449,7 +417,7 @@ export default function Dashboard() {
                     />
                     <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: AXIS_TICK }} axisLine={false} tickLine={false} width={24} />
                     <Tooltip
-                      contentStyle={{ borderRadius: 12, border: '1px solid #e8eaee', boxShadow: '0 8px 24px -8px rgba(16,24,40,0.15)', fontSize: 12 }}
+                      contentStyle={tooltipStyle}
                       formatter={(value, name) => [value as number, String(name)]}
                     />
                     <Area
@@ -460,7 +428,7 @@ export default function Dashboard() {
                       fill="url(#fillTotal)"
                       strokeWidth={2}
                       dot={{ r: 2.5, strokeWidth: 0, fill: COLORS.AREA }}
-                      activeDot={{ r: 4, stroke: '#fff', strokeWidth: 2 }}
+                      activeDot={{ r: 4, stroke: 'var(--color-surface)', strokeWidth: 2 }}
                     />
                     <Area
                       type="monotone"
@@ -496,7 +464,7 @@ export default function Dashboard() {
                     />
                     <Tooltip
                       cursor={{ fill: 'rgba(245, 169, 76, 0.06)' }}
-                      contentStyle={{ borderRadius: 12, border: '1px solid #e8eaee', fontSize: 12 }}
+                      contentStyle={tooltipStyle}
                     />
                     <Bar dataKey="value" name="Cantidad" radius={[0, 6, 6, 0]} maxBarSize={22} fill={COLORS.BAR} />
                   </BarChart>
@@ -530,13 +498,13 @@ export default function Dashboard() {
                         ))}
                       </Pie>
                       <Tooltip
-                        contentStyle={{ borderRadius: 12, border: '1px solid #e8eaee', fontSize: 12 }}
+                        contentStyle={tooltipStyle}
                       />
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="pointer-events-none absolute inset-0 grid place-items-center">
                     <div className="text-center">
-                      <p className="text-xl font-bold tabular-nums text-ink sm:text-2xl">{donutTotal}</p>
+                      <p className="text-xl font-semibold tabular-nums text-ink sm:text-2xl">{donutTotal}</p>
                       <p className="text-[10px] font-medium text-muted sm:text-[11px]">documentos</p>
                     </div>
                   </div>
@@ -554,10 +522,10 @@ export default function Dashboard() {
             )}
           </ChartCard>
 
-          <div className={cn(CARD, 'lg:col-span-2')}>
+          <div className={cn(panelClass, 'lg:col-span-2')}>
             <div className="flex items-center justify-between gap-2 border-b border-line/60 px-4 py-3 sm:px-6 sm:py-4">
               <div className="min-w-0">
-                <h2 className="text-sm font-semibold tracking-tight text-ink sm:text-[15px]">Documentos recientes</h2>
+                <h2 className="text-sm font-medium tracking-tight text-ink sm:text-[15px]">Documentos recientes</h2>
                 <p className="text-[11px] text-muted sm:text-xs">Últimas emisiones en {environment}</p>
               </div>
               <Link

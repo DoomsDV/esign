@@ -164,7 +164,7 @@ function KudePreview({
 
   if (template === 'corporativa') {
     return (
-      <div className="overflow-hidden rounded-2xl border border-line bg-white p-5 shadow-sm">
+      <div className="overflow-hidden rounded-2xl border border-line bg-surface p-5 shadow-sm">
         {/* Membrete + caja de timbrado, como una factura paraguaya clásica */}
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0">
@@ -234,7 +234,7 @@ function KudePreview({
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-white p-6 shadow-sm">
+    <div className="overflow-hidden rounded-2xl border border-line bg-surface p-6 shadow-sm">
       {/* Encabezado sin cajas: logo a la izquierda, datos legales a la derecha */}
       <div className="flex items-start justify-between">
         <div>
@@ -313,25 +313,25 @@ function PreviewTable({ color, variant }: { color: string; variant: 'corporativa
         <thead>
           <tr>
             <th
-              className="bg-white px-2 py-1.5 text-left text-[9px] font-bold uppercase tracking-wide text-muted"
+              className="bg-surface px-2 py-1.5 text-left text-[9px] font-bold uppercase tracking-wide text-muted"
               style={HEADER_CELL_BORDER}
             >
               Descripción
             </th>
             <th
-              className="bg-white px-2 py-1.5 text-right text-[9px] font-bold uppercase tracking-wide text-muted"
+              className="bg-surface px-2 py-1.5 text-right text-[9px] font-bold uppercase tracking-wide text-muted"
               style={HEADER_CELL_BORDER}
             >
               Cant.
             </th>
             <th
-              className="bg-white px-2 py-1.5 text-right text-[9px] font-bold uppercase tracking-wide text-muted"
+              className="bg-surface px-2 py-1.5 text-right text-[9px] font-bold uppercase tracking-wide text-muted"
               style={HEADER_CELL_BORDER}
             >
               P. unit.
             </th>
             <th
-              className="bg-white px-2 py-1.5 text-right text-[9px] font-bold uppercase tracking-wide text-muted"
+              className="bg-surface px-2 py-1.5 text-right text-[9px] font-bold uppercase tracking-wide text-muted"
               style={HEADER_CELL_BORDER}
             >
               Total
@@ -538,7 +538,7 @@ export default function DisenoKude() {
                         'rounded-xl border-2 px-4 py-3 text-left transition-colors disabled:opacity-60',
                         template === t.id
                           ? 'border-brand-400 bg-brand-50'
-                          : 'border-line bg-white hover:border-brand-200',
+                          : 'border-line bg-surface hover:border-brand-200',
                       )}
                     >
                       <p className="text-sm font-semibold text-ink">{t.label}</p>
@@ -672,7 +672,7 @@ export default function DisenoKude() {
                         ? 'border-brand-400 bg-brand-50 text-ink'
                         : logoUrl
                           ? 'border-ok/40 bg-ok/5 text-ink'
-                          : 'border-muted/30 bg-white text-muted hover:border-brand-300 hover:bg-cream-soft',
+                          : 'border-muted/30 bg-surface text-muted hover:border-brand-300 hover:bg-cream-soft',
                     )}
                   >
                     {logoUrl ? (
@@ -721,7 +721,7 @@ export default function DisenoKude() {
                   disabled={!canEdit}
                   rows={3}
                   placeholder="Ej. Gracias por su compra. Consultas: ventas@empresa.com.py"
-                  className="mt-3 w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink placeholder:text-muted/55 placeholder:italic shadow-sm transition-colors focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-300/50 disabled:opacity-60"
+                  className="mt-3 w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink placeholder:text-muted/55 placeholder:italic shadow-sm transition-colors focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-300/50 disabled:opacity-60"
                 />
               </section>
 

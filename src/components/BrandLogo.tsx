@@ -8,13 +8,16 @@ type BrandLogoProps = {
   className?: string
   /** Enlaza al inicio (sidebar y auth). */
   asLink?: boolean
+  /** Wordmark claro sobre fondos oscuros (shell de autenticación). */
+  inverted?: boolean
 }
 
-export function BrandLogo({ collapsed = false, className, asLink = false }: BrandLogoProps) {
+export function BrandLogo({ collapsed = false, className, asLink = false, inverted = false }: BrandLogoProps) {
   const label = collapsed ? 'e' : 'etick'
 
   const wordmarkClass = cn(
-    'font-display leading-none text-ink select-none',
+    'font-display leading-none select-none',
+    inverted ? 'text-[#F3EDE3]' : 'text-ink',
     collapsed ? 'text-[1.75rem]' : 'text-[1.85rem] sm:text-[2rem]',
   )
 
