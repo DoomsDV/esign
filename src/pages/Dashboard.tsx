@@ -6,9 +6,6 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -21,7 +18,6 @@ import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
 import {
   estadoMeta,
-  formatFecha,
   formatMoneda,
   listDocuments,
   tipoDeLabel,
@@ -30,13 +26,12 @@ import {
 import { cn } from '@/lib/cn'
 
 const COLORS = {
-  APROBADO: '#7ecb9e',
-  RECHAZADO: '#dc2626',
-  FIRMADO: '#d97706',
-  OTROS: '#9ca3af',
-  AREA: '#f5a94c',
-  BAR: '#f5a94c',
+  APROBADO: '#5eae86',
+  AREA: '#e07d24',
+  BAR: '#e07d24',
 }
+
+const TIPO_TONE = ['#5b8def', '#e07d24', '#d4a054', '#5eae86', '#8a8580']
 
 function IconCheck() {
   return (
@@ -85,7 +80,14 @@ function IconTrendDown() {
 function IconArrowRight() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M5 12h14M13 6l6 6-6 6" className="stroke-current" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M5 12h14M13 6l6 6-6 6" className="stroke-current" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+function IconExport() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M12 4v11M8 8l4-4 4 4M5 16v3a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3" className="stroke-current" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
     </svg>
   )
 }
@@ -94,6 +96,7 @@ interface Kpi {
   label: string
   value: number
   icon: ReactNode
+  iconTone: string
   delta: string
   deltaTone: 'up' | 'down' | 'warn' | 'neutral'
   context: string
@@ -106,18 +109,28 @@ const deltaToneClass: Record<Kpi['deltaTone'], string> = {
   neutral: 'text-brand-600',
 }
 
-function KpiCell({ kpi, loading }: { kpi: Kpi; loading: boolean }) {
+function Bezel({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={cn('panel-bezel', className)}>
+      <div className="panel-bezel-inner flex h-full flex-col">{children}</div>
+    </div>
+  )
+}
+
+function KpiCell({ kpi, loading, delay }: { kpi: Kpi; loading: boolean; delay: string }) {
   return (
     <article
       className={cn(
         panelClass,
-        'px-4 pb-4 pt-3.5 transition-transform duration-200 ease-out sm:px-5 sm:pb-5 sm:pt-4',
+        'dash-rise rounded-[1.25rem] px-4 pb-4 pt-3.5 sm:px-5 sm:pb-5 sm:pt-4',
+        'transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
         'hover:-translate-y-px active:scale-[0.99]',
+        delay,
       )}
     >
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex items-start justify-between gap-2">
         <p className="text-[13px] font-medium text-muted">{kpi.label}</p>
-        <span className="text-muted/50">{kpi.icon}</span>
+        <span className={cn('grid h-9 w-9 place-items-center rounded-xl', kpi.iconTone)}>{kpi.icon}</span>
       </div>
       <p className="mt-3 text-[2rem] font-semibold leading-none tracking-tight tabular-nums text-ink sm:text-[2.125rem]">
         {loading ? (
@@ -138,43 +151,14 @@ function KpiCell({ kpi, loading }: { kpi: Kpi; loading: boolean }) {
   )
 }
 
-function ChartCard({
-  title,
-  subtitle,
-  badge,
-  children,
-  className,
-}: {
-  title: string
-  subtitle?: string
-  badge?: ReactNode
-  children: ReactNode
-  className?: string
-}) {
-  return (
-    <div className={cn(panelClass, 'flex flex-col p-4 sm:p-6', className)}>
-      <div className="mb-3 flex items-start justify-between gap-2 sm:mb-4 sm:gap-3">
-        <div className="min-w-0">
-          <h2 className="text-sm font-medium tracking-tight text-ink sm:text-[15px]">{title}</h2>
-          {subtitle && (
-            <p className="mt-0.5 text-[11px] leading-relaxed text-muted sm:text-xs">{subtitle}</p>
-          )}
-        </div>
-        {badge}
-      </div>
-      {children}
-    </div>
-  )
-}
-
 const AXIS_TICK = 'var(--chart-tick)'
 const GRID_STROKE = 'var(--chart-grid)'
 const tooltipStyle: CSSProperties = {
-  borderRadius: 10,
+  borderRadius: 12,
   border: '1px solid var(--chart-tooltip-border)',
   background: 'var(--chart-tooltip-bg)',
   color: 'var(--color-ink)',
-  boxShadow: '0 16px 40px -20px rgba(0,0,0,0.45)',
+  boxShadow: '0 16px 40px -20px color-mix(in srgb, var(--color-ink) 35%, transparent)',
   fontSize: 12,
 }
 
@@ -212,9 +196,7 @@ function buildTrend(items: DocumentListItem[]): TrendPoint[] {
   const max = days[days.length - 1]
   const filled: TrendPoint[] = []
   for (let ts = min; ts <= max; ts += DAY_MS) {
-    filled.push(
-      map.get(ts) ?? { dia: labelForDay(ts), total: 0, aprobados: 0, rechazados: 0, sort: ts },
-    )
+    filled.push(map.get(ts) ?? { dia: labelForDay(ts), total: 0, aprobados: 0, rechazados: 0, sort: ts })
   }
   return filled.slice(-14)
 }
@@ -229,22 +211,126 @@ function buildByTipo(items: DocumentListItem[]) {
     .sort((a, b) => b.value - a.value)
 }
 
+const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] as const
+
+function buildWeekdays(items: DocumentListItem[]) {
+  const counts = [0, 0, 0, 0, 0, 0, 0]
+  for (const doc of items) {
+    if (!doc.fecha_emision) continue
+    const parsed = new Date(doc.fecha_emision)
+    if (Number.isNaN(parsed.getTime())) continue
+    const jsDay = parsed.getDay()
+    const idx = jsDay === 0 ? 6 : jsDay - 1
+    counts[idx] += 1
+  }
+  return WEEKDAYS.map((dia, i) => ({ dia, value: counts[i] }))
+}
+
 function sumMontos(items: DocumentListItem[]) {
   return items.reduce((acc, d) => acc + (d.total_operacion ?? 0), 0)
 }
 
-function EmptyChart({ label }: { label: string }) {
+function periodDelta(trend: TrendPoint[]) {
+  if (trend.length < 4) return null
+  const mid = Math.floor(trend.length / 2)
+  const prev = trend.slice(0, mid).reduce((acc, p) => acc + p.total, 0)
+  const curr = trend.slice(mid).reduce((acc, p) => acc + p.total, 0)
+  if (prev === 0) return curr > 0 ? { pct: 100, up: true } : { pct: 0, up: true }
+  const pct = Math.round(((curr - prev) / prev) * 1000) / 10
+  return { pct, up: pct >= 0 }
+}
+
+function formatCompact(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace('.', ',')}M`
+  if (n >= 10_000) return `${(n / 1_000).toFixed(1).replace('.', ',')}K`
+  return new Intl.NumberFormat('es-PY').format(n)
+}
+
+function EmptyChart({ label, hint }: { label: string; hint?: string }) {
   return (
-    <div className="grid min-h-[11rem] flex-1 place-items-center rounded-xl bg-cream-soft/70 px-4 text-center sm:min-h-[14rem]">
+    <div className="grid min-h-[11rem] flex-1 place-items-center rounded-2xl bg-cream-soft/80 px-4 text-center sm:min-h-[14rem]">
       <div>
-        <p className="text-sm font-medium text-muted">{label}</p>
-        <p className="mt-1 text-xs text-muted/70">Los datos aparecerán cuando emitas documentos</p>
+        <p className="text-sm font-medium text-ink">{label}</p>
+        <p className="mt-1 max-w-[28ch] text-xs leading-relaxed text-muted">
+          {hint ?? 'Los datos aparecerán cuando emitas documentos'}
+        </p>
       </div>
     </div>
   )
 }
 
-const CHART_HEIGHT = 'h-[11.5rem] sm:h-64'
+function RateGauge({ pct }: { pct: number | null }) {
+  const value = Math.min(100, Math.max(0, pct ?? 0))
+  const r = 58
+  const rot = 135
+
+  return (
+    <div className="relative mx-auto grid h-48 w-48 place-items-center sm:h-52 sm:w-52">
+      <svg viewBox="0 0 160 160" className="h-full w-full" aria-hidden>
+        <g transform={`rotate(${rot} 80 80)`}>
+          <circle
+            cx="80"
+            cy="80"
+            r={r}
+            fill="none"
+            stroke="var(--color-line)"
+            strokeWidth="10"
+            strokeDasharray="75 25"
+            pathLength={100}
+            strokeLinecap="round"
+          />
+          <circle
+            cx="80"
+            cy="80"
+            r={r}
+            fill="none"
+            stroke="var(--color-ok)"
+            strokeWidth="10"
+            strokeDasharray={`${(value / 100) * 75} 100`}
+            pathLength={100}
+            strokeLinecap="round"
+          />
+        </g>
+      </svg>
+      <div className="pointer-events-none absolute inset-0 grid place-items-center">
+        <div className="text-center">
+          <p className="text-[2.15rem] font-semibold leading-none tracking-tight tabular-nums text-ink">
+            {pct == null ? '—' : `${pct}%`}
+          </p>
+          <p className="mt-1.5 text-[11px] font-medium text-muted">tasa de aprobación</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function exportSample(items: DocumentListItem[]) {
+  const header = ['Número', 'Tipo', 'Receptor', 'Estado', 'Monto', 'Moneda', 'Fecha']
+  const lines = [
+    header.join(';'),
+    ...items.map((d) =>
+      [
+        d.num_documento,
+        tipoDeLabel(d.tipo_de),
+        `"${(d.receptor_nombre ?? '').replaceAll('"', '""')}"`,
+        d.estado,
+        d.total_operacion ?? '',
+        d.moneda,
+        d.fecha_emision ?? '',
+      ].join(';'),
+    ),
+  ]
+  const blob = new Blob([`\uFEFF${lines.join('\n')}`], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `etick-emisiones-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+const CHART_HEIGHT = 'h-[11.5rem] sm:h-60'
+const KPI_DELAY = ['dash-rise-1', 'dash-rise-2', 'dash-rise-3', 'dash-rise-4']
 
 export default function Dashboard() {
   const { session, environment } = useAuth()
@@ -277,22 +363,14 @@ export default function Dashboard() {
   const trend = useMemo(() => buildTrend(d?.sample ?? []), [d?.sample])
   const trendAsBars = trend.length > 0 && trend.length <= 3
   const byTipo = useMemo(() => buildByTipo(d?.sample ?? []), [d?.sample])
+  const weekdays = useMemo(() => buildWeekdays(d?.sample ?? []), [d?.sample])
   const montoMuestra = useMemo(() => sumMontos(d?.sample ?? []), [d?.sample])
+  const delta = useMemo(() => periodDelta(trend), [trend])
+  const tipoMax = Math.max(...byTipo.map((t) => t.value), 1)
+  const weekdayMax = Math.max(...weekdays.map((w) => w.value), 1)
+  const weekdayPeak = weekdays.reduce((a, b) => (a.value >= b.value ? a : b), weekdays[0]!)
   const tasaAprob =
-    d && d.aprobado + d.rechazado > 0
-      ? Math.round((d.aprobado / (d.aprobado + d.rechazado)) * 100)
-      : null
-
-  const otros = d ? Math.max(0, d.total - d.aprobado - d.rechazado - d.firmado - d.cancelado) : 0
-  const donut = d
-    ? [
-        { name: 'Aprobados', value: d.aprobado, color: COLORS.APROBADO },
-        { name: 'Rechazados', value: d.rechazado, color: COLORS.RECHAZADO },
-        { name: 'Firmados', value: d.firmado, color: COLORS.FIRMADO },
-        { name: 'Cancelados', value: d.cancelado, color: COLORS.OTROS },
-        { name: 'Otros', value: otros, color: '#8a8580' },
-      ].filter((s) => s.value > 0)
-    : []
+    d && d.aprobado + d.rechazado > 0 ? Math.round((d.aprobado / (d.aprobado + d.rechazado)) * 100) : null
 
   const hayRechazos = (d?.rechazado ?? 0) > 0
   const hayPendientes = (d?.firmado ?? 0) > 0
@@ -301,14 +379,16 @@ export default function Dashboard() {
       label: 'Aprobadas',
       value: d?.aprobado ?? 0,
       icon: <IconCheck />,
+      iconTone: 'bg-mint-soft text-ok-strong',
       delta: tasaAprob != null ? `${tasaAprob}%` : '—',
       deltaTone: tasaAprob != null ? 'up' : 'neutral',
-      context: 'tasa de aprobación',
+      context: 'vs. rechazadas',
     },
     {
       label: 'Rechazadas',
       value: d?.rechazado ?? 0,
       icon: <IconX />,
+      iconTone: 'bg-danger/10 text-danger-strong',
       delta: hayRechazos ? 'Acción' : 'OK',
       deltaTone: hayRechazos ? 'down' : 'up',
       context: hayRechazos ? 'requieren reemisión' : 'sin rechazos',
@@ -317,6 +397,7 @@ export default function Dashboard() {
       label: 'Firmadas',
       value: d?.firmado ?? 0,
       icon: <IconClock />,
+      iconTone: 'bg-warn/10 text-warn',
       delta: hayPendientes ? 'En cola' : 'OK',
       deltaTone: hayPendientes ? 'warn' : 'up',
       context: hayPendientes ? 'reintento automático' : 'todo enviado',
@@ -325,283 +406,290 @@ export default function Dashboard() {
       label: 'Total emitido',
       value: d?.total ?? 0,
       icon: <IconReceipt />,
-      delta: formatMoneda(montoMuestra, 'PYG'),
+      iconTone: 'bg-brand-50 text-brand-700',
+      delta: formatCompact(montoMuestra),
       deltaTone: 'neutral',
       context: 'en la muestra',
     },
   ]
 
-  const recent = (d?.sample ?? []).slice(0, 8)
-  const fallidos = (d?.sample ?? []).filter((x) => x.estado === 'RECHAZADO' || x.estado === 'FIRMADO').slice(0, 5)
-  const donutTotal = donut.reduce((acc, s) => acc + s.value, 0)
-
-  const envBadge = (
-    <span
-      className={cn(
-        'shrink-0 text-[10px] font-medium tracking-[0.16em] uppercase',
-        isTest ? 'text-brand-600' : 'text-ok-strong',
-      )}
-    >
-      {environment}
-    </span>
-  )
+  const recent = (d?.sample ?? []).slice(0, 7)
+  const fallidos = (d?.sample ?? []).filter((x) => x.estado === 'RECHAZADO' || x.estado === 'FIRMADO').slice(0, 4)
+  const rangeLabel =
+    trend.length > 0 ? `${trend[0]!.dia} – ${trend[trend.length - 1]!.dia}` : 'Sin emisiones en el rango'
 
   return (
     <AppShell title="Dashboard">
-      <div className="dashboard-canvas -m-4 space-y-4 p-4 sm:-m-6 sm:space-y-6 sm:p-6">
+      <div className="dashboard-canvas -m-4 space-y-4 p-4 sm:-m-6 sm:space-y-5 sm:p-6">
         {summary.isError && (
           <Alert>
             {summary.error instanceof ApiError ? summary.error.message : 'No se pudo cargar el resumen.'}
           </Alert>
         )}
 
+        <div className="dash-rise flex flex-wrap items-end justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium tracking-wide text-muted">Resumen de emisión</p>
+            <p className="mt-1 text-sm text-muted">
+              {rangeLabel}
+              <span className="mx-1.5 text-muted/40">·</span>
+              <span className={isTest ? 'text-brand-600' : 'text-ok-strong'}>{environment}</span>
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="hidden rounded-full bg-surface px-3 py-1.5 text-xs font-medium text-muted shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-ink)_8%,transparent)] sm:inline">
+              Últimos 14 días
+            </span>
+            <button
+              type="button"
+              onClick={() => exportSample(d?.sample ?? [])}
+              disabled={!d?.sample.length}
+              className="group inline-flex items-center gap-2 rounded-full bg-brand-400 py-1.5 pr-1.5 pl-4 text-sm font-semibold text-ink transition-[transform,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-brand-500 active:scale-[0.98] disabled:opacity-50"
+            >
+              Exportar
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-ink/8 transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 group-hover:-translate-y-px">
+                <IconExport />
+              </span>
+            </button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
-          {kpis.map((kpi) => (
-            <KpiCell key={kpi.label} kpi={kpi} loading={summary.isLoading} />
+          {kpis.map((kpi, i) => (
+            <KpiCell key={kpi.label} kpi={kpi} loading={summary.isLoading} delay={KPI_DELAY[i] ?? 'dash-rise-1'} />
           ))}
         </div>
 
-        {/* Gráficos principales */}
-        <div className="grid grid-cols-1 gap-3 sm:gap-4 xl:grid-cols-3">
-          <ChartCard
-            className="xl:col-span-2"
-            title="Emisiones recientes"
-            subtitle="Últimos días, muestra de hasta 100 documentos"
-            badge={envBadge}
-          >
-            {trend.length === 0 ? (
-              <EmptyChart label="Sin datos aún" />
-            ) : trendAsBars ? (
-              <div className={CHART_HEIGHT}>
-                <ResponsiveContainer width="100%" height="100%" debounce={250}>
-                  <BarChart data={trend} margin={{ left: -4, right: 4, top: 4, bottom: 0 }} barGap={4}>
-                    <CartesianGrid strokeDasharray="4 4" stroke={GRID_STROKE} vertical={false} />
-                    <XAxis
-                      dataKey="dia"
-                      tick={{ fontSize: 10, fill: AXIS_TICK }}
-                      axisLine={false}
-                      tickLine={false}
-                      interval="preserveStartEnd"
-                    />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: AXIS_TICK }} axisLine={false} tickLine={false} width={24} />
-                    <Tooltip
-                      cursor={{ fill: 'rgba(245, 169, 76, 0.06)' }}
-                      contentStyle={tooltipStyle}
-                    />
-                    <Bar dataKey="total" name="Total" radius={[6, 6, 0, 0]} maxBarSize={36} fill={COLORS.AREA} />
-                    <Bar dataKey="aprobados" name="Aprobados" radius={[6, 6, 0, 0]} maxBarSize={36} fill={COLORS.APROBADO} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            ) : (
-              <div className={CHART_HEIGHT}>
-                <ResponsiveContainer width="100%" height="100%" debounce={250}>
-                  <AreaChart data={trend} margin={{ left: -4, right: 4, top: 4, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="fillTotal" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={COLORS.AREA} stopOpacity={0.28} />
-                        <stop offset="100%" stopColor={COLORS.AREA} stopOpacity={0.02} />
-                      </linearGradient>
-                      <linearGradient id="fillAprob" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor={COLORS.APROBADO} stopOpacity={0.2} />
-                        <stop offset="100%" stopColor={COLORS.APROBADO} stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="4 4" stroke={GRID_STROKE} vertical={false} />
-                    <XAxis
-                      dataKey="dia"
-                      tick={{ fontSize: 10, fill: AXIS_TICK }}
-                      axisLine={false}
-                      tickLine={false}
-                      interval="preserveStartEnd"
-                    />
-                    <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: AXIS_TICK }} axisLine={false} tickLine={false} width={24} />
-                    <Tooltip
-                      contentStyle={tooltipStyle}
-                      formatter={(value, name) => [value as number, String(name)]}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="total"
-                      name="Total"
-                      stroke={COLORS.AREA}
-                      fill="url(#fillTotal)"
-                      strokeWidth={2}
-                      dot={{ r: 2.5, strokeWidth: 0, fill: COLORS.AREA }}
-                      activeDot={{ r: 4, stroke: 'var(--color-surface)', strokeWidth: 2 }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="aprobados"
-                      name="Aprobados"
-                      stroke={COLORS.APROBADO}
-                      fill="url(#fillAprob)"
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </ChartCard>
-
-          <ChartCard title="Por tipo de DE" subtitle="Distribución en la muestra">
-            {byTipo.length === 0 ? (
-              <EmptyChart label="Sin datos aún" />
-            ) : (
-              <div className={CHART_HEIGHT}>
-                <ResponsiveContainer width="100%" height="100%" debounce={250}>
-                  <BarChart data={byTipo} layout="vertical" margin={{ left: 0, right: 8, top: 0, bottom: 0 }} barCategoryGap="28%">
-                    <CartesianGrid strokeDasharray="4 4" stroke={GRID_STROKE} horizontal={false} />
-                    <XAxis type="number" allowDecimals={false} tick={{ fontSize: 10, fill: AXIS_TICK }} axisLine={false} tickLine={false} />
-                    <YAxis
-                      type="category"
-                      dataKey="tipo"
-                      width={76}
-                      tick={{ fontSize: 10, fill: AXIS_TICK }}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <Tooltip
-                      cursor={{ fill: 'rgba(245, 169, 76, 0.06)' }}
-                      contentStyle={tooltipStyle}
-                    />
-                    <Bar dataKey="value" name="Cantidad" radius={[0, 6, 6, 0]} maxBarSize={22} fill={COLORS.BAR} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </ChartCard>
-        </div>
-
-        {/* Donut + recientes */}
-        <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-3">
-          <ChartCard title="Distribución por estado">
-            {donut.length === 0 ? (
-              <EmptyChart label="Sin datos aún" />
-            ) : (
-              <>
-                <div className="relative h-44 sm:h-52">
-                  <ResponsiveContainer width="100%" height="100%" debounce={250}>
-                    <PieChart>
-                      <Pie
-                        data={donut}
-                        dataKey="value"
-                        nameKey="name"
-                        innerRadius="58%"
-                        outerRadius="88%"
-                        paddingAngle={3}
-                        stroke="none"
-                      >
-                        {donut.map((s) => (
-                          <Cell key={s.name} fill={s.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip
-                        contentStyle={tooltipStyle}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="pointer-events-none absolute inset-0 grid place-items-center">
-                    <div className="text-center">
-                      <p className="text-xl font-semibold tabular-nums text-ink sm:text-2xl">{donutTotal}</p>
-                      <p className="text-[10px] font-medium text-muted sm:text-[11px]">documentos</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 sm:flex sm:flex-wrap sm:gap-x-4">
-                  {donut.map((s) => (
-                    <span key={s.name} className="inline-flex min-w-0 items-center gap-1.5 text-[11px] text-muted sm:gap-2 sm:text-xs">
-                      <span className="h-2 w-2 shrink-0 rounded-full sm:h-2.5 sm:w-2.5" style={{ backgroundColor: s.color }} />
-                      <span className="shrink-0 font-medium tabular-nums text-ink">{s.value}</span>
-                      <span className="truncate">{s.name}</span>
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-12">
+          <Bezel className="dash-rise dash-rise-2 lg:col-span-8">
+            <div className="flex flex-1 flex-col p-4 sm:p-5">
+              <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-medium tracking-tight text-ink sm:text-[15px]">Volumen emitido</h2>
+                  <p className="mt-2 flex items-end gap-2">
+                    <span className="text-[1.85rem] font-semibold leading-none tracking-tight tabular-nums text-ink sm:text-[2.1rem]">
+                      {summary.isLoading ? '—' : formatCompact(montoMuestra)}
                     </span>
+                    <span className="pb-0.5 text-xs text-muted">PYG en la muestra</span>
+                  </p>
+                  {delta && (
+                    <p className={cn('mt-1.5 inline-flex items-center gap-1 text-xs font-medium', delta.up ? 'text-ok' : 'text-danger-strong')}>
+                      {delta.up ? <IconTrendUp /> : <IconTrendDown />}
+                      {delta.up ? '+' : ''}
+                      {delta.pct}% vs. primera mitad
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {trend.length === 0 ? (
+                <EmptyChart
+                  label="Todavía no hay emisiones"
+                  hint="Cuando salga el primer documento, acá vas a ver el ritmo diario."
+                />
+              ) : trendAsBars ? (
+                <div className={CHART_HEIGHT}>
+                  <ResponsiveContainer width="100%" height="100%" debounce={250}>
+                    <BarChart data={trend} margin={{ left: -4, right: 4, top: 4, bottom: 0 }} barGap={4}>
+                      <CartesianGrid strokeDasharray="4 4" stroke={GRID_STROKE} vertical={false} />
+                      <XAxis dataKey="dia" tick={{ fontSize: 10, fill: AXIS_TICK }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: AXIS_TICK }} axisLine={false} tickLine={false} width={24} />
+                      <Tooltip cursor={{ fill: 'rgba(224, 125, 36, 0.06)' }} contentStyle={tooltipStyle} />
+                      <Bar dataKey="total" name="Total" radius={[6, 6, 0, 0]} maxBarSize={36} fill={COLORS.AREA} />
+                      <Bar dataKey="aprobados" name="Aprobados" radius={[6, 6, 0, 0]} maxBarSize={36} fill={COLORS.APROBADO} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className={CHART_HEIGHT}>
+                  <ResponsiveContainer width="100%" height="100%" debounce={250}>
+                    <AreaChart data={trend} margin={{ left: -4, right: 4, top: 8, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="fillTotal" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={COLORS.AREA} stopOpacity={0.28} />
+                          <stop offset="100%" stopColor={COLORS.AREA} stopOpacity={0.02} />
+                        </linearGradient>
+                        <linearGradient id="fillAprob" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={COLORS.APROBADO} stopOpacity={0.22} />
+                          <stop offset="100%" stopColor={COLORS.APROBADO} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="4 4" stroke={GRID_STROKE} vertical={false} />
+                      <XAxis dataKey="dia" tick={{ fontSize: 10, fill: AXIS_TICK }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: AXIS_TICK }} axisLine={false} tickLine={false} width={24} />
+                      <Tooltip contentStyle={tooltipStyle} formatter={(value, name) => [value as number, String(name)]} />
+                      <Area
+                        type="monotone"
+                        dataKey="total"
+                        name="Total"
+                        stroke={COLORS.AREA}
+                        fill="url(#fillTotal)"
+                        strokeWidth={2.2}
+                        dot={false}
+                        activeDot={{ r: 4, stroke: 'var(--color-surface)', strokeWidth: 2 }}
+                      />
+                      <Area type="monotone" dataKey="aprobados" name="Aprobados" stroke={COLORS.APROBADO} fill="url(#fillAprob)" strokeWidth={2} dot={false} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {byTipo.length > 0 && (
+                <div className="mt-4 grid gap-2.5 border-t border-line/50 pt-4 sm:grid-cols-3">
+                  {byTipo.slice(0, 3).map((row, i) => (
+                    <div key={row.tipo}>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="truncate text-xs text-muted">{row.tipo}</p>
+                        <p className="text-sm font-semibold tabular-nums text-ink">{row.value.toLocaleString('es-PY')}</p>
+                      </div>
+                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-cream">
+                        <div
+                          className="h-full origin-left rounded-full"
+                          style={{
+                            backgroundColor: TIPO_TONE[i] ?? TIPO_TONE[0],
+                            transform: `scaleX(${row.value / tipoMax})`,
+                          }}
+                        />
+                      </div>
+                    </div>
                   ))}
                 </div>
-              </>
-            )}
-          </ChartCard>
+              )}
+            </div>
+          </Bezel>
 
-          <div className={cn(panelClass, 'lg:col-span-2')}>
-            <div className="flex items-center justify-between gap-2 border-b border-line/60 px-4 py-3 sm:px-6 sm:py-4">
+          <Bezel className="dash-rise dash-rise-3 lg:col-span-4">
+            <div className="flex flex-1 flex-col p-4 sm:p-5">
+              <h2 className="text-sm font-medium tracking-tight text-ink sm:text-[15px]">Día más activo</h2>
+              <p className="mt-0.5 text-[11px] text-muted sm:text-xs">
+                {weekdayPeak.value > 0 ? `${weekdayPeak.dia} lidera la muestra` : 'Sin actividad por día'}
+              </p>
+              {weekdayPeak.value === 0 ? (
+                <EmptyChart label="Sin actividad semanal" />
+              ) : (
+                <div className="mt-5 flex min-h-[12rem] flex-1 items-end gap-2 sm:min-h-[14rem]">
+                  {weekdays.map((day) => {
+                    const ratio = day.value / weekdayMax
+                    const peak = day.dia === weekdayPeak.dia
+                    return (
+                      <div key={day.dia} className="flex min-w-0 flex-1 flex-col items-center gap-2">
+                        <p className="text-[11px] font-medium tabular-nums text-muted">{day.value}</p>
+                        <div className="flex h-36 w-full items-end sm:h-40">
+                          <div
+                            className={cn('weekday-bar', peak && 'is-peak')}
+                            style={{ transform: `scaleY(${Math.max(ratio, 0.06)})` }}
+                          />
+                        </div>
+                        <p className={cn('text-[11px]', peak ? 'font-semibold text-ink' : 'text-muted')}>{day.dia}</p>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </Bezel>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-12">
+          <Bezel className="dash-rise dash-rise-3 lg:col-span-8">
+            <div className="flex items-center justify-between gap-2 px-4 py-3.5 sm:px-5">
               <div className="min-w-0">
                 <h2 className="text-sm font-medium tracking-tight text-ink sm:text-[15px]">Documentos recientes</h2>
                 <p className="text-[11px] text-muted sm:text-xs">Últimas emisiones en {environment}</p>
               </div>
               <Link
                 to="/documentos"
-                className="inline-flex shrink-0 items-center gap-0.5 text-xs font-semibold text-brand-600 transition-colors hover:text-brand-700 active:scale-[0.98] sm:gap-1 sm:text-sm"
+                className="group inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-brand-600 transition-colors hover:text-brand-700 sm:text-sm"
               >
                 Ver todos
-                <IconArrowRight />
+                <span className="grid h-6 w-6 place-items-center rounded-full bg-brand-50 transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5">
+                  <IconArrowRight />
+                </span>
               </Link>
             </div>
 
-            <div className="divide-y divide-line/50 px-1 sm:px-3">
-              {summary.isLoading && <p className="py-8 text-center text-sm text-muted">Cargando…</p>}
-              {!summary.isLoading && recent.length === 0 && (
-                <p className="py-8 text-center text-sm text-muted">Aún no hay documentos en {environment}.</p>
-              )}
-              {recent.map((doc) => {
-                const m = estadoMeta(doc.estado)
-                return (
-                  <div
-                    key={doc.cdc}
-                    className="flex items-center justify-between gap-2 rounded-xl px-2.5 py-2.5 sm:gap-3 sm:px-3 sm:py-3"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-[13px] font-medium text-ink sm:text-sm">
-                        {tipoDeLabel(doc.tipo_de)}
-                        <span className="mx-1 text-muted/50 sm:mx-1.5">·</span>
-                        <span className="font-normal text-muted">{doc.receptor_nombre || 'Sin nombre'}</span>
-                      </p>
-                      <p className="mt-0.5 text-[11px] tabular-nums text-muted sm:text-xs">
-                        {doc.num_documento}
-                        <span className="mx-1 text-muted/40 sm:mx-1.5">·</span>
-                        {formatFecha(doc.fecha_emision)}
-                        <span className="mx-1 text-muted/40 sm:hidden">·</span>
-                        <span className="font-medium text-ink/80 sm:hidden">
+            <div className="min-w-0 px-2 pb-3 sm:px-3">
+              <table className="w-full table-fixed text-left text-sm">
+                <thead>
+                  <tr className="text-[11px] font-medium tracking-wide text-muted">
+                    <th className="px-2 py-2 font-medium sm:px-3">Número</th>
+                    <th className="px-2 py-2 font-medium sm:px-3">Receptor</th>
+                    <th className="hidden px-3 py-2 font-medium sm:table-cell">Tipo</th>
+                    <th className="px-2 py-2 text-right font-medium sm:px-3">Monto</th>
+                    <th className="px-2 py-2 font-medium sm:px-3">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summary.isLoading && (
+                    <tr>
+                      <td colSpan={5} className="px-3 py-8 text-center text-sm text-muted">
+                        Cargando
+                      </td>
+                    </tr>
+                  )}
+                  {!summary.isLoading && recent.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-3 py-8 text-center text-sm text-muted">
+                        Aún no hay documentos en {environment}.
+                      </td>
+                    </tr>
+                  )}
+                  {recent.map((doc) => {
+                    const m = estadoMeta(doc.estado)
+                    return (
+                      <tr key={doc.cdc} className="border-t border-line/40">
+                        <td className="truncate px-2 py-2.5 font-medium tabular-nums text-ink sm:px-3">
+                          {doc.num_documento}
+                        </td>
+                        <td className="truncate px-2 py-2.5 text-muted sm:px-3">
+                          {doc.receptor_nombre || 'Sin nombre'}
+                        </td>
+                        <td className="hidden truncate px-3 py-2.5 text-muted sm:table-cell">
+                          {tipoDeLabel(doc.tipo_de)}
+                        </td>
+                        <td className="truncate px-2 py-2.5 text-right font-medium tabular-nums text-ok-strong sm:px-3">
                           {formatMoneda(doc.total_operacion, doc.moneda)}
-                        </span>
-                      </p>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-                      <span className="hidden text-sm font-medium tabular-nums text-ink sm:inline">
-                        {formatMoneda(doc.total_operacion, doc.moneda)}
-                      </span>
-                      <Badge className={cn(m.className, 'text-[11px] sm:text-xs')}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${m.dot}`} />
-                        {m.label}
-                      </Badge>
-                    </div>
-                  </div>
-                )
-              })}
+                        </td>
+                        <td className="px-2 py-2.5 sm:px-3">
+                          <Badge className={cn(m.className, 'max-w-full truncate text-[11px]')}>
+                            <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${m.dot}`} />
+                            {m.label}
+                          </Badge>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
             </div>
+          </Bezel>
 
-            {fallidos.length > 0 && (
-              <div className="mx-3 mb-3 mt-1 rounded-xl border border-warn/25 bg-linear-to-br from-warn/5 to-brand-50/30 p-3.5 sm:mx-5 sm:mb-4 sm:mt-2 sm:p-4">
-                <p className="text-sm font-semibold text-warn">Atención: firmados / rechazados</p>
-                <ul className="mt-2 space-y-1.5 text-xs text-muted">
-                  {fallidos.map((doc) => (
-                    <li key={`f-${doc.cdc}`} className="flex justify-between gap-2">
-                      <span className="truncate">
-                        {doc.num_documento} · {tipoDeLabel(doc.tipo_de)}
-                      </span>
-                      <span className="shrink-0 font-medium">{estadoMeta(doc.estado).label}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Link
-                  to="/documentos"
-                  className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700"
-                >
-                  Revisar en Documentos
-                  <IconArrowRight />
-                </Link>
-              </div>
-            )}
-          </div>
+          <Bezel className="dash-rise dash-rise-4 lg:col-span-4">
+            <div className="flex flex-1 flex-col p-4 sm:p-5">
+              <h2 className="text-sm font-medium tracking-tight text-ink sm:text-[15px]">Tasa de aprobación</h2>
+              <p className="mt-0.5 text-[11px] text-muted sm:text-xs">Aprobados sobre resueltos en SIFEN</p>
+              <RateGauge pct={tasaAprob} />
+              {fallidos.length > 0 && (
+                <div className="mt-1 rounded-2xl bg-cream-soft p-3">
+                  <p className="text-xs font-medium text-ink">Pendientes de atención</p>
+                  <ul className="mt-2 space-y-1.5 text-xs text-muted">
+                    {fallidos.map((doc) => (
+                      <li key={`f-${doc.cdc}`} className="flex justify-between gap-2">
+                        <span className="truncate">
+                          {doc.num_documento} · {tipoDeLabel(doc.tipo_de)}
+                        </span>
+                        <span className="shrink-0 font-medium text-ink">{estadoMeta(doc.estado).label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link to="/documentos" className="mt-2.5 inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700">
+                    Revisar en Documentos
+                    <IconArrowRight />
+                  </Link>
+                </div>
+              )}
+            </div>
+          </Bezel>
         </div>
       </div>
     </AppShell>

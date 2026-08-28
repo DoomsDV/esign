@@ -172,7 +172,7 @@ function NavList({
   onNavigate?: () => void
 }) {
   return (
-    <nav className={cn('flex flex-col gap-1', collapsed && 'items-center')}>
+    <nav className={cn('flex flex-col gap-0.5', collapsed && 'items-center')}>
       {items.map((item) => (
         <NavLink
           key={item.to}
@@ -182,19 +182,89 @@ function NavList({
           title={collapsed ? item.label : undefined}
           className={({ isActive }) =>
             cn(
-              'group relative flex h-10 items-center rounded-xl text-sm font-medium transition-colors',
+              'group relative flex h-10 items-center rounded-xl text-sm font-medium',
+              'transition-[color,background-color,transform] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/50',
               collapsed ? 'w-10 justify-center px-0' : 'w-full gap-3 px-3',
               isActive
-                ? 'bg-brand-400 text-ink shadow-sm'
-                : 'text-muted hover:bg-cream hover:text-ink',
+                ? 'text-brand-700'
+                : 'text-muted hover:bg-cream/80 hover:text-ink',
             )
           }
         >
-          <span className="grid h-5 w-5 shrink-0 place-items-center">{item.icon}</span>
-          {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
+          {({ isActive }) => (
+            <>
+              {isActive && (
+                <span
+                  className={cn(
+                    'absolute rounded-full bg-brand-500',
+                    collapsed
+                      ? 'bottom-1 left-1/2 h-0.5 w-3.5 -translate-x-1/2'
+                      : 'left-0 top-1/2 h-5 w-[3px] -translate-y-1/2',
+                  )}
+                  aria-hidden
+                />
+              )}
+              <span className="grid h-5 w-5 shrink-0 place-items-center">{item.icon}</span>
+              {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
+            </>
+          )}
         </NavLink>
       ))}
     </nav>
+  )
+}
+
+function HeaderSearch() {
+  const navigate = useNavigate()
+  const [q, setQ] = useState('')
+  const [modKey, setModKey] = useState('Ctrl')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setModKey(/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl')
+  }, [])
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        inputRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  return (
+    <form
+      className="header-search flex w-full"
+      role="search"
+      onSubmit={(e) => {
+        e.preventDefault()
+        const term = q.trim()
+        navigate(term ? `/documentos?q=${encodeURIComponent(term)}` : '/documentos')
+      }}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 text-muted" aria-hidden>
+        <circle cx="11" cy="11" r="6.5" className="stroke-current" strokeWidth="1.6" />
+        <path d="m20 20-3.4-3.4" className="stroke-current" strokeWidth="1.6" strokeLinecap="round" />
+      </svg>
+      <input
+        ref={inputRef}
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Buscar documentos, CDC o receptor"
+        className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted/70"
+        aria-label="Buscar documentos"
+      />
+      <button type="submit" className="sr-only">
+        Buscar
+      </button>
+      <kbd className="hidden lg:inline" aria-hidden>
+        {modKey === '⌘' ? '⌘K' : 'Ctrl K'}
+      </kbd>
+    </form>
   )
 }
 
@@ -371,7 +441,7 @@ export function AppShell({
         <div className="mx-auto mb-2 h-px w-8 bg-line" />
       ) : (
         !isCollapsed && (
-          <p className="mb-2 h-4 whitespace-nowrap px-3 text-[11px] font-semibold uppercase tracking-wider text-ink/55">
+          <p className="mb-1.5 h-4 whitespace-nowrap px-3 text-[11px] font-medium tracking-wide text-muted">
             Configuración
           </p>
         )
@@ -422,8 +492,8 @@ export function AppShell({
   const desktopSidebar = (
     <aside
       className={cn(
-        'hidden h-full shrink-0 overflow-hidden border-r border-line bg-surface md:block',
-        'transition-[width] duration-200 ease-out',
+        'hidden h-full shrink-0 overflow-hidden bg-surface md:block',
+        'transition-[width] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
         collapsed ? 'w-[4.5rem]' : 'w-64',
       )}
       aria-label="Menú lateral"
@@ -433,7 +503,10 @@ export function AppShell({
   )
 
   return (
-    <div className={cn('flex h-dvh overflow-hidden bg-surface', !isTest && 'env-prod')}>
+    <div className={cn('flex h-dvh overflow-hidden bg-cream-soft', !isTest && 'env-prod')}>
+      <a href="#contenido" className="skip-link">
+        Saltar al contenido
+      </a>
       {desktopSidebar}
 
       {/* Bottom sheet móvil — configuración */}
@@ -446,7 +519,7 @@ export function AppShell({
         <div
           onClick={closeMobileMenu}
           className={cn(
-            'absolute inset-0 bg-ink/40 backdrop-blur-sm transition-opacity duration-200 ease-out',
+            'absolute inset-0 bg-black/30 transition-opacity duration-200 ease-out dark:bg-black/45',
             mobileOpen ? 'opacity-100' : 'opacity-0',
           )}
           aria-hidden
@@ -486,35 +559,53 @@ export function AppShell({
           className={cn('h-1 w-full shrink-0', isTest ? 'bg-brand-400' : 'bg-ok')}
           aria-hidden
         />
-        <header className="shrink-0 border-b border-line bg-surface">
-          <div className="flex items-center gap-2 px-4 py-3 sm:gap-4 sm:px-6">
-            <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
+        <header className="shrink-0 bg-surface/90">
+          <div className="flex items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6">
+            <div className="flex min-w-0 flex-1 items-center gap-2 md:max-w-[11rem] md:flex-none md:shrink-0">
               <button
                 ref={menuButtonRef}
                 type="button"
                 onClick={toggleDesktopSidebar}
                 className={cn(
-                  'hidden h-10 w-10 shrink-0 place-items-center rounded-xl border border-line bg-surface text-ink md:grid',
-                  'transition-colors duration-150 hover:bg-cream active:bg-cream',
-                  collapsed && 'border-brand-300 bg-brand-50 text-brand-700',
+                  'shell-icon-btn hidden md:grid',
+                  collapsed && 'bg-brand-50 text-brand-700',
                 )}
                 aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
                 aria-expanded={!collapsed}
               >
                 <IconMenu isX={false} />
               </button>
-              <div className="min-w-0 flex-1">
-                <h1 className="truncate text-base font-bold text-ink sm:text-lg">{title}</h1>
-                <p className="truncate text-[11px] text-muted sm:text-xs">{session?.businessName}</p>
+              <div className="min-w-0 flex-1 md:flex-none">
+                <h1 className="truncate text-[15px] font-semibold tracking-tight text-ink sm:text-base">
+                  {title}
+                </h1>
+                <p className="truncate text-[11px] text-muted">{session?.businessName}</p>
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
+            <div className="mx-4 hidden min-w-0 flex-1 justify-center md:flex">
+              <div className="w-full max-w-xl">
+                <HeaderSearch />
+              </div>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-1 sm:gap-2">
               {actions && <div className="hidden sm:block">{actions}</div>}
+              <button
+                type="button"
+                className="shell-icon-btn md:hidden"
+                aria-label="Buscar documentos"
+                onClick={() => navigate('/documentos')}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+                  <circle cx="11" cy="11" r="6.5" className="stroke-current" strokeWidth="1.6" />
+                  <path d="m20 20-3.4-3.4" className="stroke-current" strokeWidth="1.6" strokeLinecap="round" />
+                </svg>
+              </button>
               <EnvToggle />
-              <ThemeToggle />
+              <ThemeToggle className="shell-icon-btn" />
               <div
-                className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-brand-100 text-[10px] font-bold tracking-wide text-brand-700 sm:h-9 sm:w-9 sm:text-[11px]"
+                className="grid h-9 w-9 shrink-0 place-items-center rounded-[0.7rem] bg-brand-100 text-[11px] font-semibold tracking-wide text-brand-700"
                 title={session?.businessName ?? 'Cuenta'}
                 aria-label={session?.businessName ? `Cuenta: ${session.businessName}` : 'Cuenta'}
               >
@@ -535,7 +626,10 @@ export function AppShell({
           )}
         </header>
 
-        <main className="min-h-0 flex-1 overflow-auto bg-cream-soft p-4 pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:pt-6 md:pb-6">
+        <main
+          id="contenido"
+          className="min-h-0 flex-1 overflow-auto bg-cream-soft p-4 pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:pt-6 md:pb-6"
+        >
           {children}
         </main>
       </div>

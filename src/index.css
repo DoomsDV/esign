@@ -65,6 +65,7 @@
   --chart-tick: #5c6370;
   --chart-tooltip-bg: #ffffff;
   --chart-tooltip-border: #e3e6eb;
+  --ease-premium: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 html.dark {
@@ -93,6 +94,10 @@ html.dark .env-prod {
   --color-brand-50: #12261a;
   --color-brand-100: #16351f;
   --color-brand-200: #1c4a2c;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 html,
@@ -481,22 +486,42 @@ html:has(.auth-stage) body {
   }
 }
 
-/* Lienzo del panel: un solo halo de marca, sin orbe mint. */
+.skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -4rem;
+  z-index: 60;
+  border-radius: 9999px;
+  background: var(--color-ink);
+  color: var(--color-surface);
+  padding: 0.55rem 1rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  transition: transform 0.5s var(--ease-premium);
+}
+
+.skip-link:focus {
+  top: 0.85rem;
+  outline: 2px solid var(--color-brand-400);
+  outline-offset: 3px;
+}
+
+/* Lienzo del panel: halo suave, sin orbe mint. */
 .dashboard-canvas {
   background-color: var(--color-cream-soft);
   background-image: radial-gradient(
-    ellipse 70% 42% at 0% -10%,
-    color-mix(in srgb, var(--color-brand-500) 9%, transparent),
+    ellipse 62% 38% at 0% -8%,
+    color-mix(in srgb, var(--color-brand-500) 8%, transparent),
     transparent 72%
   );
 }
 
-/* Cards: elevación, no borde gris + sombra genérica. */
+/* Cards: elevación tintada, no borde gris + sombra negra. */
 .panel-surface {
   background-color: var(--color-surface);
   box-shadow:
-    0 1px 2px rgba(16, 24, 40, 0.04),
-    0 12px 32px -20px rgba(16, 24, 40, 0.12);
+    0 1px 2px color-mix(in srgb, var(--color-ink) 4%, transparent),
+    0 14px 36px -22px color-mix(in srgb, var(--color-ink) 14%, transparent);
 }
 
 html.dark .panel-surface {
@@ -508,10 +533,149 @@ html.dark .panel-surface {
 
 html.dark .dashboard-canvas {
   background-image: radial-gradient(
-    ellipse 65% 38% at 8% -8%,
-    color-mix(in srgb, var(--color-brand-500) 11%, transparent),
+    ellipse 58% 34% at 8% -8%,
+    color-mix(in srgb, var(--color-brand-500) 10%, transparent),
     transparent 70%
   );
+}
+
+/* Double-bezel: placa interior sentada en una bandeja. */
+.panel-bezel {
+  border-radius: 1.5rem;
+  padding: 0.28rem;
+  background: color-mix(in srgb, var(--color-ink) 3.2%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-ink) 5%, transparent);
+}
+
+.panel-bezel-inner {
+  height: 100%;
+  border-radius: calc(1.5rem - 0.28rem);
+  background: var(--color-surface);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.72),
+    0 16px 40px -24px color-mix(in srgb, var(--color-ink) 16%, transparent);
+}
+
+html.dark .panel-bezel {
+  background: rgb(255 255 255 / 0.035);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+}
+
+html.dark .panel-bezel-inner {
+  box-shadow:
+    inset 0 1px 1px rgb(255 255 255 / 0.08),
+    0 18px 40px -24px rgb(0 0 0 / 0.55);
+}
+
+.header-search {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.65rem;
+  height: 2.65rem;
+  padding: 0 0.45rem 0 0.95rem;
+  border-radius: 9999px;
+  background: var(--color-cream-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-ink) 6%, transparent);
+  transition:
+    box-shadow 0.5s var(--ease-premium),
+    background-color 0.5s var(--ease-premium);
+}
+
+.header-search:focus-within {
+  background: var(--color-surface);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--color-brand-500) 45%, transparent),
+    0 0 0 4px color-mix(in srgb, var(--color-brand-400) 18%, transparent);
+}
+
+.header-search kbd {
+  border-radius: 0.45rem;
+  background: var(--color-surface);
+  padding: 0.12rem 0.4rem;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-ink) 8%, transparent);
+}
+
+.shell-icon-btn {
+  display: grid;
+  height: 2.5rem;
+  width: 2.5rem;
+  flex-shrink: 0;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition:
+    transform 0.5s var(--ease-premium),
+    background-color 0.5s var(--ease-premium),
+    color 0.5s var(--ease-premium);
+}
+
+.shell-icon-btn:hover {
+  background: var(--color-cream);
+  color: var(--color-ink);
+}
+
+.shell-icon-btn:active {
+  transform: scale(0.96);
+}
+
+.shell-icon-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-brand-400) 55%, transparent);
+}
+
+@keyframes dash-rise {
+  from {
+    opacity: 0;
+    transform: translateY(1.15rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.dash-rise {
+  animation: dash-rise 0.75s var(--ease-premium) both;
+}
+
+.dash-rise-1 {
+  animation-delay: 50ms;
+}
+.dash-rise-2 {
+  animation-delay: 110ms;
+}
+.dash-rise-3 {
+  animation-delay: 170ms;
+}
+.dash-rise-4 {
+  animation-delay: 230ms;
+}
+
+.weekday-bar {
+  width: 100%;
+  height: 100%;
+  transform-origin: bottom center;
+  border-radius: 0.7rem 0.7rem 0.35rem 0.35rem;
+  background: var(--color-cream);
+  transition: transform 0.7s var(--ease-premium);
+}
+
+.weekday-bar.is-peak {
+  background: var(--color-brand-400);
+}
+
+html.dark .weekday-bar {
+  background: color-mix(in srgb, var(--color-cream) 80%, #000);
 }
 
 /* Overlays modales: fade del backdrop + slide-up del panel en mobile */
@@ -548,8 +712,13 @@ html.dark .dashboard-canvas {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
   .modal-backdrop-enter,
-  .modal-sheet-enter {
+  .modal-sheet-enter,
+  .dash-rise {
     animation: none !important;
   }
 

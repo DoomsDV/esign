@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
 import { Alert, Badge, Button, Modal, panelClass } from '@/components/ui'
@@ -358,16 +359,22 @@ export default function Documentos() {
   const { session, environment } = useAuth()
   const token = session!.accessToken
   const queryClient = useQueryClient()
+  const [searchParams] = useSearchParams()
 
   const [estado, setEstado] = useState('')
   const [tipo, setTipo] = useState('')
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState(() => searchParams.get('q') ?? '')
   const [desde, setDesde] = useState('')
   const [hasta, setHasta] = useState('')
   const [page, setPage] = useState(1)
   const [selected, setSelected] = useState<string | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const filtersRef = useOutsideClose(() => setFiltersOpen(false))
+
+  useEffect(() => {
+    const q = searchParams.get('q')
+    if (q !== null) setQuery(q)
+  }, [searchParams])
 
   const listQuery = useQuery({
     queryKey: ['documents', environment, estado, tipo, page],
