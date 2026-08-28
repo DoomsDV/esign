@@ -238,7 +238,7 @@ function HeaderSearch() {
 
   return (
     <form
-      className="header-search flex w-full"
+      className="header-search"
       role="search"
       onSubmit={(e) => {
         e.preventDefault()
@@ -261,7 +261,7 @@ function HeaderSearch() {
       <button type="submit" className="sr-only">
         Buscar
       </button>
-      <kbd className="hidden lg:inline" aria-hidden>
+      <kbd className="hidden xl:inline" aria-hidden>
         {modKey === '⌘' ? '⌘K' : 'Ctrl K'}
       </kbd>
     </form>
@@ -559,9 +559,9 @@ export function AppShell({
           className={cn('h-1 w-full shrink-0', isTest ? 'bg-brand-400' : 'bg-ok')}
           aria-hidden
         />
-        <header className="shrink-0 bg-surface/90">
-          <div className="flex items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6">
-            <div className="flex min-w-0 flex-1 items-center gap-2 md:max-w-[11rem] md:flex-none md:shrink-0">
+        <header className="relative z-20 shrink-0 bg-surface/95 backdrop-blur-md">
+          <div className="flex items-center gap-2 overflow-hidden px-4 py-3 sm:gap-3 sm:px-6">
+            <div className="flex min-w-0 flex-1 items-center gap-2 lg:max-w-[16rem] xl:max-w-[18rem]">
               <button
                 ref={menuButtonRef}
                 type="button"
@@ -575,7 +575,7 @@ export function AppShell({
               >
                 <IconMenu isX={false} />
               </button>
-              <div className="min-w-0 flex-1 md:flex-none">
+              <div className="min-w-0 flex-1 overflow-hidden">
                 <h1 className="truncate text-[15px] font-semibold tracking-tight text-ink sm:text-base">
                   {title}
                 </h1>
@@ -583,25 +583,27 @@ export function AppShell({
               </div>
             </div>
 
-            <div className="mx-4 hidden min-w-0 flex-1 justify-center md:flex">
-              <div className="w-full max-w-xl">
+            <div className="hidden min-w-0 flex-1 justify-center lg:flex">
+              <div className="w-full min-w-0 max-w-md xl:max-w-lg">
                 <HeaderSearch />
               </div>
             </div>
 
             <div className="flex shrink-0 items-center gap-1 sm:gap-2">
               {actions && <div className="hidden sm:block">{actions}</div>}
-              <button
-                type="button"
-                className="shell-icon-btn md:hidden"
-                aria-label="Buscar documentos"
-                onClick={() => navigate('/documentos')}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <circle cx="11" cy="11" r="6.5" className="stroke-current" strokeWidth="1.6" />
-                  <path d="m20 20-3.4-3.4" className="stroke-current" strokeWidth="1.6" strokeLinecap="round" />
-                </svg>
-              </button>
+              <div className="lg:hidden">
+                <button
+                  type="button"
+                  className="shell-icon-btn"
+                  aria-label="Buscar documentos"
+                  onClick={() => navigate('/documentos')}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <circle cx="11" cy="11" r="6.5" className="stroke-current" strokeWidth="1.6" />
+                    <path d="m20 20-3.4-3.4" className="stroke-current" strokeWidth="1.6" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
               <EnvToggle />
               <ThemeToggle className="shell-icon-btn" />
               <div
