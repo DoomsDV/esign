@@ -591,17 +591,19 @@ export function AppShell({
 
             <div className="flex shrink-0 items-center gap-1 sm:gap-2">
               {actions && <div className="hidden sm:block">{actions}</div>}
-              <button
-                type="button"
-                className="shell-icon-btn lg:hidden"
-                aria-label="Buscar documentos"
-                onClick={() => navigate('/documentos')}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <circle cx="11" cy="11" r="6.5" className="stroke-current" strokeWidth="1.6" />
-                  <path d="m20 20-3.4-3.4" className="stroke-current" strokeWidth="1.6" strokeLinecap="round" />
-                </svg>
-              </button>
+              <div className="lg:hidden">
+                <button
+                  type="button"
+                  className="shell-icon-btn"
+                  aria-label="Buscar documentos"
+                  onClick={() => navigate('/documentos')}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+                    <circle cx="11" cy="11" r="6.5" className="stroke-current" strokeWidth="1.6" />
+                    <path d="m20 20-3.4-3.4" className="stroke-current" strokeWidth="1.6" strokeLinecap="round" />
+                  </svg>
+                </button>
+              </div>
               <EnvToggle />
               <ThemeToggle className="shell-icon-btn" />
               <div
