@@ -590,12 +590,39 @@ html:has(.auth-stage) body {
 
 /* Lienzo del panel: halo suave, sin orbe mint. */
 .dashboard-canvas {
+  position: relative;
   background-color: var(--color-cream-soft);
   background-image: radial-gradient(
     ellipse 62% 38% at 0% -8%,
     color-mix(in srgb, var(--color-brand-500) 8%, transparent),
     transparent 72%
   );
+}
+
+/* Input color: el swatch nativo es cuadrado; lo redondeamos al mismo radio del control. */
+.kude-color-swatch {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  border-radius: 0.85rem;
+  padding: 0;
+  background: transparent;
+  overflow: hidden;
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-ink) 10%, transparent);
+}
+
+.kude-color-swatch::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+.kude-color-swatch::-webkit-color-swatch {
+  border: 0;
+  border-radius: 0.85rem;
+}
+
+.kude-color-swatch::-moz-color-swatch {
+  border: 0;
+  border-radius: 0.85rem;
 }
 
 /* Cards: elevación tintada, no borde gris + sombra negra. */

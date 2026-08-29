@@ -698,7 +698,7 @@ export function AppShell({
 
         <main
           id="contenido"
-          className="dashboard-canvas min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-cream-soft p-3 pb-[calc(5.15rem+env(safe-area-inset-bottom,0px))] sm:p-4 sm:px-6 sm:pt-6 md:pb-6"
+          className="dashboard-canvas min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-cream-soft p-2 pb-[calc(5.15rem+env(safe-area-inset-bottom,0px))] sm:p-4 sm:px-6 sm:pt-6 md:pb-6"
         >
           {children}
         </main>

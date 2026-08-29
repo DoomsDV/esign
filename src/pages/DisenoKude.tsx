@@ -516,18 +516,50 @@ export default function DisenoKude() {
 
   return (
     <AppShell title="Diseño del KuDE">
-      <div className="dashboard-canvas sm:-m-6 sm:p-6">
+      <div className="dashboard-canvas sm:-m-6 sm:px-6 sm:pb-6 sm:pt-2 lg:pt-1">
       {q.isLoading && <p className="text-sm text-muted">Cargando…</p>}
       {q.error && <Alert>{(q.error as Error).message}</Alert>}
 
       {q.data && (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start">
+        <div className="grid gap-5 lg:grid-cols-[minmax(24rem,0.88fr)_minmax(30rem,1.12fr)] lg:items-start xl:gap-7">
           {/* Panel de configuración */}
-          <Card className="min-w-0 overflow-hidden">
-            <div className="flex flex-col gap-8 px-6 py-6 sm:px-8 sm:py-8">
-              <section>
-                <h2 className="text-base font-bold text-ink">Plantilla</h2>
-                <p className="mt-1 text-sm text-muted">Elegí el diseño base del KuDE (PDF).</p>
+          <Card className="min-w-0 overflow-hidden rounded-[1.65rem]">
+            <div className="hidden items-start justify-between gap-5 px-7 pb-6 pt-7 lg:flex">
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-brand-600">
+                  Configuración visual
+                </p>
+                <h2 className="mt-2 text-[1.35rem] font-semibold tracking-[-0.025em] text-ink">
+                  Identidad del KuDE
+                </h2>
+                <p className="mt-1 max-w-sm text-sm leading-relaxed text-muted">
+                  Ajustá la apariencia del comprobante que reciben tus clientes.
+                </p>
+              </div>
+              {canEdit && (
+                <Button
+                  loading={save.isPending}
+                  onClick={() => save.mutate()}
+                  disabled={!isValidHex(color)}
+                  className="shrink-0 rounded-full px-5"
+                >
+                  <IconSave />
+                  Guardar
+                </Button>
+              )}
+            </div>
+
+            <div className="relative flex min-h-0 flex-col px-4 pb-5 pt-3 sm:px-7 sm:pb-8 sm:pt-5 lg:px-0 lg:pb-0 lg:pt-0">
+              {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
+              {msg && <SuccessAlert onClose={() => setMsg(null)}>{msg}</SuccessAlert>}
+              <section className="lg:border-t lg:border-line/60 lg:px-7 lg:py-6">
+                <div className="flex items-baseline justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">01 · Formato</p>
+                    <h2 className="mt-1.5 text-base font-semibold tracking-tight text-ink">Plantilla</h2>
+                  </div>
+                  <p className="hidden text-xs text-muted xl:block">Base del PDF</p>
+                </div>
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   {TEMPLATES.map((t) => (
                     <button
@@ -536,27 +568,37 @@ export default function DisenoKude() {
                       disabled={!canEdit}
                       onClick={() => setTemplate(t.id)}
                       className={cn(
-                        'rounded-xl border-2 px-4 py-3 text-left transition-colors disabled:opacity-60',
+                        'group rounded-[1.05rem] px-4 py-3.5 text-left transition-[transform,background-color,box-shadow] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] disabled:opacity-60',
                         template === t.id
-                          ? 'border-brand-400 bg-brand-50'
-                          : 'border-line bg-surface hover:border-brand-200',
+                          ? 'bg-brand-50 shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-brand-500)_65%,transparent)]'
+                          : 'bg-cream-soft hover:-translate-y-0.5 hover:bg-cream',
                       )}
                     >
-                      <p className="text-sm font-semibold text-ink">{t.label}</p>
-                      <p className="mt-0.5 text-xs text-muted">{t.desc}</p>
+                      <span className="flex items-center justify-between gap-3">
+                        <span className="text-sm font-semibold text-ink">{t.label}</span>
+                        <span
+                          className={cn(
+                            'h-2 w-2 rounded-full transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+                            template === t.id ? 'scale-100 bg-brand-500' : 'scale-75 bg-line group-hover:scale-100',
+                          )}
+                          aria-hidden
+                        />
+                      </span>
+                      <span className="mt-1 block text-xs leading-relaxed text-muted">{t.desc}</span>
                     </button>
                   ))}
                 </div>
               </section>
 
-              <section>
-                <h2 className="text-base font-bold text-ink">Nombre de fantasía</h2>
+              <section className="mt-7 border-t border-line/60 pt-7 lg:mt-0 lg:px-7 lg:py-6">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">02 · Encabezado</p>
+                <h2 className="mt-1.5 text-base font-semibold tracking-tight text-ink">Nombre de fantasía</h2>
                 <p className="mt-1 text-sm text-muted">
                   Controla si el nombre comercial aparece en el encabezado del KuDE (ambas plantillas).
                 </p>
                 <label
                   className={cn(
-                    'mt-4 flex cursor-pointer items-start gap-3 rounded-xl border border-line px-4 py-3',
+                    'mt-4 flex cursor-pointer items-start gap-3 rounded-[1.05rem] bg-cream-soft px-4 py-3.5 transition-colors duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-cream',
                     !puedeMostrarFantasia && 'cursor-not-allowed opacity-60',
                   )}
                 >
@@ -565,9 +607,9 @@ export default function DisenoKude() {
                     checked={mostrarFantasia}
                     onChange={(e) => setMostrarFantasia(e.target.checked)}
                     disabled={!canEdit || !puedeMostrarFantasia}
-                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-line text-brand-400 focus:ring-brand-300 disabled:cursor-not-allowed"
+                    className="peer sr-only"
                   />
-                  <span>
+                  <span className="min-w-0 flex-1">
                     <span className="text-sm font-semibold text-ink">Mostrar nombre de fantasía</span>
                     {puedeMostrarFantasia ? (
                       <span className="mt-0.5 block text-xs text-muted">
@@ -583,13 +625,16 @@ export default function DisenoKude() {
                       </span>
                     )}
                   </span>
+                  <span
+                    className="relative mt-0.5 h-6 w-11 shrink-0 rounded-full bg-line transition-colors duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] after:absolute after:left-1 after:top-1 after:h-4 after:w-4 after:rounded-full after:bg-surface after:shadow-[0_2px_7px_-3px_color-mix(in_srgb,var(--color-ink)_45%,transparent)] after:transition-transform after:duration-500 after:ease-[cubic-bezier(0.32,0.72,0,1)] peer-checked:bg-brand-500 peer-checked:after:translate-x-5 peer-focus-visible:ring-2 peer-focus-visible:ring-brand-300/60"
+                    aria-hidden
+                  />
                 </label>
               </section>
 
-              <hr className="border-t border-line/70" />
-
-              <section>
-                <h2 className="text-base font-bold text-ink">Color primario</h2>
+              <section className="mt-7 border-t border-line/60 pt-7 lg:mt-0 lg:px-7 lg:py-6">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">03 · Paleta</p>
+                <h2 className="mt-1.5 text-base font-semibold tracking-tight text-ink">Color primario</h2>
                 <p className="mt-1 text-sm text-muted">Se usa en encabezados, totales y acentos.</p>
                 <div className="mt-4 flex flex-wrap items-center gap-3">
                   <input
@@ -597,7 +642,7 @@ export default function DisenoKude() {
                     value={isValidHex(color) ? color : '#0f172a'}
                     onChange={(e) => setColor(e.target.value)}
                     disabled={!canEdit}
-                    className="h-11 w-14 shrink-0 cursor-pointer rounded-lg border border-line disabled:cursor-not-allowed"
+                    className="kude-color-swatch h-11 w-14 shrink-0 cursor-pointer disabled:cursor-not-allowed"
                   />
                   <TextField
                     value={color}
@@ -616,10 +661,10 @@ export default function DisenoKude() {
                         title={c}
                         style={{ backgroundColor: c }}
                         className={cn(
-                          'h-7 w-7 rounded-full border-2 transition-transform disabled:opacity-60',
+                          'h-7 w-7 rounded-full transition-[transform,box-shadow] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] disabled:opacity-60',
                           color.toLowerCase() === c.toLowerCase()
-                            ? 'border-ink scale-110'
-                            : 'border-white/60 hover:scale-105',
+                            ? 'scale-110 shadow-[0_0_0_2px_var(--color-surface),0_0_0_3px_var(--color-ink)]'
+                            : 'shadow-[0_0_0_1px_color-mix(in_srgb,var(--color-ink)_16%,transparent)] hover:-translate-y-0.5 hover:scale-105',
                         )}
                       />
                     ))}
@@ -630,10 +675,9 @@ export default function DisenoKude() {
                 )}
               </section>
 
-              <hr className="border-t border-line/70" />
-
-              <section>
-                <h2 className="text-base font-bold text-ink">Logo</h2>
+              <section className="mt-7 border-t border-line/60 pt-7 lg:mt-0 lg:px-7 lg:py-6">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">04 · Marca</p>
+                <h2 className="mt-1.5 text-base font-semibold tracking-tight text-ink">Logo</h2>
                 <p className="mt-1 text-sm text-muted">
                   Se sube de inmediato al confirmarlo (no requiere guardar cambios).
                 </p>
@@ -668,12 +712,12 @@ export default function DisenoKude() {
                       pickLogo(e.dataTransfer.files?.[0] ?? null)
                     }}
                     className={cn(
-                      'mt-4 flex w-full flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-6 py-8 text-center transition-colors',
+                      'mt-4 flex w-full flex-col items-center justify-center gap-2 rounded-[1.2rem] border border-dashed px-6 py-8 text-center transition-[transform,background-color,border-color] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]',
                       dragging
-                        ? 'border-brand-400 bg-brand-50 text-ink'
+                        ? '-translate-y-0.5 border-brand-400 bg-brand-50 text-ink'
                         : logoUrl
                           ? 'border-ok/40 bg-ok/5 text-ink'
-                          : 'border-muted/30 bg-surface text-muted hover:border-brand-300 hover:bg-cream-soft',
+                          : 'border-muted/25 bg-cream-soft text-muted hover:-translate-y-0.5 hover:border-brand-300 hover:bg-cream',
                     )}
                   >
                     {logoUrl ? (
@@ -711,31 +755,28 @@ export default function DisenoKude() {
                 )}
               </section>
 
-              <hr className="border-t border-line/70" />
-
-              <section>
-                <h2 className="text-base font-bold text-ink">Notas de pie</h2>
-                <p className="mt-1 text-sm text-muted">Texto opcional al final del KuDE (máx. 500 caracteres).</p>
+              <section className="mt-7 border-t border-line/60 pt-7 lg:mt-0 lg:px-7 lg:py-6">
+                <div className="flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">05 · Cierre</p>
+                    <h2 className="mt-1.5 text-base font-semibold tracking-tight text-ink">Notas de pie</h2>
+                    <p className="mt-1 text-sm text-muted">Texto opcional al final del KuDE.</p>
+                  </div>
+                  <span className="shrink-0 font-mono text-[10px] tabular-nums text-muted">{footer.length}/500</span>
+                </div>
                 <textarea
                   value={footer}
                   onChange={(e) => setFooter(e.target.value.slice(0, 500))}
                   disabled={!canEdit}
                   rows={3}
                   placeholder="Ej. Gracias por su compra. Consultas: ventas@empresa.com.py"
-                  className="mt-3 w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink placeholder:text-muted/55 placeholder:italic shadow-sm transition-colors focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-300/50 disabled:opacity-60"
+                  className="mt-3 w-full resize-none rounded-[1.05rem] border-0 bg-cream-soft px-4 py-3 text-sm leading-relaxed text-ink shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-ink)_8%,transparent)] transition-[background-color,box-shadow] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] placeholder:text-muted/55 placeholder:italic focus:bg-surface focus:outline-none focus:shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-brand-500)_55%,transparent),0_0_0_3px_color-mix(in_srgb,var(--color-brand-400)_14%,transparent)] disabled:opacity-60"
                 />
               </section>
-
-              {(err || msg) && (
-                <div className="space-y-3">
-                  {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
-                  {msg && <SuccessAlert onClose={() => setMsg(null)}>{msg}</SuccessAlert>}
-                </div>
-              )}
             </div>
 
             {canEdit && (
-              <div className="flex justify-end border-t border-line bg-cream-soft px-6 py-4 sm:px-8">
+              <div className="flex justify-end border-t border-line/60 bg-cream-soft px-6 py-4 sm:px-8 lg:hidden">
                 <Button
                   loading={save.isPending}
                   onClick={() => save.mutate()}
@@ -750,9 +791,16 @@ export default function DisenoKude() {
 
           {/* Preview en vivo */}
           <div className="lg:sticky lg:top-6">
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted">
-              Vista previa (aproximada)
-            </p>
+            <div className="mb-3 flex items-end justify-between gap-4 px-1">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">Documento</p>
+                <h2 className="mt-1 text-base font-semibold tracking-tight text-ink">Vista previa</h2>
+              </div>
+              <span className="inline-flex items-center gap-1.5 text-[10px] font-medium text-muted">
+                <span className="h-1.5 w-1.5 rounded-full bg-ok" aria-hidden />
+                Actualización en vivo
+              </span>
+            </div>
             <KudePreview
               template={template}
               color={color}
