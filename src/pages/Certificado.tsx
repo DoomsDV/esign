@@ -290,7 +290,7 @@ export default function Certificado() {
                 {!canUpload ? (
                   <Alert>Solo el propietario de la cuenta puede subir o reemplazar el certificado.</Alert>
                 ) : (
-                  <div className="flex flex-col gap-3 sm:gap-4">
+                  <div className="relative flex min-h-0 flex-col gap-3 sm:gap-4">
                     <input
                       ref={inputRef}
                       type="file"
@@ -299,12 +299,8 @@ export default function Certificado() {
                       onChange={(e) => pickFile(e.target.files?.[0] ?? null)}
                     />
 
-                    {(err || msg) && (
-                      <div className="space-y-3">
-                        {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
-                        {msg && <SuccessAlert onClose={() => setMsg(null)}>{msg}</SuccessAlert>}
-                      </div>
-                    )}
+                    {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
+                    {msg && <SuccessAlert onClose={() => setMsg(null)}>{msg}</SuccessAlert>}
 
                     <div className="flex flex-col gap-1.5 md:hidden">
                       <label className="text-sm font-medium text-ink">Archivo .p12</label>

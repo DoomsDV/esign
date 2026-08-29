@@ -169,7 +169,7 @@ export default function Ambientes() {
         {!canEdit && <Alert>Solo el propietario de la cuenta puede actualizar timbrado y CSC.</Alert>}
 
         {canEdit && (
-          <form id="ambientes-form" onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
+          <form id="ambientes-form" onSubmit={handleSubmit} className="relative min-h-0 space-y-4 sm:space-y-6">
             {loadingEnv && <p className="text-sm text-muted">Cargando configuración guardada…</p>}
 
             {!loadingEnv && envQuery.data && (
@@ -178,12 +178,8 @@ export default function Ambientes() {
               </p>
             )}
 
-            {(err || msg) && (
-              <div className="space-y-3">
-                {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
-                {msg && <SuccessAlert onClose={() => setMsg(null)}>{msg}</SuccessAlert>}
-              </div>
-            )}
+            {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
+            {msg && <SuccessAlert onClose={() => setMsg(null)}>{msg}</SuccessAlert>}
 
             {isProd && (
               <p className="rounded-[1.05rem] bg-warn/10 px-3.5 py-2.5 text-sm leading-relaxed text-warn">

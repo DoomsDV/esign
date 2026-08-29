@@ -181,57 +181,59 @@ export default function Empresa() {
               <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.16em] text-muted">
                 Emisor SIFEN
               </h3>
-              {(err || msg) && (
-                <div className="mb-3 space-y-3">
-                  {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
-                  {msg && <SuccessAlert onClose={() => setMsg(null)}>{msg}</SuccessAlert>}
-                </div>
-              )}
-              <div className="rounded-[1.25rem] bg-surface px-4 py-4 sm:px-6 sm:py-5">
-                <p className="mb-3 hidden text-sm text-muted sm:block">{EMISOR_TIP}</p>
-                <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
-                  <SearchSelect
-                    label="Tipo contribuyente"
-                    requiredMark
-                    value={String(tipoCont)}
-                    onChange={(v) => setTipoCont(Number(v))}
-                    options={[
-                      { value: '1', label: '1 — Persona física' },
-                      { value: '2', label: '2 — Persona jurídica' },
-                    ]}
-                    searchable={false}
-                    disabled={!canEdit}
-                  />
-                  <SearchSelect
-                    label="Tipo régimen"
-                    value={regimen}
-                    onChange={setRegimen}
-                    options={regimenOptions}
-                    placeholder="Seleccionar régimen…"
-                    searchable={false}
-                    disabled={!canEdit}
-                  />
-                  <div className="sm:col-span-2">
-                    <TextField
-                      label="Nombre de fantasía"
-                      value={fantasia}
-                      onChange={(e) => setFantasia(e.target.value)}
-                      placeholder="Opcional"
-                      disabled={!canEdit}
-                    />
-                  </div>
-                  <div className="sm:col-span-2">
+              <div className="relative min-h-0">
+                {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
+                <div className="rounded-[1.25rem] bg-surface px-4 py-4 sm:px-6 sm:py-5">
+                  <p className="mb-3 hidden text-sm text-muted sm:block">{EMISOR_TIP}</p>
+                  <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">
                     <SearchSelect
-                      label="Actividad económica"
+                      label="Tipo contribuyente"
                       requiredMark
-                      value={actCod}
-                      onChange={pickActividad}
-                      options={actividadOptions}
-                      placeholder="Buscar por código o descripción…"
+                      value={String(tipoCont)}
+                      onChange={(v) => setTipoCont(Number(v))}
+                      options={[
+                        { value: '1', label: '1 — Persona física' },
+                        { value: '2', label: '2 — Persona jurídica' },
+                      ]}
+                      searchable={false}
                       disabled={!canEdit}
                     />
+                    <SearchSelect
+                      label="Tipo régimen"
+                      value={regimen}
+                      onChange={setRegimen}
+                      options={regimenOptions}
+                      placeholder="Seleccionar régimen…"
+                      searchable={false}
+                      disabled={!canEdit}
+                    />
+                    <div className="sm:col-span-2">
+                      <TextField
+                        label="Nombre de fantasía"
+                        value={fantasia}
+                        onChange={(e) => setFantasia(e.target.value)}
+                        placeholder="Opcional"
+                        disabled={!canEdit}
+                      />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <SearchSelect
+                        label="Actividad económica"
+                        requiredMark
+                        value={actCod}
+                        onChange={pickActividad}
+                        options={actividadOptions}
+                        placeholder="Buscar por código o descripción…"
+                        disabled={!canEdit}
+                      />
+                    </div>
                   </div>
                 </div>
+                {msg && (
+                  <SuccessAlert onClose={() => setMsg(null)}>
+                    {msg}
+                  </SuccessAlert>
+                )}
               </div>
             </section>
           </>
