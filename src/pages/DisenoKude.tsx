@@ -3,7 +3,8 @@
 // derecho es un preview en React que imita visualmente cada plantilla (no llama a
 // Gotenberg en cada cambio: eso solo ocurre al emitir un documento real).
 import { Link } from 'react-router-dom'
-import { useCallback, useEffect, useRef, useState, type CSSProperties } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
 import { Alert, Button, Card, IconSave, SuccessAlert, TextField } from '@/components/ui'
@@ -40,6 +41,120 @@ function IconUpload() {
         strokeLinejoin="round"
       />
     </svg>
+  )
+}
+
+function IconEye({ className }: { className?: string }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden className={className}>
+      <path
+        d="M2.5 12s3.5-6.5 9.5-6.5S21.5 12 21.5 12s-3.5 6.5-9.5 6.5S2.5 12 2.5 12Z"
+        className="stroke-current"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <circle cx="12" cy="12" r="2.75" className="stroke-current" strokeWidth="1.7" />
+    </svg>
+  )
+}
+
+const PREVIEW_DESKTOP_WIDTH = 680
+
+/** Modal a pantalla completa: renderiza el KuDE a ancho de escritorio y lo escala al viewport. */
+function KudePreviewModal({
+  open,
+  onClose,
+  children,
+}: {
+  open: boolean
+  onClose: () => void
+  children: ReactNode
+}) {
+  const stageRef = useRef<HTMLDivElement>(null)
+  const sheetRef = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(1)
+  const [sheetHeight, setSheetHeight] = useState(0)
+
+  useEffect(() => {
+    if (!open) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [open])
+
+  useEffect(() => {
+    if (!open) return
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [open, onClose])
+
+  useLayoutEffect(() => {
+    if (!open) return
+    const stage = stageRef.current
+    const sheet = sheetRef.current
+    if (!stage || !sheet) return
+
+    const update = () => {
+      const available = Math.max(120, stage.clientWidth - 24)
+      const next = Math.min(1, available / PREVIEW_DESKTOP_WIDTH)
+      setScale(next)
+      setSheetHeight(sheet.scrollHeight)
+    }
+
+    update()
+    const ro = new ResizeObserver(update)
+    ro.observe(stage)
+    ro.observe(sheet)
+    return () => ro.disconnect()
+  }, [open, children])
+
+  if (!open) return null
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[60] flex flex-col bg-cream-soft"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Vista previa del KuDE"
+    >
+      <header className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-4 py-3 pt-[max(0.75rem,env(safe-area-inset-top))]">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">Documento</p>
+          <h2 className="truncate text-base font-semibold tracking-tight text-ink">Vista previa</h2>
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="grid h-10 w-10 place-items-center rounded-full bg-cream text-muted transition-[transform,background-color,color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-line hover:text-ink active:scale-95"
+          aria-label="Cerrar vista previa"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M6 6l12 12M18 6L6 18" className="stroke-current" strokeWidth="1.8" strokeLinecap="round" />
+          </svg>
+        </button>
+      </header>
+
+      <div ref={stageRef} className="min-h-0 flex-1 overflow-auto px-3 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div className="mx-auto" style={{ width: PREVIEW_DESKTOP_WIDTH * scale, height: sheetHeight * scale }}>
+          <div
+            ref={sheetRef}
+            style={{
+              width: PREVIEW_DESKTOP_WIDTH,
+              transform: `scale(${scale})`,
+              transformOrigin: 'top left',
+            }}
+          >
+            {children}
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -438,7 +553,7 @@ function ResumenPreview({ color, variant }: { color: string; variant: 'corporati
 /* ---------- Página ---------- */
 
 export default function DisenoKude() {
-  const { session } = useAuth()
+  const { session, environment } = useAuth()
   const token = session!.accessToken
   const canEdit = session!.role === 'owner'
   const qc = useQueryClient()
@@ -453,6 +568,7 @@ export default function DisenoKude() {
   const [logoUrl, setLogoUrl] = useState<string | null>(null)
   const [mostrarFantasia, setMostrarFantasia] = useState(true)
   const [dragging, setDragging] = useState(false)
+  const [previewOpen, setPreviewOpen] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
 
@@ -514,6 +630,18 @@ export default function DisenoKude() {
   const nombreFantasia = clientQ.data?.emisor?.nombre_fantasia?.trim() ?? ''
   const puedeMostrarFantasia = nombreFantasia.length > 0
 
+  const previewNode = (
+    <KudePreview
+      template={template}
+      color={color}
+      logo={logoUrl}
+      footer={footer || 'KuDE — Comprobante Único de DE'}
+      businessName={session?.businessName ?? ''}
+      fantasia={nombreFantasia}
+      mostrarFantasia={mostrarFantasia}
+    />
+  )
+
   return (
     <AppShell title="Diseño del KuDE">
       <div className="dashboard-canvas sm:-m-6 sm:px-6 sm:pb-6 sm:pt-2 lg:pt-1">
@@ -554,7 +682,7 @@ export default function DisenoKude() {
               {msg && <SuccessAlert onClose={() => setMsg(null)}>{msg}</SuccessAlert>}
               <section className="lg:border-t lg:border-line/60 lg:px-7 lg:py-6">
                 <div className="flex items-baseline justify-between gap-3">
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted">01 · Formato</p>
                     <h2 className="mt-1.5 text-base font-semibold tracking-tight text-ink">Plantilla</h2>
                   </div>
@@ -789,8 +917,8 @@ export default function DisenoKude() {
             )}
           </Card>
 
-          {/* Preview en vivo */}
-          <div className="lg:sticky lg:top-6">
+          {/* Preview en vivo (desktop). En mobile se abre por el ojito a pantalla completa. */}
+          <div className="hidden lg:sticky lg:top-6 lg:block">
             <div className="mb-3 flex items-end justify-between gap-4 px-1">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">Documento</p>
@@ -801,18 +929,35 @@ export default function DisenoKude() {
                 Actualización en vivo
               </span>
             </div>
-            <KudePreview
-              template={template}
-              color={color}
-              logo={logoUrl}
-              footer={footer || 'KuDE — Comprobante Único de DE'}
-              businessName={session?.businessName ?? ''}
-              fantasia={nombreFantasia}
-              mostrarFantasia={mostrarFantasia}
-            />
+            {previewNode}
           </div>
         </div>
       )}
+
+      <KudePreviewModal open={previewOpen} onClose={() => setPreviewOpen(false)}>
+        {previewNode}
+      </KudePreviewModal>
+
+      {q.data &&
+        !previewOpen &&
+        createPortal(
+          <button
+            type="button"
+            onClick={() => setPreviewOpen(true)}
+            className={cn(
+              'fixed right-4 z-[35] grid h-12 w-12 place-items-center rounded-full bg-brand-400 text-ink md:hidden',
+              'shadow-[0_10px_24px_-14px_color-mix(in_srgb,var(--color-ink)_22%,transparent)]',
+              'transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+              'active:scale-[0.96]',
+              'bottom-[calc(5.35rem+env(safe-area-inset-bottom,0px))]',
+              environment === 'PROD' && 'env-prod',
+            )}
+            aria-label="Ver vista previa"
+          >
+            <IconEye />
+          </button>,
+          document.body,
+        )}
       </div>
     </AppShell>
   )
