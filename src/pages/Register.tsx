@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useNavigate } from 'react-router-dom'
-import { AuthLayout } from '@/components/AuthLayout'
-import { Alert, Button, TextField } from '@/components/ui'
+import { AuthCta, AuthLayout } from '@/components/AuthLayout'
+import { PasswordStrengthMeter } from '@/components/PasswordStrengthMeter'
+import { Alert, TextField } from '@/components/ui'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
+import { analyzePassword } from '@/lib/passwordStrength'
 
 interface RegisterForm {
   business_name: string
@@ -23,8 +25,11 @@ export default function Register() {
   const {
     register,
     handleSubmit,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<RegisterForm>()
+
+  const passwordValue = watch('password') ?? ''
 
   async function onSubmit(values: RegisterForm) {
     setServerError(null)
@@ -52,16 +57,15 @@ export default function Register() {
 
   return (
     <AuthLayout
+      compact
+      eyebrow="Alta"
       title="Crear cuenta"
-      subtitle="Registra tu negocio para empezar a emitir documentos electrónicos."
+      subtitle="Datos de tu negocio y de quien va a administrar el panel."
       altText="¿Ya tenés cuenta?"
       altHref="/login"
       altLabel="Iniciar sesión"
-      panelQuote="Alta en minutos: emisor, establecimientos, certificado y API keys en un solo panel. Tu equipo emite; vos controlas."
-      panelAuthor="esign"
-      panelRole="Onboarding de contribuyentes"
     >
-      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-3.5">
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-2.5">
         {serverError && <Alert>{serverError}</Alert>}
 
         <TextField
@@ -71,7 +75,7 @@ export default function Register() {
           {...register('business_name', { required: 'Ingresá la razón social' })}
         />
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-2.5">
           <div className="col-span-2">
             <TextField
               label="RUC"
@@ -89,9 +93,9 @@ export default function Register() {
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <TextField label="Nombre" placeholder="Daniel" {...register('first_name')} />
-          <TextField label="Apellido" placeholder="Villasanti" {...register('last_name')} />
+        <div className="grid grid-cols-2 gap-2.5">
+          <TextField label="Nombre" {...register('first_name')} />
+          <TextField label="Apellido" {...register('last_name')} />
         </div>
 
         <TextField
@@ -110,13 +114,20 @@ export default function Register() {
           error={errors.password?.message}
           {...register('password', {
             required: 'Ingresá una contraseña',
-            minLength: { value: 8, message: 'Mínimo 8 caracteres' },
+            validate: (value) =>
+              analyzePassword(value).isAcceptable ||
+              'Usá al menos 8 caracteres y 3 tipos: mayúscula, minúscula, número o símbolo',
           })}
         />
+        <PasswordStrengthMeter password={passwordValue} className="auth-meter" />
 
-        <Button type="submit" loading={isSubmitting} className="mt-1 w-full py-3">
+        <AuthCta
+          loading={isSubmitting}
+          disabled={passwordValue.length > 0 && !analyzePassword(passwordValue).isAcceptable}
+          className="mt-1 py-3"
+        >
           Crear cuenta
-        </Button>
+        </AuthCta>
       </form>
     </AuthLayout>
   )

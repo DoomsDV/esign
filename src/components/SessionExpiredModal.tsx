@@ -15,9 +15,17 @@ export function SessionExpiredModal() {
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4" role="alertdialog" aria-modal="true" aria-labelledby="session-expired-title">
-      <div className="absolute inset-0 bg-ink/50 backdrop-blur-sm" />
-      <div className="relative z-10 w-full max-w-md rounded-3xl bg-white p-6 shadow-2xl">
+    <div
+      className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4"
+      role="alertdialog"
+      aria-modal="true"
+      aria-labelledby="session-expired-title"
+    >
+      <div className="modal-backdrop-enter absolute inset-0 bg-ink/50 backdrop-blur-sm" />
+      <div
+        className="modal-sheet-enter relative z-10 w-full max-w-none rounded-t-2xl bg-surface px-5 py-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl sm:max-w-md sm:rounded-3xl sm:p-6 sm:pb-6"
+      >
+        <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line sm:hidden" aria-hidden />
         <h2 id="session-expired-title" className="text-lg font-bold text-ink">
           Sesión finalizada
         </h2>

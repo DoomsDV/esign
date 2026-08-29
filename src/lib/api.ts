@@ -183,16 +183,21 @@ export async function apiFetch<T>(path: string, opts: FetchOptions = {}): Promis
     token = resolved
   }
 
+  // ORDS responde 400 (cuerpo vacío) si llega Content-Type: application/json sin body real
+  // (p.ej. POST /api-keys/:env/rotate, POST /documents/:cdc/retry). Solo mandar el header
+  // cuando efectivamente hay body.
+  const hasBody = opts.body != null
+
   let res: Response
   try {
     res = await fetch(url, {
       method: opts.method ?? 'GET',
       headers: {
-        'Content-Type': 'application/json',
         Accept: 'application/json',
+        ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: opts.body != null ? JSON.stringify(opts.body) : undefined,
+      body: hasBody ? JSON.stringify(opts.body) : undefined,
     })
   } catch (e) {
     throw new ApiError('NETWORK', `No se pudo conectar con el servidor: ${(e as Error).message}`, 0)

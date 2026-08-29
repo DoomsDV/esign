@@ -2,6 +2,7 @@
 import {
   forwardRef,
   useEffect,
+  useId,
   useLayoutEffect,
   useRef,
   useState,
@@ -32,24 +33,24 @@ const variantClasses: Record<ButtonVariant, string> = {
   primary:
     'bg-brand-400 text-ink hover:bg-brand-500 active:bg-brand-600 shadow-sm disabled:opacity-60',
   secondary:
-    'bg-white text-ink border border-line hover:bg-cream disabled:opacity-60',
+    'bg-surface text-ink border border-line hover:bg-cream disabled:opacity-60',
   soft: 'bg-cream text-ink hover:bg-line/70 disabled:opacity-60',
   ghost: 'bg-transparent text-muted hover:text-ink hover:bg-cream',
   danger:
     'bg-danger text-white hover:bg-danger-strong active:bg-danger-strong shadow-sm disabled:opacity-60',
   'danger-outline':
-    'bg-white text-danger border border-danger/40 hover:bg-danger/5 active:bg-danger/10 disabled:opacity-60',
+    'bg-surface text-danger border border-danger/40 hover:bg-danger/5 active:bg-danger/10 disabled:opacity-60',
   success:
     'bg-ok text-white hover:bg-ok-strong active:bg-ok-strong shadow-sm disabled:opacity-60',
   'success-outline':
-    'bg-white text-ok-strong border border-ok/40 hover:bg-ok/5 active:bg-ok/10 disabled:opacity-60',
+    'bg-surface text-ok-strong border border-ok/40 hover:bg-ok/5 active:bg-ok/10 disabled:opacity-60',
 }
 
 export function Button({ variant = 'primary', loading, className, children, disabled, ...rest }: ButtonProps) {
   return (
     <button
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300',
+        'inline-flex select-none items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300',
         variantClasses[variant],
         className,
       )}
@@ -64,18 +65,54 @@ export function Button({ variant = 'primary', loading, className, children, disa
   )
 }
 
+/** Disco / guardar — trazo uniforme para botones de persistencia. */
+export function IconSave({ className }: { className?: string }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden className={className}>
+      <path
+        d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"
+        className="stroke-current"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M17 21v-8H7v8M7 3v5h8"
+        className="stroke-current"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
 interface FieldProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string
   hint?: ReactNode
   error?: string
   requiredMark?: boolean
+  trailing?: ReactNode
 }
 
 export const TextField = forwardRef<HTMLInputElement, FieldProps>(function TextField(
-  { label, hint, error, requiredMark, className, id, ...rest },
+  { label, hint, error, requiredMark, className, id, trailing, ...rest },
   ref,
 ) {
   const inputId = id ?? rest.name
+  const input = (
+    <input
+      ref={ref}
+      id={inputId}
+      className={cn(
+        'w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink placeholder:text-muted/55 placeholder:italic shadow-sm transition-colors focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-300/50',
+        trailing ? 'pr-12' : undefined,
+        error && 'border-danger focus:border-danger focus:ring-danger/20',
+        className,
+      )}
+      {...rest}
+    />
+  )
   return (
     <div className="flex flex-col gap-1.5">
       {label && (
@@ -84,16 +121,14 @@ export const TextField = forwardRef<HTMLInputElement, FieldProps>(function TextF
           {requiredMark && <span className="ml-0.5 text-danger/45">*</span>}
         </label>
       )}
-      <input
-        ref={ref}
-        id={inputId}
-        className={cn(
-          'w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink placeholder:text-muted/55 placeholder:italic shadow-sm transition-colors focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-300/50',
-          error && 'border-danger focus:border-danger focus:ring-danger/20',
-          className,
-        )}
-        {...rest}
-      />
+      {trailing ? (
+        <div className="relative">
+          {input}
+          <div className="absolute inset-y-0 right-0 flex items-center pr-2.5">{trailing}</div>
+        </div>
+      ) : (
+        input
+      )}
       {error ? (
         <span className="text-xs text-danger">{error}</span>
       ) : hint ? (
@@ -103,20 +138,375 @@ export const TextField = forwardRef<HTMLInputElement, FieldProps>(function TextF
   )
 })
 
-/** Superficie blanca "flotante" estilo Vercel/Stripe: borde sutil + sombra ligera.
- *  Reutilizable en páginas que no usan el componente `Card` directamente. */
-export const panelClass =
-  'rounded-2xl border border-line bg-white shadow-[0_1px_2px_rgba(16,24,40,0.04),0_8px_24px_-16px_rgba(16,24,40,0.16)]'
+/** Superficie de panel: elevación sin anillo gris. Sombra por tema en `.panel-surface`. */
+export const panelClass = 'panel-surface rounded-2xl bg-surface'
 
 export function Card({ className, children }: { className?: string; children: ReactNode }) {
   return <div className={cn(panelClass, className)}>{children}</div>
 }
 
-export function Alert({ children }: { children: ReactNode }) {
+export function PageHeader({
+  title,
+  description,
+  action,
+  className,
+  compactOnMobile,
+}: {
+  title: ReactNode
+  description?: string
+  action?: ReactNode
+  className?: string
+  /** Oculta la descripción en mobile y muestra InfoTip junto al título. */
+  compactOnMobile?: boolean
+}) {
+  const titleIsPlain = typeof title === 'string'
+
   return (
-    <div className="rounded-xl border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
-      {children}
+    <div className={cn('flex flex-wrap items-center justify-between gap-3', className)}>
+      <div className="min-w-0">
+        {titleIsPlain ? (
+          <h2 className="inline-flex max-w-full items-center gap-1.5 text-lg font-semibold tracking-tight text-ink">
+            <span className="truncate">{title}</span>
+            {description && compactOnMobile ? <InfoTip text={description} className="sm:hidden" /> : null}
+          </h2>
+        ) : (
+          <h2 className="text-lg font-semibold tracking-tight text-ink">{title}</h2>
+        )}
+        {description && (
+          <p
+            className={cn(
+              'mt-1 max-w-2xl text-sm leading-relaxed text-muted',
+              compactOnMobile && 'hidden sm:block',
+            )}
+          >
+            {description}
+          </p>
+        )}
+      </div>
+      {action ? <div className="shrink-0 max-sm:w-full">{action}</div> : null}
     </div>
+  )
+}
+
+/** Título de sección/panel: texto completo en desktop, InfoTip inline en mobile. */
+export function SectionHint({
+  as: Tag = 'h3',
+  title,
+  tip,
+  className,
+  titleClassName,
+}: {
+  as?: 'h2' | 'h3' | 'h4'
+  title: ReactNode
+  tip?: string
+  className?: string
+  titleClassName?: string
+}) {
+  return (
+    <div className={className}>
+      <Tag
+        className={cn(
+          'inline-flex max-w-full items-center gap-1.5 tracking-tight text-ink',
+          titleClassName ?? 'text-[15px] font-semibold',
+        )}
+      >
+        <span className="min-w-0">{title}</span>
+        {tip ? <InfoTip text={tip} className="sm:hidden" /> : null}
+      </Tag>
+      {tip ? <p className="mt-1 hidden text-sm leading-relaxed text-muted sm:block">{tip}</p> : null}
+    </div>
+  )
+}
+
+export function InfoTip({
+  text,
+  className,
+  align = 'start',
+  side = 'bottom',
+}: {
+  text: string
+  className?: string
+  /** Alineación horizontal del popover en mobile (tap). */
+  align?: 'start' | 'end'
+  /** Lado vertical del popover en mobile (tap). */
+  side?: 'top' | 'bottom'
+}) {
+  const [open, setOpen] = useState(false)
+  const [coords, setCoords] = useState<{
+    top: number
+    left: number
+    width: number
+    openUp: boolean
+  } | null>(null)
+  const id = useId()
+  const rootRef = useRef<HTMLSpanElement>(null)
+  const panelRef = useRef<HTMLSpanElement>(null)
+
+  const placePanel = () => {
+    const el = rootRef.current
+    if (!el) return
+    const rect = el.getBoundingClientRect()
+    const margin = 12
+    const width = Math.min(288, window.innerWidth - margin * 2)
+    let left = align === 'end' ? rect.right - width : rect.left
+    left = Math.max(margin, Math.min(left, window.innerWidth - margin - width))
+
+    const gap = 6
+    const spaceBelow = window.innerHeight - rect.bottom - gap - margin
+    const spaceAbove = rect.top - gap - margin
+    const openUp =
+      side === 'top' || (side === 'bottom' && spaceBelow < 72 && spaceAbove > spaceBelow)
+
+    setCoords({
+      top: openUp ? rect.top - gap : rect.bottom + gap,
+      left,
+      width,
+      openUp,
+    })
+  }
+
+  useLayoutEffect(() => {
+    if (!open) {
+      setCoords(null)
+      return
+    }
+    placePanel()
+  }, [open, align, side])
+
+  useEffect(() => {
+    if (!open) return
+    function onDocClick(e: MouseEvent) {
+      const t = e.target as Node
+      if (rootRef.current?.contains(t) || panelRef.current?.contains(t)) return
+      setOpen(false)
+    }
+    const onReposition = () => placePanel()
+    document.addEventListener('mousedown', onDocClick)
+    window.addEventListener('resize', onReposition)
+    window.addEventListener('scroll', onReposition, true)
+    return () => {
+      document.removeEventListener('mousedown', onDocClick)
+      window.removeEventListener('resize', onReposition)
+      window.removeEventListener('scroll', onReposition, true)
+    }
+  }, [open, align, side])
+
+  return (
+    <span ref={rootRef} className={cn('group/info relative inline-flex shrink-0 align-middle', className)}>
+      <button
+        type="button"
+        aria-label="Más información"
+        aria-expanded={open}
+        aria-controls={id}
+        onClick={(e) => {
+          e.stopPropagation()
+          setOpen((v) => !v)
+        }}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted/80 transition-colors hover:bg-cream hover:text-ink sm:h-5 sm:w-5"
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+          <circle cx="12" cy="12" r="9" className="stroke-current" strokeWidth="1.8" />
+          <path d="M12 11v5M12 8h.01" className="stroke-current" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      </button>
+      {/* Desktop: hover */}
+      {!open && (
+        <span
+          id={id}
+          role="tooltip"
+          className={cn(
+            'pointer-events-none absolute left-1/2 top-[calc(100%+6px)] z-50 hidden w-64 -translate-x-1/2 rounded-xl bg-ink px-3 py-2.5 text-left text-xs font-normal leading-relaxed text-surface opacity-0 shadow-lg invisible sm:block',
+            'sm:group-hover/info:visible sm:group-hover/info:opacity-100',
+          )}
+        >
+          {text}
+        </span>
+      )}
+      {/* Tap (mobile/tablet): portal fijo para no quedar recortado por overflow de padres */}
+      {open &&
+        coords &&
+        createPortal(
+          <span
+            ref={panelRef}
+            id={id}
+            role="tooltip"
+            style={{
+              position: 'fixed',
+              top: coords.top,
+              left: coords.left,
+              width: coords.width,
+              transform: coords.openUp ? 'translateY(-100%)' : undefined,
+              zIndex: 80,
+            }}
+            className="rounded-xl bg-ink px-3 py-2.5 text-left text-xs font-normal leading-relaxed text-surface shadow-lg"
+          >
+            {text}
+          </span>,
+          document.body,
+        )}
+    </span>
+  )
+}
+
+type FlashTone = 'ok' | 'danger' | 'warn' | 'info'
+
+interface StatusFlashProps {
+  children?: ReactNode
+  title?: string
+  onClose?: () => void
+  className?: string
+  /** false = el aviso ocupa flujo (banners dentro de un drawer). Default: toast overlay. */
+  overlay?: boolean
+  /** Ancla del overlay absoluto. Solo aplica si overlay es true. Default: top. */
+  placement?: 'top' | 'bottom'
+}
+
+function FlashGlyph({ tone }: { tone: FlashTone }) {
+  if (tone === 'ok') {
+    return (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path
+          d="M5 12.5l5 5L19 7"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    )
+  }
+  if (tone === 'danger') {
+    return (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path d="M7 7l10 10M17 7L7 17" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      </svg>
+    )
+  }
+  if (tone === 'warn') {
+    return (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path d="M12 7.25v6.1" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+        <circle cx="12" cy="16.9" r="1.2" fill="currentColor" />
+      </svg>
+    )
+  }
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="8" r="1.2" fill="currentColor" />
+      <path d="M12 11.4v6.2" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function Flash({
+  tone,
+  title,
+  children,
+  onClose,
+  className,
+  dismissible,
+  overlay = false,
+  placement = 'top',
+}: StatusFlashProps & { tone: FlashTone; dismissible: boolean }) {
+  const [hidden, setHidden] = useState(false)
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+
+  useEffect(() => {
+    if (!overlay) return
+    const timer = window.setTimeout(() => {
+      if (onCloseRef.current) onCloseRef.current()
+      else setHidden(true)
+    }, 4500)
+    return () => window.clearTimeout(timer)
+  }, [overlay])
+
+  if (hidden) return null
+
+  const heading = title ?? (tone === 'ok' ? 'Listo' : undefined)
+  const hasHeading = Boolean(heading)
+  const hasBody = children != null && children !== false
+
+  function handleClose() {
+    if (onClose) onClose()
+    else setHidden(true)
+  }
+
+  const node = (
+    <div
+      role={tone === 'danger' ? 'alert' : 'status'}
+      aria-live={tone === 'danger' ? 'assertive' : 'polite'}
+      className={cn('flash', `flash-${tone}`, className)}
+    >
+      <span className="flash-icon">
+        <FlashGlyph tone={tone} />
+      </span>
+      <div className="flash-text">
+        {hasHeading && <p className="flash-title">{heading}</p>}
+        {hasBody &&
+          (hasHeading ? (
+            <div className="flash-desc">{children}</div>
+          ) : typeof children === 'string' ? (
+            <p className="flash-title">{children}</p>
+          ) : (
+            <div className="flash-copy">{children}</div>
+          ))}
+      </div>
+      {dismissible && (
+        <button type="button" className="flash-dismiss" aria-label="Cerrar aviso" onClick={handleClose}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+          </svg>
+        </button>
+      )}
+    </div>
+  )
+
+  if (!overlay) return node
+  return createPortal(
+    <div className={cn('flash-host', placement === 'bottom' && 'flash-host-bottom')}>
+      {node}
+    </div>,
+    document.body,
+  )
+}
+
+export function Alert({ children, title, onClose, className, overlay, placement }: StatusFlashProps) {
+  return (
+    <Flash
+      tone="danger"
+      title={title}
+      onClose={onClose}
+      className={className}
+      dismissible={!!onClose}
+      overlay={overlay ?? !!onClose}
+      placement={placement}
+    >
+      {children}
+    </Flash>
+  )
+}
+
+export function SuccessAlert({
+  children,
+  title,
+  onClose,
+  className,
+  overlay = true,
+  placement,
+}: StatusFlashProps) {
+  return (
+    <Flash
+      tone="ok"
+      title={title}
+      onClose={onClose}
+      className={className}
+      dismissible
+      overlay={overlay}
+      placement={placement}
+    >
+      {children}
+    </Flash>
   )
 }
 
@@ -144,7 +534,7 @@ export function Select({ label, className, children, id, ...rest }: SelectProps)
       <select
         id={selectId}
         className={cn(
-          'rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink shadow-sm transition-colors focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-300/50',
+          'rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink shadow-sm transition-colors focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-300/50',
           className,
         )}
         {...rest}
@@ -155,41 +545,37 @@ export function Select({ label, className, children, id, ...rest }: SelectProps)
   )
 }
 
-export function SuccessAlert({ children }: { children: ReactNode }) {
-  return (
-    <div className="rounded-xl border border-ok/30 bg-ok/5 px-4 py-3 text-sm text-ok">{children}</div>
-  )
+type SidePanelSize = 'narrow' | 'default' | 'wide'
+
+/** Anchos desktop (< 50vw). Clases literales para que Tailwind las incluya en el build. */
+const sidePanelDesktopWidth: Record<SidePanelSize, string> = {
+  narrow: 'sm:w-[min(380px,40vw)]',
+  default: 'sm:w-[min(42rem,45vw)]',
+  wide: 'sm:w-[min(48rem,45vw)]',
 }
+
+const sidePanelDesktopShell =
+  'sm:inset-x-auto sm:inset-y-0 sm:right-0 sm:top-0 sm:bottom-0 sm:h-full sm:max-h-none sm:rounded-none sm:pb-0'
 
 export function Modal({
   open,
   onClose,
   title,
   children,
+  footer,
+  bodyClassName,
 }: {
   open: boolean
   onClose: () => void
   title?: ReactNode
   children: ReactNode
+  footer?: ReactNode
+  bodyClassName?: string
 }) {
-  if (!open) return null
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-ink/40 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 max-h-[90vh] w-full max-w-2xl overflow-auto rounded-3xl bg-white p-6 shadow-2xl">
-        <div className="mb-4 flex items-start justify-between gap-4">
-          <div className="text-lg font-bold text-ink">{title}</div>
-          <button
-            onClick={onClose}
-            className="grid h-8 w-8 place-items-center rounded-lg text-muted hover:bg-cream hover:text-ink"
-            aria-label="Cerrar"
-          >
-            ✕
-          </button>
-        </div>
-        {children}
-      </div>
-    </div>
+    <Drawer open={open} onClose={onClose} title={title} size="default" footer={footer} bodyClassName={bodyClassName}>
+      {children}
+    </Drawer>
   )
 }
 
@@ -200,39 +586,104 @@ export function Drawer({
   title,
   children,
   footer,
-  widthClass = 'max-w-lg',
+  size = 'default',
+  bodyClassName,
+  keepMounted = false,
 }: {
   open: boolean
   onClose: () => void
   title?: ReactNode
   children: ReactNode
   footer?: ReactNode
-  widthClass?: string
+  size?: SidePanelSize
+  bodyClassName?: string
+  /** Deja el sheet en el DOM cerrado para que la 1ª apertura anime igual que las siguientes. */
+  keepMounted?: boolean
 }) {
+  const panelRef = useRef<HTMLElement>(null)
+  const titleId = useId()
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+  const [mounted, setMounted] = useState(keepMounted)
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    if (open) setMounted(true)
+    else setVisible(false)
+  }, [open])
+
+  useEffect(() => {
+    if (!open || !mounted) return
+    const node = panelRef.current
+    if (node) void node.offsetWidth
+    let cancelled = false
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!cancelled) setVisible(true)
+      })
+    })
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(id)
+    }
+  }, [open, mounted])
+
+  useEffect(() => {
+    if (!visible) return
+    const previousFocus = document.activeElement as HTMLElement | null
+    panelRef.current?.focus()
+    return () => {
+      previousFocus?.focus()
+    }
+  }, [visible])
+
+  useEffect(() => {
+    if (!open) return
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        e.preventDefault()
+        onCloseRef.current()
+      }
+    }
+
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [open])
+
+  if (!mounted) return null
+
   return (
     <div
-      className={cn('fixed inset-0 z-50', open ? 'pointer-events-auto' : 'pointer-events-none')}
-      aria-hidden={!open}
+      className={cn('fixed inset-0 z-50', visible ? 'pointer-events-auto' : 'pointer-events-none')}
     >
       <div
-        className={cn(
-          'absolute inset-0 bg-ink/40 backdrop-blur-sm transition-opacity duration-200',
-          open ? 'opacity-100' : 'opacity-0',
-        )}
+        className={cn('drawer-scrim absolute inset-0', visible && 'is-open')}
         onClick={onClose}
+        aria-hidden
       />
       <aside
+        ref={panelRef}
         role="dialog"
-        aria-modal={open}
+        aria-modal={visible}
+        aria-labelledby={title ? titleId : undefined}
+        aria-hidden={!visible}
+        tabIndex={-1}
+        inert={!visible ? true : undefined}
         className={cn(
-          'absolute inset-y-0 right-0 flex w-full flex-col bg-white shadow-2xl',
-          'transition-transform duration-200 ease-out',
-          open ? 'translate-x-0' : 'translate-x-full',
-          widthClass,
+          'drawer-sheet absolute z-10 flex w-full flex-col outline-none',
+          visible && 'is-open',
+          'inset-x-0 bottom-0 top-auto max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-bottom,0px)))] rounded-t-2xl',
+          !footer && 'pb-[max(0px,env(safe-area-inset-bottom))]',
+          sidePanelDesktopShell,
+          sidePanelDesktopWidth[size],
         )}
       >
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-5 py-4 sm:px-6">
-          <div className="text-lg font-bold text-ink">{title}</div>
+        <div className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-line sm:hidden" aria-hidden />
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-4 py-3 sm:mt-0 sm:px-6 sm:py-4">
+          <div id={titleId} className="text-lg font-bold text-ink">
+            {title}
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -242,9 +693,13 @@ export function Drawer({
             ✕
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">{children}</div>
+        <div className={cn('min-h-0 flex-1 overflow-y-auto', bodyClassName ?? 'px-4 py-3 sm:px-6 sm:py-5')}>
+          {children}
+        </div>
         {footer && (
-          <div className="shrink-0 border-t border-line bg-white px-5 py-4 sm:px-6">{footer}</div>
+          <div className="shrink-0 border-t border-line px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:px-6 sm:py-4 sm:pb-4">
+            {footer}
+          </div>
         )}
       </aside>
     </div>
@@ -264,10 +719,15 @@ export function Menu({
   items,
   label = 'Más acciones',
   align = 'right',
+  trigger,
+  triggerClassName,
 }: {
   items: MenuItem[]
   label?: string
   align?: 'left' | 'right'
+  /** Contenido del botón disparador (p. ej. avatar). Si no se pasa, usa el ícono kebab. */
+  trigger?: ReactNode
+  triggerClassName?: string
 }) {
   const [open, setOpen] = useState(false)
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null)
@@ -342,15 +802,19 @@ export function Menu({
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          'grid h-8 w-8 place-items-center rounded-lg text-muted transition-colors hover:bg-cream hover:text-ink',
-          open && 'bg-cream text-ink',
+          trigger
+            ? triggerClassName
+            : 'grid h-8 w-8 place-items-center rounded-lg text-muted transition-colors hover:bg-cream hover:text-ink',
+          open && (trigger ? 'ring-2 ring-brand-400/45 ring-offset-2 ring-offset-surface' : 'bg-cream text-ink'),
         )}
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <circle cx="12" cy="5" r="1.6" className="fill-current" />
-          <circle cx="12" cy="12" r="1.6" className="fill-current" />
-          <circle cx="12" cy="19" r="1.6" className="fill-current" />
-        </svg>
+        {trigger ?? (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <circle cx="12" cy="5" r="1.6" className="fill-current" />
+            <circle cx="12" cy="12" r="1.6" className="fill-current" />
+            <circle cx="12" cy="19" r="1.6" className="fill-current" />
+          </svg>
+        )}
       </button>
       {open &&
         coords &&
@@ -359,7 +823,7 @@ export function Menu({
             ref={menuRef}
             role="menu"
             style={{ position: 'fixed', top: coords.top, left: coords.left, zIndex: 80 }}
-            className="w-48 rounded-xl border border-line bg-white p-1.5 shadow-xl"
+            className="w-48 rounded-xl border border-line bg-surface p-1.5 shadow-xl"
           >
             {items.map((item) => (
               <button
@@ -425,6 +889,7 @@ export function SearchSelect({
     left: number
     width: number
     maxHeight: number
+    openUp: boolean
   } | null>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
@@ -436,15 +901,15 @@ export function SearchSelect({
     const gap = 6
     const spaceBelow = window.innerHeight - rect.bottom - gap - 8
     const spaceAbove = rect.top - gap - 8
-    const openUp = spaceBelow < 240 && spaceAbove > spaceBelow
-    const available = Math.max(160, openUp ? spaceAbove : spaceBelow)
+    const openUp = spaceBelow < 200 && spaceAbove > spaceBelow
+    const available = Math.max(120, openUp ? spaceAbove : spaceBelow)
     const maxHeight = Math.min(280, available)
-    const top = openUp ? Math.max(8, rect.top - gap - maxHeight) : rect.bottom + gap
     setCoords({
-      top,
+      top: openUp ? rect.top - gap : rect.bottom + gap,
       left: rect.left,
       width: rect.width,
       maxHeight,
+      openUp,
     })
   }
 
@@ -495,12 +960,17 @@ export function SearchSelect({
         disabled={disabled}
         onClick={() => !disabled && setOpen((o) => !o)}
         className={cn(
-          'flex w-full items-center justify-between gap-2 rounded-xl border border-line bg-white px-4 py-3 text-sm shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-200 disabled:cursor-not-allowed disabled:opacity-60',
+          'flex w-full min-w-0 items-start justify-between gap-2 rounded-xl border border-line bg-surface px-4 py-3 text-sm shadow-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-200 disabled:cursor-not-allowed disabled:opacity-60',
           open && 'border-brand-300 ring-2 ring-brand-200',
           error && 'border-danger',
         )}
       >
-        <span className={cn('truncate text-left', current ? 'text-ink' : 'text-muted/70')}>
+        <span
+          className={cn(
+            'min-w-0 flex-1 text-left leading-snug break-words whitespace-normal',
+            current ? 'text-ink' : 'text-muted/70',
+          )}
+        >
           {current?.label ?? placeholder}
         </span>
         <svg
@@ -508,7 +978,7 @@ export function SearchSelect({
           height="16"
           viewBox="0 0 24 24"
           fill="none"
-          className={cn('shrink-0 text-muted transition-transform', open && 'rotate-180')}
+          className={cn('mt-0.5 shrink-0 text-muted transition-transform', open && 'rotate-180')}
           aria-hidden
         >
           <path
@@ -532,9 +1002,10 @@ export function SearchSelect({
               left: coords.left,
               width: coords.width,
               maxHeight: coords.maxHeight,
+              transform: coords.openUp ? 'translateY(-100%)' : undefined,
               zIndex: 80,
             }}
-            className="flex flex-col rounded-xl border border-line bg-white p-1.5 shadow-xl"
+            className="flex flex-col rounded-xl border border-line bg-surface p-1.5 shadow-xl"
           >
             {searchable && (
               <div className="mb-1.5 flex shrink-0 items-center gap-2 rounded-lg bg-cream px-2.5 py-1.5 text-muted">
@@ -567,11 +1038,11 @@ export function SearchSelect({
                     setQ('')
                   }}
                   className={cn(
-                    'flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-ink transition-colors hover:bg-cream',
+                    'flex w-full items-start justify-between gap-2 rounded-lg px-2.5 py-2 text-left text-sm text-ink transition-colors hover:bg-cream',
                     value === o.value && 'bg-cream font-medium',
                   )}
                 >
-                  <span>{o.label}</span>
+                  <span className="min-w-0 flex-1 leading-snug break-words">{o.label}</span>
                   {value === o.value && (
                     <svg
                       width="14"

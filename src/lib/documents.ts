@@ -1,7 +1,7 @@
 // Capa de datos de documentos: consume el panel ORDS (/api/v1/documents) y helpers de
 // presentacion (estado, tipo de DE, moneda). El XML se descarga con fetch autenticado
 // (el endpoint devuelve XML crudo, no el envelope JSON).
-import { apiFetch, ApiError, refreshSession, isTokenExpired } from './api'
+import { apiData, apiFetch, ApiError, refreshSession, isTokenExpired } from './api'
 import { ORDS_BASE, type Environment } from './env'
 
 export type DocEstado = 'BORRADOR' | 'FIRMADO' | 'ENVIADO' | 'APROBADO' | 'RECHAZADO' | 'CANCELADO'
@@ -71,6 +71,18 @@ export async function getDocument(token: string, cdc: string): Promise<DocumentD
 
 export async function requestRetry(token: string, cdc: string): Promise<void> {
   await apiFetch(`/documents/${cdc}/retry`, { token, method: 'POST' })
+}
+
+export interface KudeStatus {
+  kude_url: string | null
+  estado: 'pending' | 'ready'
+}
+
+// getKude consulta la URL del KuDE (PDF) generado en background tras la aprobación
+// SIFEN. Puede devolver estado "pending" si Gotenberg/la subida a OCI todavía no
+// terminaron (el llamador debe tolerar reintentos cortos).
+export async function getKude(token: string, cdc: string): Promise<KudeStatus> {
+  return apiData<KudeStatus>(`/documents/${cdc}/kude`, { token })
 }
 
 // downloadXml baja el XML firmado (endpoint devuelve application/xml crudo, con JWT).

@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
-import { Alert, Badge, Button, Drawer, SearchSelect, SuccessAlert, TextField, panelClass } from '@/components/ui'
+import { Alert, Button, Drawer, IconSave, Menu, SearchSelect, SuccessAlert, TextField } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
@@ -25,8 +26,16 @@ import {
   geoLabel,
 } from '@/lib/geo'
 
-/** Secciones al ras del body (sin tarjeta flotante). */
-const SECTION = 'bg-white'
+const ESTABLECIMIENTOS_TIP =
+  'Cada establecimiento define la geo del local emisor (dEst). Los puntos son las cajas desde las que emitís.'
+
+function IconPlus() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M12 5v14M5 12h14" className="stroke-current" strokeWidth="1.8" strokeLinecap="round" />
+    </svg>
+  )
+}
 
 const emptyEstab: EstablecimientoUpsert = {
   codigo: '',
@@ -52,27 +61,6 @@ function formatReadable(text: string): string {
     .replace(/(^|[\s\-/,.°]+)([a-záéíóúüñ])/g, (_, sep: string, ch: string) => sep + ch.toUpperCase())
 }
 
-function IconMap() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M12 21s7-5.4 7-11a7 7 0 1 0-14 0c0 5.6 7 11 7 11Z"
-        className="stroke-current"
-        strokeWidth="1.8"
-        strokeLinejoin="round"
-      />
-      <circle cx="12" cy="10" r="2.2" className="stroke-current" strokeWidth="1.8" />
-    </svg>
-  )
-}
-function IconInfo() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="9" className="stroke-current" strokeWidth="1.8" />
-      <path d="M12 11v5M12 8h.01" className="stroke-current" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  )
-}
 function IconEdit() {
   return (
     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -100,8 +88,32 @@ function IconPower() {
   )
 }
 
+function StatusChip({ active }: { active: boolean }) {
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium',
+        active ? 'bg-ok/10 text-ok-strong' : 'bg-warn/10 text-warn',
+      )}
+    >
+      <span className={cn('h-1.5 w-1.5 rounded-full', active ? 'bg-ok' : 'bg-warn')} />
+      {active ? 'Activo' : 'Inactivo'}
+    </span>
+  )
+}
+
+function formatEstabDir(e: Establecimiento): string {
+  return [
+    formatReadable(e.direccion),
+    e.num_casa ? `N° ${e.num_casa}` : null,
+    [formatReadable(e.ciu?.desc ?? ''), formatReadable(e.dep?.desc ?? '')].filter(Boolean).join(' / '),
+  ]
+    .filter(Boolean)
+    .join(' · ')
+}
+
 export default function Establecimientos() {
-  const { session } = useAuth()
+  const { session, environment } = useAuth()
   const token = session!.accessToken
   const qc = useQueryClient()
   const canEdit = session!.role === 'owner'
@@ -268,171 +280,239 @@ export default function Establecimientos() {
   }
 
   return (
-    <AppShell
-      title="Establecimientos"
-      actions={
-        canEdit ? (
-          <Button onClick={openNew}>+ Nuevo establecimiento</Button>
-        ) : undefined
-      }
-    >
-      <div className="space-y-5">
-        {msg && <SuccessAlert>{msg}</SuccessAlert>}
+    <AppShell title="Establecimientos">
+      <div className="dashboard-canvas relative min-h-0 sm:-m-6 sm:p-6">
+        {msg && <SuccessAlert onClose={() => setMsg(null)}>{msg}</SuccessAlert>}
+        <div className="space-y-4 sm:space-y-6">
         {err && !editOpen && !puntoOpen && <Alert>{err}</Alert>}
         {q.isLoading && <p className="text-sm text-muted">Cargando…</p>}
         {q.error && <Alert>{(q.error as Error).message}</Alert>}
 
-        {establecimientos.length > 0 && (
-        <div className={cn(panelClass, 'grid gap-6 p-6 sm:gap-8 sm:p-8')}>
-          {establecimientos.map((e) => {
-            const dir = [
-              formatReadable(e.direccion),
-              e.num_casa ? `N° ${e.num_casa}` : null,
-              [formatReadable(e.ciu?.desc ?? ''), formatReadable(e.dep?.desc ?? '')]
-                .filter(Boolean)
-                .join(' / '),
-            ]
-              .filter(Boolean)
-              .join(' · ')
-            const geoTip = `dep ${e.dep?.cod} · dis ${e.dis?.cod ?? '—'} · ciu ${e.ciu?.cod}`
-            const puntos = e.puntos ?? []
-
-            return (
-              <div
-                key={e.codigo}
-                className={cn(SECTION, 'flex flex-col border-b border-line/70 pb-6 last:border-0 last:pb-0')}
-              >
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex min-w-0 flex-wrap items-center gap-2">
-                    <h3 className="text-base font-bold tracking-tight text-ink">
-                      {e.codigo} · {e.denominacion || 'Sin denominación'}
-                    </h3>
-                    <Badge className={e.is_active ? 'bg-ok/10 text-ok-strong' : 'bg-warn/10 text-warn'}>
-                      {e.is_active ? 'Activo' : 'Inactivo'}
-                    </Badge>
-                  </div>
-
-                  {canEdit && (
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      <Button variant="ghost" className="gap-1.5 px-3" onClick={() => openEdit(e)}>
-                        <IconEdit />
-                        Editar
-                      </Button>
-                      <Button variant="soft" onClick={() => openNewPunto(e)}>
-                        + Nuevo punto
-                      </Button>
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-2.5 flex items-start gap-2 text-sm text-muted">
-                  <span className="mt-0.5 shrink-0 text-ink/55">
-                    <IconMap />
-                  </span>
-                  <p className="min-w-0 leading-snug text-muted">{dir || 'Sin dirección'}</p>
-                  <span className="group relative mt-0.5 shrink-0 text-muted hover:text-ink" title={geoTip}>
-                    <IconInfo />
-                    <span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-lg bg-ink px-2.5 py-1.5 text-[11px] font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
-                      {geoTip}
-                    </span>
-                  </span>
-                </div>
-
-                <div className="mt-5 overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="border-b border-line text-left text-[11px] uppercase tracking-wider text-muted">
-                        <th className="h-10 pr-3.5 font-semibold align-middle">Punto</th>
-                        <th className="h-10 px-3.5 font-semibold align-middle">Descripción</th>
-                        <th className="h-10 px-3.5 font-semibold align-middle">Estado</th>
-                        {canEdit && (
-                          <th className="h-10 pl-3.5 text-right font-semibold align-middle">Acciones</th>
-                        )}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {puntos.length === 0 ? (
-                        <tr>
-                          <td colSpan={canEdit ? 4 : 3} className="h-14 align-middle text-muted">
-                            Sin puntos de expedición. Agregá al menos el 001.
-                          </td>
-                        </tr>
-                      ) : (
-                        puntos.map((p) => (
-                          <tr
-                            key={p.codigo}
-                            className="h-14 border-b border-line/60 transition-colors last:border-0 hover:bg-cream-soft"
-                          >
-                            <td className="pr-3.5 align-middle font-mono text-xs font-semibold text-ink">
-                              {p.codigo}
-                            </td>
-                            <td className="px-3.5 align-middle text-ink">{p.descripcion || '—'}</td>
-                            <td className="px-3.5 align-middle">
-                              <Badge
-                                className={
-                                  p.is_active ? 'bg-ok/10 text-ok-strong' : 'bg-warn/10 text-warn'
-                                }
-                              >
-                                {p.is_active ? 'Activo' : 'Inactivo'}
-                              </Badge>
-                            </td>
-                            {canEdit && (
-                              <td className="pl-3.5 align-middle">
-                                <div className="flex items-center justify-end gap-0.5">
-                                  <button
-                                    type="button"
-                                    title="Editar punto"
-                                    aria-label="Editar punto"
-                                    className={iconBtn}
-                                    onClick={() => openEditPunto(e, p)}
-                                  >
-                                    <IconEdit />
-                                  </button>
-                                  <button
-                                    type="button"
-                                    title={p.is_active ? 'Inactivar punto' : 'Activar punto'}
-                                    aria-label={p.is_active ? 'Inactivar punto' : 'Activar punto'}
-                                    className={cn(iconBtn, !p.is_active && 'text-ok hover:text-ok')}
-                                    disabled={togglePunto.isPending}
-                                    onClick={() => togglePunto.mutate({ est: e, p })}
-                                  >
-                                    <IconPower />
-                                  </button>
-                                </div>
-                              </td>
-                            )}
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-        )}
-
-        {!q.isLoading && establecimientos.length === 0 && (
-          <div className={cn(panelClass, 'py-10 text-center')}>
-            <p className="text-sm font-medium text-ink">Todavía no hay establecimientos</p>
-            <p className="mt-1 text-sm text-muted">
-              Creá la sucursal 001 con la geo registrada en el RUC/SET.
-            </p>
+        {!q.isLoading && establecimientos.length > 0 && (
+          <div className="hidden items-end justify-between gap-3 sm:flex">
+            <div className="min-w-0">
+              <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">Locales</p>
+              <h2 className="mt-1 text-xl font-semibold tracking-tight text-ink">Sucursales</h2>
+              <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted">
+                {ESTABLECIMIENTOS_TIP}
+              </p>
+            </div>
             {canEdit && (
-              <Button className="mt-4" onClick={openNew}>
-                + Nuevo establecimiento
+              <Button variant="secondary" onClick={openNew} className="h-10 shrink-0 gap-1.5 px-3">
+                <IconPlus />
+                Nuevo establecimiento
               </Button>
             )}
           </div>
         )}
+
+        {establecimientos.length > 0 && (
+          <div className="space-y-3 sm:space-y-4">
+            {establecimientos.map((e, i) => {
+              const dir = formatEstabDir(e)
+              const puntos = e.puntos ?? []
+
+              const puntoActions = (p: PuntoExpedicion, compact = false) =>
+                canEdit ? (
+                  <div className="flex shrink-0 items-center justify-end gap-0.5">
+                    <button
+                      type="button"
+                      title="Editar punto"
+                      aria-label="Editar punto"
+                      className={cn(iconBtn, compact && 'h-10 w-10')}
+                      onClick={() => openEditPunto(e, p)}
+                    >
+                      <IconEdit />
+                    </button>
+                    <button
+                      type="button"
+                      title={p.is_active ? 'Inactivar punto' : 'Activar punto'}
+                      aria-label={p.is_active ? 'Inactivar punto' : 'Activar punto'}
+                      className={cn(iconBtn, compact && 'h-10 w-10', !p.is_active && 'text-ok hover:text-ok')}
+                      disabled={togglePunto.isPending}
+                      onClick={() => togglePunto.mutate({ est: e, p })}
+                    >
+                      <IconPower />
+                    </button>
+                  </div>
+                ) : null
+
+              return (
+                <article
+                  key={e.codigo}
+                  className="estab-card overflow-hidden rounded-[1.25rem] bg-surface"
+                  style={{ animationDelay: `${Math.min(i, 6) * 70}ms` }}
+                >
+                  <div className="px-4 py-4 sm:px-6 sm:py-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <p className="font-mono text-[1.75rem] font-semibold leading-none tabular-nums tracking-tight text-ink">
+                        {e.codigo}
+                      </p>
+                      <div className="flex shrink-0 items-center gap-1">
+                        <StatusChip active={!!e.is_active} />
+                        {canEdit && (
+                          <div className="hidden sm:block">
+                            <Menu
+                              items={[
+                                { label: 'Editar', onClick: () => openEdit(e), icon: <IconEdit /> },
+                                { label: 'Nuevo punto', onClick: () => openNewPunto(e), icon: <IconPlus /> },
+                              ]}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <h3 className="mt-2 text-base font-semibold tracking-tight text-ink">
+                      {e.denominacion || 'Sin denominación'}
+                    </h3>
+                    <p className="mt-1.5 text-[13px] leading-snug text-muted">{dir || 'Sin dirección'}</p>
+                  </div>
+
+                  <div className="px-4 pb-4 sm:hidden">
+                    <div className="rounded-[1.05rem] bg-cream-soft px-3 py-1">
+                      <div className="flex items-center justify-between py-2">
+                        <span className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted">
+                          Puntos
+                        </span>
+                        <span className="font-mono text-[11px] tabular-nums text-muted">{puntos.length}</span>
+                      </div>
+                      {puntos.length === 0 ? (
+                        <p className="pb-2.5 text-sm text-muted">Sin puntos. Agregá al menos el 001.</p>
+                      ) : (
+                        <ul>
+                          {puntos.map((p) => (
+                            <li
+                              key={p.codigo}
+                              className="flex items-center gap-2 border-t border-[color-mix(in_srgb,var(--color-ink)_8%,transparent)] py-2.5"
+                            >
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-sm font-medium text-ink">
+                                  {p.descripcion || '—'}
+                                </p>
+                                <p className="mt-0.5 font-mono text-[11px] tabular-nums text-muted">
+                                  {p.codigo}
+                                  <span className="mx-1 text-muted/40">·</span>
+                                  {p.is_active ? 'Activo' : 'Inactivo'}
+                                </p>
+                              </div>
+                              {puntoActions(p, true)}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </div>
+                    {canEdit && (
+                      <div className="mt-3 grid grid-cols-2 gap-2">
+                        <Button variant="secondary" className="w-full" onClick={() => openEdit(e)}>
+                          Editar
+                        </Button>
+                        <Button variant="secondary" className="w-full gap-1.5" onClick={() => openNewPunto(e)}>
+                          <IconPlus />
+                          Punto
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="hidden sm:block">
+                    <div className="mx-6 h-px bg-[color-mix(in_srgb,var(--color-ink)_8%,transparent)]" />
+                    <div className="overflow-x-auto px-4 py-2 sm:px-5">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="text-left text-[11px] font-medium uppercase tracking-[0.12em] text-muted">
+                            <th className="h-10 pr-3.5 align-middle">Punto</th>
+                            <th className="h-10 px-3.5 align-middle">Descripción</th>
+                            <th className="h-10 px-3.5 align-middle">Estado</th>
+                            {canEdit && (
+                              <th className="h-10 pl-3.5 text-right align-middle">Acciones</th>
+                            )}
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {puntos.length === 0 ? (
+                            <tr>
+                              <td colSpan={canEdit ? 4 : 3} className="h-14 align-middle text-muted">
+                                Sin puntos de expedición. Agregá al menos el 001.
+                              </td>
+                            </tr>
+                          ) : (
+                            puntos.map((p) => (
+                              <tr
+                                key={p.codigo}
+                                className="h-14 border-b border-[color-mix(in_srgb,var(--color-ink)_8%,transparent)] last:border-0"
+                              >
+                                <td className="pr-3.5 align-middle font-mono text-xs font-semibold tabular-nums text-ink">
+                                  {p.codigo}
+                                </td>
+                                <td className="px-3.5 align-middle text-ink">{p.descripcion || '—'}</td>
+                                <td className="px-3.5 align-middle">
+                                  <StatusChip active={!!p.is_active} />
+                                </td>
+                                {canEdit && (
+                                  <td className="pl-3.5 align-middle">{puntoActions(p)}</td>
+                                )}
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </article>
+              )
+            })}
+          </div>
+        )}
+
+        {!q.isLoading && establecimientos.length === 0 && (
+          <div className="rounded-[1.25rem] bg-surface px-5 py-10 text-center sm:px-6 sm:py-12">
+            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">Locales</p>
+            <p className="mt-2 text-xl font-semibold tracking-tight text-ink">Todavía no hay sucursales</p>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted">
+              Creá la sucursal 001 con la geo registrada en el RUC/SET. Cada local necesita al menos un punto de
+              expedición (caja 001).
+            </p>
+            {canEdit && (
+              <Button variant="secondary" className="mt-6 hidden gap-1.5 sm:inline-flex" onClick={openNew}>
+                <IconPlus />
+                Nuevo establecimiento
+              </Button>
+            )}
+          </div>
+        )}
+        </div>
       </div>
+
+      {canEdit &&
+        !q.isLoading &&
+        createPortal(
+          <button
+            type="button"
+            onClick={openNew}
+            className={cn(
+              'fixed right-4 z-[35] inline-flex h-12 items-center gap-2 rounded-full bg-brand-400 pr-5 pl-1.5 text-sm font-semibold text-ink md:hidden',
+              'shadow-[0_10px_24px_-14px_color-mix(in_srgb,var(--color-ink)_22%,transparent)]',
+              'transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+              'active:scale-[0.96]',
+              'bottom-[calc(5.35rem+env(safe-area-inset-bottom,0px))]',
+              environment === 'PROD' && 'env-prod',
+              (editOpen || puntoOpen) && 'pointer-events-none scale-95 opacity-0',
+            )}
+            aria-label="Nuevo establecimiento"
+          >
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-surface text-ink">
+              <IconPlus />
+            </span>
+            Nuevo
+          </button>,
+          document.body,
+        )}
 
       <Drawer
         open={editOpen}
         onClose={() => setEditOpen(false)}
         title={editingCodigo ? 'Editar establecimiento' : 'Nuevo establecimiento'}
-        widthClass="max-w-xl"
+        size="default"
         footer={
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setEditOpen(false)}>
@@ -443,6 +523,7 @@ export default function Establecimientos() {
               disabled={!formValido}
               onClick={() => saveEstab.mutate()}
             >
+              <IconSave />
               Guardar
             </Button>
           </div>
@@ -541,7 +622,7 @@ export default function Establecimientos() {
             ? `Editar punto · est. ${puntoOpen?.codigo ?? ''}`
             : `Nuevo punto · est. ${puntoOpen?.codigo ?? ''}`
         }
-        widthClass="max-w-[380px]"
+        size="narrow"
         footer={
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => setPuntoOpen(null)}>
@@ -552,6 +633,7 @@ export default function Establecimientos() {
               disabled={!/^\d{3}$/.test(punto.codigo.trim())}
               onClick={() => savePunto.mutate()}
             >
+              <IconSave />
               {editingPunto ? 'Guardar cambios' : 'Guardar punto'}
             </Button>
           </div>

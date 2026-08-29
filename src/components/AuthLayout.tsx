@@ -1,52 +1,163 @@
-// Layout de autenticacion partido (referencia tipo Hotelook): card grande con
-// form a la izquierda y panel estetico a la derecha, sobre fondo crema.
+// Shell de autenticación Night Ledger: formulario editorial + KUDE con sello fiscal.
 import { Link } from 'react-router-dom'
-import type { ReactNode } from 'react'
+import { useId, type ButtonHTMLAttributes, type ReactNode } from 'react'
+import { cn } from '@/lib/cn'
+import { usePageTitle } from '@/lib/usePageTitle'
+import { BrandLogo } from '@/components/BrandLogo'
+import { Button } from '@/components/ui'
 
-function QuoteMarks({ className }: { className?: string }) {
+const SEAL_TICKS = Array.from({ length: 48 }, (_, i) => i)
+
+function ArrowUpRight({ className }: { className?: string }) {
   return (
-    <svg className={className} width="44" height="32" viewBox="0 0 44 32" fill="none" aria-hidden>
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden className={className}>
       <path
-        d="M0 32V18.4C0 8.2 5.4 2.1 16.2 0l2.4 4.6C12.8 6.2 9.6 9.6 9.4 15.2H16V32H0Zm24 0V18.4C24 8.2 29.4 2.1 40.2 0l2.4 4.6C36.8 6.2 33.6 9.6 33.4 15.2H40V32H24Z"
-        className="fill-brand-500"
+        d="M7 17L17 7M10 7h7v7"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   )
 }
 
-function DocIllustration({ className }: { className?: string }) {
+function FiscalSeal({ className }: { className?: string }) {
+  const uid = useId().replace(/:/g, '')
+  const pathId = `auth-seal-legend-${uid}`
+
   return (
-    <svg className={className} viewBox="0 0 420 220" fill="none" aria-hidden>
-      {/* Edificios / docs estilizados */}
-      <rect x="28" y="70" width="70" height="130" rx="8" className="fill-brand-100 stroke-ink" strokeWidth="2" />
-      <rect x="42" y="88" width="42" height="8" rx="2" className="fill-ink/20" />
-      <rect x="42" y="106" width="42" height="8" rx="2" className="fill-ink/15" />
-      <rect x="42" y="124" width="28" height="8" rx="2" className="fill-brand-400/60" />
+    <svg className={cn('auth-seal', className)} viewBox="0 0 200 200" fill="none" aria-hidden>
+      <defs>
+        <path id={pathId} d="M100,100 m-74,0 a74,74 0 1,1 148,0 a74,74 0 1,1 -148,0" />
+      </defs>
+      <circle cx="100" cy="100" r="96" stroke="#C4A574" strokeOpacity="0.22" strokeWidth="1" />
+      <circle cx="100" cy="100" r="58" stroke="#E07D24" strokeOpacity="0.55" strokeWidth="1.15" />
+      <circle cx="100" cy="100" r="52" stroke="#C4A574" strokeOpacity="0.3" strokeWidth="0.75" />
 
-      <rect x="110" y="40" width="88" height="160" rx="10" className="fill-white stroke-ink" strokeWidth="2" />
-      <rect x="126" y="62" width="56" height="10" rx="2" className="fill-ink/25" />
-      <rect x="126" y="84" width="56" height="8" rx="2" className="fill-ink/15" />
-      <rect x="126" y="102" width="40" height="8" rx="2" className="fill-ink/15" />
-      <rect x="126" y="148" width="56" height="28" rx="6" className="fill-brand-200" />
-      <path d="M140 162h28" className="stroke-brand-700" strokeWidth="2" strokeLinecap="round" />
+      <g className="auth-seal-ring">
+        {SEAL_TICKS.map((i) => {
+          const angle = (i / SEAL_TICKS.length) * Math.PI * 2 - Math.PI / 2
+          const long = i % 4 === 0
+          const inner = long ? 86 : 90
+          const outer = 96
+          return (
+            <line
+              key={i}
+              x1={100 + Math.cos(angle) * inner}
+              y1={100 + Math.sin(angle) * inner}
+              x2={100 + Math.cos(angle) * outer}
+              y2={100 + Math.sin(angle) * outer}
+              stroke={long ? '#E07D24' : '#C4A574'}
+              strokeOpacity={long ? 0.85 : 0.4}
+              strokeWidth={long ? 1.2 : 0.7}
+              strokeLinecap="round"
+            />
+          )
+        })}
+        <text fill="#C4A574" fontSize="8.4" letterSpacing="3.4" fontFamily="Geist, sans-serif">
+          <textPath href={`#${pathId}`} startOffset="0">
+            DOCUMENTO ELECTRÓNICO · SIFEN · PARAGUAY · KUDE ·
+          </textPath>
+        </text>
+      </g>
 
-      <rect x="212" y="58" width="78" height="142" rx="10" className="fill-brand-50 stroke-ink" strokeWidth="2" />
-      <circle cx="251" cy="100" r="18" className="fill-brand-300/50 stroke-ink" strokeWidth="2" />
-      <path d="M244 100l5 5 10-12" className="stroke-ink" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-      <rect x="228" y="136" width="46" height="8" rx="2" className="fill-ink/15" />
-      <rect x="228" y="154" width="34" height="8" rx="2" className="fill-ink/10" />
-
-      <rect x="304" y="86" width="88" height="114" rx="10" className="fill-white stroke-ink" strokeWidth="2" />
-      <rect x="320" y="108" width="56" height="8" rx="2" className="fill-ink/20" />
-      <rect x="320" y="126" width="56" height="8" rx="2" className="fill-ink/12" />
-      <rect x="320" y="144" width="40" height="8" rx="2" className="fill-brand-400/50" />
-
-      {/* Arboles / acentos */}
-      <circle cx="52" cy="188" r="14" className="fill-ok/25 stroke-ink" strokeWidth="1.5" />
-      <circle cx="78" cy="192" r="10" className="fill-ok/20 stroke-ink" strokeWidth="1.5" />
-      <circle cx="360" cy="192" r="12" className="fill-brand-300/40 stroke-ink" strokeWidth="1.5" />
-      <path d="M20 200 H400" className="stroke-ink/30" strokeWidth="2" strokeLinecap="round" />
+      <text
+        x="100"
+        y="112"
+        textAnchor="middle"
+        fill="#F3EDE3"
+        fontSize="46"
+        fontFamily="Yellowtail, cursive"
+      >
+        e
+      </text>
     </svg>
+  )
+}
+
+function KudeArtifact() {
+  return (
+    <div className="auth-kude relative w-full max-w-[28rem]">
+      <div className="auth-kude-shell rounded-[2rem] bg-white/[0.04] p-1.5 ring-1 ring-white/[0.08]">
+        <article className="auth-kude-core relative overflow-hidden rounded-[calc(2rem-0.375rem)] bg-[#F3EDE3] px-6 py-6 text-[#0E141B] shadow-[inset_0_1px_1px_rgba(255,255,255,0.55)] sm:px-7 sm:py-7">
+          <header className="flex items-start justify-between gap-4">
+            <div>
+              <p className="text-[10px] font-medium uppercase tracking-[0.22em] text-[#8B93A1]">
+                Factura electrónica
+              </p>
+              <p className="mt-1 font-mono text-[11px] tracking-wide text-[#0E141B]/70">001-001-0001847</p>
+            </div>
+            <span className="rounded-full bg-[#0E141B] px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.16em] text-[#F3EDE3]">
+              KUDE
+            </span>
+          </header>
+
+          <div className="mt-6 grid grid-cols-[1fr_auto] gap-x-6 gap-y-1.5 border-y border-[#0E141B]/10 py-4 text-[12px]">
+            <span className="text-[#8B93A1]">Emisor</span>
+            <span className="text-right font-medium">Taller Norte SAE</span>
+            <span className="text-[#8B93A1]">RUC</span>
+            <span className="text-right font-mono text-[11px]">80012345-6</span>
+            <span className="text-[#8B93A1]">Fecha</span>
+            <span className="text-right">27 ago 2026</span>
+          </div>
+
+          <ul className="mt-4 space-y-2.5 text-[12px]">
+            <li className="flex justify-between gap-4">
+              <span>Servicio de facturación electrónica</span>
+              <span className="font-mono tabular-nums">Gs. 320.000</span>
+            </li>
+            <li className="flex justify-between gap-4 text-[#8B93A1]">
+              <span>IVA 10%</span>
+              <span className="font-mono tabular-nums">Gs. 32.000</span>
+            </li>
+          </ul>
+
+          <div className="mt-5 flex items-end justify-between gap-4">
+            <div className="auth-kude-qr grid grid-cols-5 gap-[3px]" aria-hidden>
+              {Array.from({ length: 25 }, (_, i) => (
+                <span
+                  key={i}
+                  className="h-[7px] w-[7px] rounded-[1px] bg-[#0E141B]"
+                  style={{ opacity: [0, 4, 6, 8, 12, 16, 18, 20, 24].includes(i) || i % 3 === 0 ? 1 : 0.18 }}
+                />
+              ))}
+            </div>
+            <div className="text-right">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-[#8B93A1]">Total</p>
+              <p className="font-mono text-[15px] font-medium tabular-nums">Gs. 352.000</p>
+            </div>
+          </div>
+
+          <p className="mt-5 break-all font-mono text-[9px] leading-relaxed tracking-[0.08em] text-[#0E141B]/45">
+            CDC 01800012345001001000018472026082715123456789012
+          </p>
+        </article>
+      </div>
+
+      <div className="auth-seal-wrap pointer-events-none absolute -bottom-10 -right-6 h-40 w-40 sm:-bottom-12 sm:-right-8 sm:h-48 sm:w-48">
+        <FiscalSeal className="h-full w-full drop-shadow-[0_18px_40px_rgba(14,20,27,0.35)]" />
+      </div>
+    </div>
+  )
+}
+
+export function AuthCta({
+  children,
+  className,
+  ...rest
+}: ButtonHTMLAttributes<HTMLButtonElement> & { loading?: boolean }) {
+  return (
+    <Button
+      type="submit"
+      className={cn('auth-cta group w-auto self-start gap-3 px-5 py-3 text-[15px]', className)}
+      {...rest}
+    >
+      <span>{children}</span>
+      <span className="auth-cta-icon grid h-8 w-8 shrink-0 place-items-center rounded-full bg-[#0E141B]/10">
+        <ArrowUpRight className="h-4 w-4" />
+      </span>
+    </Button>
   )
 }
 
@@ -57,70 +168,97 @@ export function AuthLayout({
   altText,
   altHref,
   altLabel,
-  panelQuote = 'Emitir, firmar y consultar documentos electrónicos SIFEN desde un solo lugar. Claro, rápido y listo para tu negocio.',
-  panelAuthor = 'esign',
-  panelRole = 'Facturación electrónica Paraguay',
+  compact = false,
+  eyebrow = 'Acceso',
+  pageTitle,
 }: {
   children: ReactNode
-  title: string
+  title: ReactNode
   subtitle: string
   altText: string
   altHref: string
   altLabel: string
-  panelQuote?: string
-  panelAuthor?: string
-  panelRole?: string
+  compact?: boolean
+  eyebrow?: string
+  pageTitle?: string
 }) {
+  usePageTitle(pageTitle ?? (typeof title === 'string' ? title : 'Acceso'))
+
   return (
-    <div className="grid min-h-screen bg-cream-soft md:grid-cols-2">
-      {/* Izquierda: form */}
-      <section className="flex min-h-screen flex-col px-7 py-8 sm:px-12 sm:py-10 md:px-14 md:py-12 lg:px-20">
-        <Link to="/" className="mb-8 inline-flex items-center gap-2 self-start text-lg font-extrabold tracking-tight text-ink">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-brand-400 text-ink">e</span>
-          esign
+    <div className="auth-stage relative min-h-[100dvh]">
+      <div className="auth-grain pointer-events-none fixed inset-0" aria-hidden />
+
+      <nav className="pointer-events-none absolute inset-x-0 top-0 z-10 flex items-start justify-between px-4 pt-6 sm:px-8 lg:px-10">
+        <div className="auth-logo-pill pointer-events-auto">
+          <BrandLogo asLink inverted className="px-4 py-1.5" />
+        </div>
+        <Link to={altHref} className="auth-nav-cta group pointer-events-auto">
+          <span>{altLabel}</span>
+          <span className="auth-nav-cta-icon grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/10">
+            <ArrowUpRight className="h-3.5 w-3.5" />
+          </span>
         </Link>
+      </nav>
 
-        <div className="mx-auto flex w-full max-w-md flex-1 flex-col justify-center">
-          <div className="mb-7">
-            <h1 className="text-3xl font-extrabold tracking-tight text-ink sm:text-[2rem]">{title}</h1>
-            <p className="mt-2 text-sm leading-relaxed text-muted">{subtitle}</p>
+      <div className="relative z-[1] grid min-h-[100dvh] md:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+        <section
+          className={cn(
+            'relative flex min-h-[100dvh] flex-col overflow-y-auto px-4 pb-12 pt-28 sm:px-10 md:px-12 lg:px-16',
+            compact ? 'md:pt-24' : 'md:pt-28',
+          )}
+        >
+          <FiscalSeal className="pointer-events-none absolute -right-8 top-24 h-56 w-56 opacity-[0.07] md:hidden" />
+
+          <div
+            className={cn(
+              'auth-rise mx-auto flex w-full max-w-[22rem] flex-1 flex-col justify-center sm:max-w-md',
+              compact && 'auth-compact min-h-0 [&_input]:py-2.5 [&_label]:text-[13px]',
+            )}
+          >
+            <p className="auth-eyebrow">{eyebrow}</p>
+            <h1
+              className={cn(
+                'mt-3 font-semibold tracking-tight text-[#F3EDE3]',
+                compact
+                  ? 'text-[1.75rem] sm:text-[1.95rem]'
+                  : 'text-[2rem] sm:text-[2.35rem] lg:text-[2.5rem]',
+              )}
+            >
+              {title}
+            </h1>
+            <p
+              className={cn(
+                'max-w-[34ch] text-[#8B93A1]',
+                compact ? 'mt-3 text-[13px] leading-relaxed' : 'mt-4 text-[15px] leading-relaxed',
+              )}
+            >
+              {subtitle}
+            </p>
+
+            <div className={cn('flex min-h-0 flex-col', compact ? 'mt-6' : 'mt-9')}>{children}</div>
+
+            <p className="mt-8 text-sm text-[#8B93A1] md:hidden">
+              {altText}{' '}
+              <Link
+                to={altHref}
+                className="font-medium text-[#F3EDE3] underline decoration-[#E07D24]/70 decoration-1 underline-offset-4 transition-[opacity] duration-700 ease-[cubic-bezier(0.32,0.72,0,1)] hover:opacity-80"
+              >
+                {altLabel}
+              </Link>
+            </p>
           </div>
+        </section>
 
-          <div className="flex flex-col">{children}</div>
-
-          <p className="mt-8 text-sm text-muted">
-            {altText}{' '}
-            <Link to={altHref} className="font-semibold text-brand-600 hover:text-brand-700">
-              {altLabel}
-            </Link>
-          </p>
-        </div>
-      </section>
-
-      {/* Derecha: panel estetico a pantalla completa */}
-      <aside className="relative hidden min-h-screen flex-col justify-between border-l border-line bg-cream px-10 py-12 md:flex lg:px-16 lg:py-14">
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-10 bg-gradient-to-r from-ink/[0.03] to-transparent" />
-
-        <div className="relative mx-auto w-full max-w-lg">
-          <QuoteMarks className="mb-5" />
-          <blockquote className="text-[1.15rem] font-medium leading-relaxed text-ink lg:text-xl">
-            {panelQuote}
-          </blockquote>
-          <QuoteMarks className="mt-4 ml-auto rotate-180 opacity-80" />
-
-          <div className="mt-8 flex items-center gap-3">
-            <div className="grid h-11 w-11 place-items-center rounded-full bg-brand-400 text-sm font-bold text-ink">
-              {panelAuthor.slice(0, 1).toUpperCase()}
-            </div>
-            <div>
-              <p className="text-sm font-bold text-ink">{panelAuthor}</p>
-              <p className="text-xs text-muted">{panelRole}</p>
-            </div>
+        <aside
+          className="auth-fiscal relative hidden min-h-[100dvh] overflow-hidden md:sticky md:top-0 md:flex md:h-[100dvh] md:items-center md:justify-center"
+          aria-hidden
+        >
+          <div className="auth-ember pointer-events-none absolute inset-0" />
+          <div className="auth-kude-enter relative z-[1] w-full max-w-lg px-10 lg:px-14">
+            <KudeArtifact />
           </div>
-        </div>
-
-        <DocIllustration className="relative mx-auto mt-10 w-full max-w-lg" />
-      </aside>
+        </aside>
+      </div>
     </div>
   )
 }

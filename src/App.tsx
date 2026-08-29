@@ -5,6 +5,7 @@ import Register from '@/pages/Register'
 import SelectClient from '@/pages/SelectClient'
 import Dashboard from '@/pages/Dashboard'
 import Documentos from '@/pages/Documentos'
+import DisenoKude from '@/pages/DisenoKude'
 import Empresa from '@/pages/Empresa'
 import Establecimientos from '@/pages/Establecimientos'
 import ApiKeys from '@/pages/ApiKeys'
@@ -47,6 +48,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <Establecimientos />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/diseno-kude"
+        element={
+          <ProtectedRoute>
+            <DisenoKude />
           </ProtectedRoute>
         }
       />

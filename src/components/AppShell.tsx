@@ -1,9 +1,13 @@
 // App shell del panel: sidebar colapsable + topbar + banner de ambiente.
-import { useEffect, useState, type ReactNode } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'react'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/cn'
+import { Menu } from '@/components/ui'
 import { EnvToggle } from './EnvToggle'
+import { ThemeToggle } from './ThemeToggle'
+import { BrandLogo } from './BrandLogo'
+import { usePageTitle } from '@/lib/usePageTitle'
 
 interface NavItem {
   label: string
@@ -57,6 +61,21 @@ function IconKey() {
     </svg>
   )
 }
+function IconPalette() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 3a9 9 0 1 0 0 18c1.1 0 1.7-.9 1.2-1.85-.25-.5-.05-1.1.45-1.35A2 2 0 0 1 15 19h1.5A4.5 4.5 0 0 0 21 14.5C21 8.15 17.1 3 12 3Z"
+        className="stroke-current"
+        strokeWidth="1.7"
+        strokeLinejoin="round"
+      />
+      <circle cx="7.5" cy="11.5" r="1.3" className="fill-current" />
+      <circle cx="10.5" cy="7.5" r="1.3" className="fill-current" />
+      <circle cx="15" cy="8" r="1.3" className="fill-current" />
+    </svg>
+  )
+}
 function IconCert() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -89,42 +108,18 @@ function IconLogout() {
     </svg>
   )
 }
-function IconInfo() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" className="shrink-0" aria-hidden>
-      <circle cx="12" cy="12" r="9" className="stroke-current" strokeWidth="1.8" />
-      <path d="M12 11v5M12 8h.01" className="stroke-current" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-// IconMenu: hamburguesa que se transforma suavemente en X cuando isX=true.
-// Solo animamos transform/opacity (GPU); nada de layout.
+// IconMenu: hamburguesa ↔ X con trazo vectorial uniforme (evita líneas gruesas por subpíxeles).
 function IconMenu({ isX }: { isX: boolean }) {
   return (
-    <span className="relative block h-4 w-5" aria-hidden>
-      <span
-        className={cn(
-          'absolute left-0 top-0 h-0.5 w-5 origin-center rounded-full bg-current will-change-transform',
-          'transition-transform duration-200 ease-out',
-          isX && 'translate-y-[7px] rotate-45',
-        )}
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d={isX ? 'M6 6l12 12M18 6L6 18' : 'M5 7h14M5 12h14M5 17h14'}
+        className="stroke-current"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
-      <span
-        className={cn(
-          'absolute left-0 top-[7px] h-0.5 w-5 rounded-full bg-current',
-          'transition-opacity duration-150 ease-out',
-          isX ? 'opacity-0' : 'opacity-100',
-        )}
-      />
-      <span
-        className={cn(
-          'absolute left-0 top-[14px] h-0.5 w-5 origin-center rounded-full bg-current will-change-transform',
-          'transition-transform duration-200 ease-out',
-          isX && '-translate-y-[7px] -rotate-45',
-        )}
-      />
-    </span>
+    </svg>
   )
 }
 
@@ -135,10 +130,38 @@ const PRIMARY: NavItem[] = [
 ]
 const CONFIG: NavItem[] = [
   { label: 'Empresa', to: '/empresa', icon: <IconBuilding /> },
+  { label: 'Diseño KuDE', to: '/diseno-kude', icon: <IconPalette /> },
   { label: 'API keys', to: '/api-keys', icon: <IconKey /> },
   { label: 'Certificado', to: '/certificado', icon: <IconCert /> },
   { label: 'Ambientes', to: '/ambientes', icon: <IconEnv /> },
   { label: 'Equipo', to: '/equipo', icon: <IconTeam /> },
+]
+
+const CONFIG_PATHS = new Set(CONFIG.map((item) => item.to))
+
+function IconMore() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect x="4" y="4" width="6.5" height="6.5" rx="1.5" className="stroke-current" strokeWidth="1.8" />
+      <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" className="stroke-current" strokeWidth="1.8" />
+      <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" className="stroke-current" strokeWidth="1.8" />
+      <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" className="stroke-current" strokeWidth="1.8" />
+    </svg>
+  )
+}
+
+interface MobileNavItem {
+  label: string
+  to?: string
+  icon: ReactNode
+  action?: 'menu'
+}
+
+const MOBILE_NAV: MobileNavItem[] = [
+  { label: 'Inicio', to: '/', icon: <IconDash /> },
+  { label: 'Documentos', to: '/documentos', icon: <IconDocs /> },
+  { label: 'Locales', to: '/establecimientos', icon: <IconStore /> },
+  { label: 'Más', icon: <IconMore />, action: 'menu' },
 ]
 
 function NavList({
@@ -151,7 +174,7 @@ function NavList({
   onNavigate?: () => void
 }) {
   return (
-    <nav className={cn('flex flex-col gap-1', collapsed && 'items-center')}>
+    <nav className="flex flex-col gap-0.5">
       {items.map((item) => (
         <NavLink
           key={item.to}
@@ -161,18 +184,191 @@ function NavList({
           title={collapsed ? item.label : undefined}
           className={({ isActive }) =>
             cn(
-              'group relative flex h-10 items-center rounded-xl text-sm font-medium transition-colors',
+              'group relative flex h-10 items-center rounded-xl text-sm font-medium',
+              'transition-[color,background-color,transform] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+              'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/50',
               collapsed ? 'w-10 justify-center px-0' : 'w-full gap-3 px-3',
               isActive
-                ? 'bg-brand-400 text-ink shadow-sm'
-                : 'text-muted hover:bg-cream hover:text-ink',
+                ? 'text-brand-700'
+                : 'text-muted hover:bg-cream/80 hover:text-ink',
             )
           }
         >
-          <span className="grid h-5 w-5 shrink-0 place-items-center">{item.icon}</span>
-          {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
+          {({ isActive }) => (
+            <>
+              {isActive && (
+                <span
+                  className={cn(
+                    'absolute rounded-full bg-brand-500',
+                    collapsed
+                      ? 'bottom-1 left-1/2 h-0.5 w-3.5 -translate-x-1/2'
+                      : 'left-0 top-1/2 h-5 w-[3px] -translate-y-1/2',
+                  )}
+                  aria-hidden
+                />
+              )}
+              <span className="grid h-5 w-5 shrink-0 place-items-center">{item.icon}</span>
+              {!collapsed && <span className="whitespace-nowrap">{item.label}</span>}
+            </>
+          )}
         </NavLink>
       ))}
+    </nav>
+  )
+}
+
+function HeaderSearch() {
+  const navigate = useNavigate()
+  const [q, setQ] = useState('')
+  const [modKey, setModKey] = useState('Ctrl')
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setModKey(/Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl')
+  }, [])
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        inputRef.current?.focus()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [])
+
+  return (
+    <form
+      className="header-search"
+      role="search"
+      onSubmit={(e) => {
+        e.preventDefault()
+        const term = q.trim()
+        navigate(term ? `/documentos?q=${encodeURIComponent(term)}` : '/documentos')
+      }}
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" className="shrink-0 text-muted" aria-hidden>
+        <circle cx="11" cy="11" r="6.5" className="stroke-current" strokeWidth="1.6" />
+        <path d="m20 20-3.4-3.4" className="stroke-current" strokeWidth="1.6" strokeLinecap="round" />
+      </svg>
+      <input
+        ref={inputRef}
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Buscar documentos, CDC o receptor"
+        className="min-w-0 flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-muted/70"
+        aria-label="Buscar documentos"
+      />
+      <button type="submit" className="sr-only">
+        Buscar
+      </button>
+      <kbd className="hidden xl:inline" aria-hidden>
+        {modKey === '⌘' ? '⌘K' : 'Ctrl K'}
+      </kbd>
+    </form>
+  )
+}
+
+function MobileBottomNav({
+  onToggleMenu,
+  menuOpen,
+  moreButtonRef,
+}: {
+  onToggleMenu: () => void
+  menuOpen: boolean
+  moreButtonRef: RefObject<HTMLButtonElement | null>
+}) {
+  const { pathname } = useLocation()
+  const onConfigRoute = CONFIG_PATHS.has(pathname)
+
+  const itemShell = (active: boolean) =>
+    cn(
+      'relative flex min-h-[3.1rem] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-[0.95rem] px-1.5 py-1',
+      'transition-[transform,color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/45 focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
+      active ? 'text-brand-700' : 'text-muted active:scale-[0.96] active:text-ink',
+    )
+
+  const labelClass = (active: boolean) =>
+    cn(
+      'relative z-10 max-w-full truncate text-[10px] tracking-[0.02em]',
+      active ? 'font-semibold' : 'font-medium',
+    )
+
+  function NavItemContent({ active, icon, label }: { active: boolean; icon: ReactNode; label: string }) {
+    return (
+      <>
+        {active && (
+          <span
+            aria-hidden
+            className="absolute inset-x-1 inset-y-0.5 rounded-[0.9rem] bg-brand-50/95 dark:bg-brand-100/25"
+          />
+        )}
+        <span
+          className={cn(
+            'relative z-10 grid h-7 w-7 place-items-center transition-[transform,color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+            active ? 'scale-[1.08] text-brand-700' : 'text-muted',
+          )}
+        >
+          {icon}
+        </span>
+        <span className={cn(labelClass(active), !active && 'opacity-75')}>{label}</span>
+      </>
+    )
+  }
+
+  return (
+    <nav
+      inert={menuOpen ? true : undefined}
+      className={cn(
+        'mobile-bottom-nav fixed inset-x-0 bottom-0 z-30 md:hidden',
+        'px-3 pb-[max(0.65rem,env(safe-area-inset-bottom,0px))]',
+        'transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+        menuOpen && 'pointer-events-none translate-y-[calc(100%+0.75rem)]',
+      )}
+      aria-label="Navegación principal"
+      aria-hidden={menuOpen ? true : undefined}
+    >
+      <div className="mobile-bottom-nav__island mx-auto max-w-md">
+        <ul className="flex items-stretch justify-around gap-1 px-1.5 py-1.5">
+          {MOBILE_NAV.map((item) => {
+            const isMenu = item.action === 'menu'
+
+            if (isMenu) {
+              const isHighlighted = onConfigRoute || menuOpen
+              return (
+                <li key={item.label} className="flex min-w-0 flex-1">
+                  <button
+                    ref={moreButtonRef}
+                    type="button"
+                    onClick={onToggleMenu}
+                    className={itemShell(isHighlighted)}
+                    aria-expanded={menuOpen}
+                    aria-label={menuOpen ? 'Cerrar menú de configuración' : 'Abrir menú de configuración'}
+                  >
+                    <NavItemContent active={isHighlighted} icon={item.icon} label={item.label} />
+                  </button>
+                </li>
+              )
+            }
+
+            return (
+              <li key={item.to} className="flex min-w-0 flex-1">
+                <NavLink
+                  to={item.to!}
+                  end={item.to === '/'}
+                  className={({ isActive }) => itemShell(isActive)}
+                >
+                  {({ isActive }) => (
+                    <NavItemContent active={isActive} icon={item.icon} label={item.label} />
+                  )}
+                </NavLink>
+              </li>
+            )
+          })}
+        </ul>
+      </div>
     </nav>
   )
 }
@@ -195,9 +391,10 @@ export function AppShell({
     () => localStorage.getItem('esign.sidebarCollapsed') === '1',
   )
   const [mobileOpen, setMobileOpen] = useState(false)
-  const [isDesktop, setIsDesktop] = useState(
-    () => typeof window !== 'undefined' && window.matchMedia('(min-width: 768px)').matches,
-  )
+  const [sidebarAnimating, setSidebarAnimating] = useState(false)
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const mobileMoreButtonRef = useRef<HTMLButtonElement>(null)
+  const sidebarAnimTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     localStorage.setItem('esign.sidebarCollapsed', collapsed ? '1' : '0')
@@ -206,7 +403,6 @@ export function AppShell({
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 768px)')
     const onChange = () => {
-      setIsDesktop(mq.matches)
       if (mq.matches) setMobileOpen(false)
     }
     onChange()
@@ -214,7 +410,7 @@ export function AppShell({
     return () => mq.removeEventListener('change', onChange)
   }, [])
 
-  // Bloquea scroll del body cuando el drawer móvil está abierto.
+  // Bloquea scroll del body cuando el bottom sheet móvil está abierto.
   useEffect(() => {
     if (!mobileOpen) return
     const prev = document.body.style.overflow
@@ -224,61 +420,87 @@ export function AppShell({
     }
   }, [mobileOpen])
 
+  useEffect(
+    () => () => {
+      if (sidebarAnimTimer.current) window.clearTimeout(sidebarAnimTimer.current)
+    },
+    [],
+  )
+
   function handleLogout() {
     logout()
     navigate('/login', { replace: true })
   }
 
-  function toggleMenu() {
-    if (isDesktop) {
-      setCollapsed((v) => !v)
-    } else {
-      setMobileOpen((v) => !v)
-    }
+  function closeMobileMenu() {
+    setMobileOpen(false)
+    requestAnimationFrame(() => mobileMoreButtonRef.current?.focus())
   }
 
-  // Desktop: siempre hamburguesa (colapsar/expandir). X solo en móvil con drawer abierto
-  // — una X junto a una vista principal se lee como "cerrar modal" y confunde.
-  const menuOpen = isDesktop ? false : mobileOpen
-  const menuHighlighted = isDesktop ? collapsed : mobileOpen
+  function openMobileMenu() {
+    setMobileOpen(true)
+  }
+
+  function toggleMobileMenu() {
+    if (mobileOpen) closeMobileMenu()
+    else openMobileMenu()
+  }
+
+  function toggleDesktopSidebar() {
+    setSidebarAnimating(true)
+    setCollapsed((v) => !v)
+    if (sidebarAnimTimer.current) window.clearTimeout(sidebarAnimTimer.current)
+    sidebarAnimTimer.current = window.setTimeout(() => setSidebarAnimating(false), 520)
+  }
 
   const isTest = environment === 'TEST'
 
-  // Contenido del sidebar con ancho fijo (16rem). El aside padre lo recorta
-  // vía overflow-hidden cuando colapsa: no animamos textos individuales, así
-  // evitamos layout thrash y lag.
-  const sidebarContent = (isCollapsed: boolean) => (
-    <div className="flex h-full w-full flex-col overflow-y-auto px-3 py-5">
-      <div
-        className={cn(
-          'mb-6 flex h-9 items-center',
-          isCollapsed ? 'justify-center' : 'gap-3 px-2',
-        )}
-      >
-        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-brand-400 text-ink font-extrabold">
-          e
-        </span>
-        {!isCollapsed && (
-          <span className="whitespace-nowrap text-xl font-extrabold tracking-tight text-ink">
-            esign
-          </span>
-        )}
-      </div>
+  const accountTriggerClassName =
+    'grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full bg-brand-100 text-[11px] font-semibold tracking-wide text-brand-700 transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-[0.98] active:scale-95'
 
-      <div className="mb-5">
-        <NavList items={PRIMARY} collapsed={isCollapsed} onNavigate={() => setMobileOpen(false)} />
-      </div>
+  const accountInitials =
+    (session?.businessName ?? 'ES')
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase() ?? '')
+      .join('') || 'E'
 
-      {isCollapsed ? (
-        <div className="mx-auto mb-2 h-px w-8 bg-line" />
-      ) : (
-        <p className="mb-2 h-4 whitespace-nowrap px-3 text-[11px] font-semibold uppercase tracking-wider text-ink/55">
-          Configuración
-        </p>
+  usePageTitle(title)
+
+  // Contenido del sidebar desktop (ancho fijo 16rem). overflow-x-hidden evita
+  // la barra horizontal durante la animación de width del <aside>.
+  const sidebarContent = (isCollapsed: boolean, includePrimary = true) => (
+    <div
+      className={cn(
+        'flex h-full w-64 shrink-0 flex-col px-3 py-5',
+        sidebarAnimating ? 'overflow-hidden' : 'overflow-x-hidden overflow-y-auto',
       )}
-      <NavList items={CONFIG} collapsed={isCollapsed} onNavigate={() => setMobileOpen(false)} />
+    >
+      <BrandLogo
+        asLink
+        collapsed={isCollapsed}
+        className={cn('mb-6', isCollapsed && 'w-10 justify-center')}
+      />
 
-      <div className={cn('mt-auto flex pt-4', isCollapsed && 'justify-center')}>
+      {includePrimary && (
+        <div className="mb-5">
+          <NavList items={PRIMARY} collapsed={isCollapsed} onNavigate={closeMobileMenu} />
+        </div>
+      )}
+
+      {includePrimary && isCollapsed ? (
+        <div className="mb-2 ml-1 h-px w-8 bg-line" />
+      ) : (
+        !isCollapsed && (
+          <p className="mb-1.5 h-4 whitespace-nowrap px-3 text-[11px] font-medium tracking-wide text-muted">
+            Configuración
+          </p>
+        )
+      )}
+      <NavList items={CONFIG} collapsed={isCollapsed} onNavigate={closeMobileMenu} />
+
+      <div className="mt-auto flex pt-4">
         <button
           onClick={handleLogout}
           className={cn(
@@ -297,13 +519,33 @@ export function AppShell({
     </div>
   )
 
+  const mobileConfigSheet = (
+    <div className="flex flex-col px-3 pb-2">
+      <NavList items={CONFIG} collapsed={false} onNavigate={closeMobileMenu} />
+      <div className="mt-3 border-t border-line pt-3">
+        <button
+          onClick={handleLogout}
+          className={cn(
+            'flex h-10 w-full items-center gap-3 rounded-xl px-3 text-sm font-medium text-muted transition-colors hover:bg-cream',
+            isTest ? 'hover:text-danger' : 'hover:text-ok-strong',
+          )}
+        >
+          <span className="grid h-5 w-5 shrink-0 place-items-center">
+            <IconLogout />
+          </span>
+          <span>Cerrar sesión</span>
+        </button>
+      </div>
+    </div>
+  )
+
   // Sidebar desktop: solo animamos el width del <aside>. El contenido interno
   // vive con w-64 fijo; overflow-hidden lo recorta al colapsar.
   const desktopSidebar = (
     <aside
       className={cn(
-        'hidden h-full shrink-0 overflow-hidden border-r border-line bg-white md:block',
-        'transition-[width] duration-200 ease-out',
+        'hidden h-full shrink-0 overflow-hidden border-r border-line bg-surface dark:bg-cream-soft md:block',
+        'transition-[width] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
         collapsed ? 'w-[4.5rem]' : 'w-64',
       )}
       aria-label="Menú lateral"
@@ -313,100 +555,137 @@ export function AppShell({
   )
 
   return (
-    <div className={cn('flex h-dvh overflow-hidden bg-white', !isTest && 'env-prod')}>
+    <div className={cn('flex h-dvh overflow-hidden bg-cream-soft', !isTest && 'env-prod')}>
+      <a href="#contenido" className="skip-link">
+        Saltar al contenido
+      </a>
       {desktopSidebar}
 
-      {/* Drawer móvil */}
+      {/* Bottom sheet móvil — configuración */}
       <div
         className={cn(
           'fixed inset-0 z-40 md:hidden',
           mobileOpen ? 'pointer-events-auto' : 'pointer-events-none',
         )}
-        aria-hidden={!mobileOpen}
       >
         <div
-          onClick={() => setMobileOpen(false)}
+          onClick={closeMobileMenu}
           className={cn(
-            'absolute inset-0 bg-ink/40 transition-opacity duration-200 ease-out',
+            'absolute inset-0 bg-black/30 transition-opacity duration-200 ease-out dark:bg-black/45',
             mobileOpen ? 'opacity-100' : 'opacity-0',
           )}
+          aria-hidden
         />
         <aside
+          role="dialog"
+          aria-modal={mobileOpen ? true : undefined}
+          inert={!mobileOpen ? true : undefined}
+          aria-label="Configuración"
           className={cn(
-            'absolute inset-y-0 left-0 w-64 bg-white shadow-2xl',
-            'transition-transform duration-200 ease-out',
-            mobileOpen ? 'translate-x-0' : '-translate-x-full',
+            'mobile-config-sheet absolute inset-x-0 bottom-0 flex max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-bottom,0px)))] flex-col bg-surface shadow-2xl',
+            'rounded-t-2xl transition-transform duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]',
+            mobileOpen ? 'translate-y-0' : 'translate-y-full',
           )}
         >
-          {sidebarContent(false)}
+          <div className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-line" aria-hidden />
+          <div className="flex shrink-0 items-center justify-between gap-3 border-b border-line px-4 py-3">
+            <h2 className="text-base font-bold text-ink">Configuración</h2>
+            <button
+              type="button"
+              onClick={closeMobileMenu}
+              className="grid h-9 w-9 place-items-center rounded-xl text-muted transition-colors hover:bg-cream hover:text-ink active:scale-[0.97]"
+              aria-label="Cerrar configuración"
+            >
+              <IconMenu isX />
+            </button>
+          </div>
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain py-2">
+            {mobileConfigSheet}
+          </div>
         </aside>
       </div>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        {/* Franja de ambiente: cue visual sin ocupar una fila de contenido */}
         <div
-          className={cn('h-1 w-full shrink-0', isTest ? 'bg-brand-400' : 'bg-ok')}
+          className={cn('hidden h-1 w-full shrink-0 md:block', isTest ? 'bg-brand-400' : 'bg-ok')}
           aria-hidden
         />
-        <header className="shrink-0 border-b border-line bg-white">
-          <div className="flex items-center gap-2 px-4 py-3 sm:gap-4 sm:px-6">
-            <div className="flex min-w-0 flex-1 items-center gap-2.5 sm:gap-3">
+        <header className="shrink-0 bg-surface md:bg-surface/90 md:backdrop-blur-xl dark:bg-cream-soft dark:md:bg-cream-soft dark:backdrop-blur-none">
+          {/* Mobile: logo + ambiente + cuenta en una sola fila */}
+          <div className="md:hidden">
+            <div
+              className={cn('h-0.5 w-full shrink-0', isTest ? 'bg-brand-400/90' : 'bg-ok/90')}
+              aria-hidden
+            />
+            <div className="flex items-center gap-2 px-3 py-2.5">
+              <BrandLogo asLink className="min-w-0 shrink-0 px-0" />
+              <h1 className="sr-only">{title}</h1>
+              <div className="ml-auto flex shrink-0 select-none items-center gap-1">
+                <EnvToggle />
+                <ThemeToggle className="shell-icon-btn grid bg-cream-soft ring-1 ring-line/70 hover:bg-cream" />
+                <Menu
+                  label={session?.businessName ? `Cuenta: ${session.businessName}` : 'Menú de cuenta'}
+                  align="right"
+                  trigger={accountInitials}
+                  triggerClassName={accountTriggerClassName}
+                  items={[
+                    {
+                      label: 'Cerrar sesión',
+                      onClick: handleLogout,
+                      icon: <IconLogout />,
+                      danger: isTest,
+                    },
+                  ]}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop */}
+          <div className="hidden items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6 md:flex">
+            <div className="app-header-title flex min-w-0 flex-1 items-center gap-2">
               <button
+                ref={menuButtonRef}
                 type="button"
-                onClick={toggleMenu}
+                onClick={toggleDesktopSidebar}
                 className={cn(
-                  'grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-line bg-white text-ink',
-                  'transition-colors duration-150 hover:bg-cream active:bg-cream',
-                  menuHighlighted && 'border-brand-300 bg-brand-50 text-brand-700',
+                  'shell-icon-btn grid',
+                  collapsed && 'bg-brand-50 text-brand-700',
                 )}
-                aria-label={
-                  isDesktop
-                    ? collapsed
-                      ? 'Expandir menú'
-                      : 'Colapsar menú'
-                    : mobileOpen
-                      ? 'Cerrar menú'
-                      : 'Abrir menú'
-                }
-                aria-expanded={isDesktop ? !collapsed : mobileOpen}
+                aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
+                aria-expanded={!collapsed}
               >
-                <IconMenu isX={menuOpen} />
+                <IconMenu isX={false} />
               </button>
-              <div className="min-w-0 flex-1">
-                <div className="flex min-w-0 items-center gap-1.5">
-                  <h1 className="truncate text-base font-bold text-ink sm:text-lg">{title}</h1>
-                  <span
-                    title={
-                      isTest
-                        ? 'Homologación sifen-test — sin valor comercial ni fiscal'
-                        : 'Producción — emisión real bloqueada en el motor'
-                    }
-                    className={cn(
-                      'inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[11px] font-semibold sm:px-2',
-                      isTest ? 'bg-brand-100 text-brand-700' : 'bg-ok/10 text-ok-strong',
-                    )}
-                  >
-                    <IconInfo />
-                    <span className="hidden sm:inline">
-                      {isTest ? 'sifen-test · sin valor fiscal' : 'PROD · emisión bloqueada'}
-                    </span>
-                  </span>
-                </div>
-                <p className="truncate text-xs text-muted">{session?.businessName}</p>
+              <h1 className="min-w-0 flex-1 truncate text-[15px] font-semibold tracking-tight text-ink sm:text-base">
+                {title}
+              </h1>
+            </div>
+
+            <div className="app-header-search flex flex-1 justify-center">
+              <div className="mx-auto w-full min-w-0 max-w-xl">
+                <HeaderSearch />
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <div className="flex shrink-0 select-none items-center gap-1 sm:gap-2">
               {actions && <div className="hidden sm:block">{actions}</div>}
               <EnvToggle />
-              <div className="hidden h-9 w-9 place-items-center rounded-full bg-brand-100 text-[11px] font-bold tracking-wide text-brand-700 sm:grid">
-                {(session?.businessName ?? 'ES')
-                  .split(/\s+/)
-                  .filter(Boolean)
-                  .slice(0, 2)
-                  .map((w) => w[0]?.toUpperCase() ?? '')
-                  .join('') || 'E'}
-              </div>
+              <ThemeToggle className="shell-icon-btn grid bg-cream-soft ring-1 ring-line/70 hover:bg-cream" />
+              <Menu
+                label={session?.businessName ? `Cuenta: ${session.businessName}` : 'Menú de cuenta'}
+                align="right"
+                trigger={accountInitials}
+                triggerClassName={accountTriggerClassName}
+                items={[
+                  {
+                    label: 'Cerrar sesión',
+                    onClick: handleLogout,
+                    icon: <IconLogout />,
+                    danger: isTest,
+                  },
+                ]}
+              />
             </div>
           </div>
 
@@ -417,8 +696,19 @@ export function AppShell({
           )}
         </header>
 
-        <main className="min-h-0 flex-1 overflow-auto bg-cream-soft p-4 sm:p-6">{children}</main>
+        <main
+          id="contenido"
+          className="dashboard-canvas min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-cream-soft p-2 pb-[calc(5.15rem+env(safe-area-inset-bottom,0px))] sm:p-4 sm:px-6 sm:pt-6 md:pb-6"
+        >
+          {children}
+        </main>
       </div>
+
+      <MobileBottomNav
+        onToggleMenu={toggleMobileMenu}
+        menuOpen={mobileOpen}
+        moreButtonRef={mobileMoreButtonRef}
+      />
     </div>
   )
 }

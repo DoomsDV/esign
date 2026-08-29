@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react'
+import { useMemo, type CSSProperties } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import {
   Area,
@@ -6,9 +6,6 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -16,12 +13,11 @@ import {
 } from 'recharts'
 import { Link } from 'react-router-dom'
 import { AppShell } from '@/components/AppShell'
-import { Alert, Badge } from '@/components/ui'
+import { Alert, Badge, panelClass } from '@/components/ui'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
 import {
   estadoMeta,
-  formatFecha,
   formatMoneda,
   listDocuments,
   tipoDeLabel,
@@ -30,49 +26,13 @@ import {
 import { cn } from '@/lib/cn'
 
 const COLORS = {
-  APROBADO: '#16a34a',
-  RECHAZADO: '#dc2626',
-  FIRMADO: '#d97706',
-  OTROS: '#9ca3af',
-  /** Serie principal del ambiente TEST (acento de marca, no verde). */
-  AREA: '#f5a94c',
-  BAR: '#f5a94c',
+  APROBADO: '#5eae86',
+  AREA: '#e07d24',
+  BAR: '#e07d24',
 }
 
-// Sombra suave estilo SaaS (elevación sutil, sin borde marcado).
-const CARD =
-  'rounded-3xl bg-white ring-1 ring-line/70 shadow-[0_1px_2px_rgba(16,24,40,0.04),0_12px_28px_-16px_rgba(16,24,40,0.18)]'
+const TIPO_TONE = ['#5b8def', '#e07d24', '#d4a054', '#5eae86', '#8a8580']
 
-function IconCheck() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="m5 13 4 4L19 7" className="stroke-current" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-function IconX() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M6 6l12 12M18 6 6 18" className="stroke-current" strokeWidth="2.2" strokeLinecap="round" />
-    </svg>
-  )
-}
-function IconClock() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="8.5" className="stroke-current" strokeWidth="1.8" />
-      <path d="M12 7.5V12l3 2" className="stroke-current" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-function IconReceipt() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M6 3h12v18l-3-1.8L12 21l-3-1.8L6 21V3Z" className="stroke-current" strokeWidth="1.8" strokeLinejoin="round" />
-      <path d="M9 8h6M9 12h6" className="stroke-current" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
-  )
-}
 function IconTrendUp() {
   return (
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -87,51 +47,188 @@ function IconTrendDown() {
     </svg>
   )
 }
-
-interface Kpi {
-  label: string
-  value: number
-  icon: ReactNode
-  iconWrap: string
-  delta: string
-  deltaTone: 'up' | 'down' | 'warn' | 'neutral'
-  context: string
-}
-
-const deltaToneClass: Record<Kpi['deltaTone'], string> = {
-  up: 'text-brand-700',
-  down: 'text-danger-strong',
-  warn: 'text-warn',
-  neutral: 'text-brand-700',
-}
-
-function KpiCell({ kpi, loading }: { kpi: Kpi; loading: boolean }) {
+function IconArrowRight() {
   return (
-    <>
-      <div className="flex items-start justify-between gap-3">
-        <p className="pt-0.5 text-sm font-medium text-muted">{kpi.label}</p>
-        <span className={cn('grid h-8 w-8 shrink-0 place-items-center rounded-full', kpi.iconWrap)}>
-          {kpi.icon}
-        </span>
-      </div>
-      <p className="mt-1.5 text-[2rem] font-extrabold leading-tight tracking-tight tabular-nums text-ink">
-        {loading ? '—' : kpi.value}
-      </p>
-      <p className="mt-1.5 flex items-center gap-1.5 text-xs">
-        <span className={cn('inline-flex items-center gap-1 font-bold', deltaToneClass[kpi.deltaTone])}>
-          {kpi.deltaTone === 'up' && <IconTrendUp />}
-          {kpi.deltaTone === 'down' && <IconTrendDown />}
-          {kpi.delta}
-        </span>
-        <span className="font-medium uppercase tracking-wide text-muted/80">{kpi.context}</span>
-      </p>
-    </>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M5 12h14M13 6l6 6-6 6" className="stroke-current" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+function IconExport() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 4.5v10.25M8.4 11.1 12 14.7l3.6-3.6M6 19h12"
+        className="stroke-current"
+        strokeWidth="1.55"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   )
 }
 
-// Grises con mas contraste para ejes/grid (legibilidad sin robar protagonismo).
-const AXIS_TICK = '#4b515b'
-const GRID_STROKE = '#d7dae0'
+interface SparkPoint {
+  dia: string
+  v: number
+}
+
+interface HeroKpi {
+  label: string
+  value: number
+  stroke: string
+  series: SparkPoint[]
+  hint: string
+}
+
+interface StampKpi {
+  label: string
+  value: number
+  stroke: string
+  hint: string
+  alert?: boolean
+}
+
+const AXIS_TICK = 'var(--chart-tick)'
+const GRID_STROKE = 'var(--chart-grid)'
+const tooltipStyle: CSSProperties = {
+  borderRadius: 12,
+  border: '1px solid var(--chart-tooltip-border)',
+  background: 'var(--chart-tooltip-bg)',
+  color: 'var(--color-ink)',
+  boxShadow: '0 16px 40px -20px color-mix(in srgb, var(--color-ink) 35%, transparent)',
+  fontSize: 12,
+}
+
+function sparkLine(pts: { x: number; y: number }[]): string {
+  if (pts.length === 0) return ''
+  if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`
+  let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i - 1]!
+    const cur = pts[i]!
+    const cx = (prev.x + cur.x) / 2
+    d += ` C ${cx.toFixed(2)} ${prev.y.toFixed(2)}, ${cx.toFixed(2)} ${cur.y.toFixed(2)}, ${cur.x.toFixed(2)} ${cur.y.toFixed(2)}`
+  }
+  return d
+}
+
+function KpiSparkline({ series, color }: { series: SparkPoint[]; color: string }) {
+  const w = 280
+  const h = 48
+  const vals = series.map((p) => p.v)
+  const max = Math.max(...vals, 1)
+  const live = vals.some((v) => v > 0)
+  const pts = vals.map((v, i) => ({
+    x: vals.length === 1 ? w / 2 : (i / (vals.length - 1)) * w,
+    y: h - 3 - (v / max) * (h - 8),
+  }))
+  const line = sparkLine(pts)
+  const area = `${line} L ${w} ${h} L 0 ${h} Z`
+
+  return (
+    <div className="kpi-sparkline">
+      <svg
+        viewBox={`0 0 ${w} ${h}`}
+        preserveAspectRatio="none"
+        aria-hidden
+        style={{ '--spark-color': color } as CSSProperties}
+      >
+        <path d={area} className="kpi-sparkline-fill" />
+        <path d={line} className={cn('kpi-sparkline-line', live && 'is-live')} fill="none" />
+      </svg>
+    </div>
+  )
+}
+
+function KpiValue({ loading, value }: { loading: boolean; value: number }) {
+  if (loading) {
+    return <span className="inline-block h-[0.85em] w-[1.2ch] animate-pulse rounded-md bg-cream align-middle" />
+  }
+  return <>{value}</>
+}
+
+function KpiHero({ kpi, loading, delay }: { kpi: HeroKpi; loading: boolean; delay: string }) {
+  return (
+    <article
+      className={cn(panelClass, 'flex h-full flex-col overflow-hidden', delay, 'dash-rise')}
+      aria-label={`${kpi.label}: ${kpi.value} DE. ${kpi.hint}`}
+    >
+      <div className="flex flex-col px-4 pt-4 sm:px-5 sm:pt-5 lg:flex-1">
+        <p className="text-[12px] font-medium text-muted sm:text-[13px]">{kpi.label}</p>
+        <p className="mt-2 flex items-baseline gap-2">
+          <span className="text-[2.55rem] font-semibold leading-none tracking-tight tabular-nums text-ink sm:text-[3rem]">
+            <KpiValue loading={loading} value={kpi.value} />
+          </span>
+          <span className="text-[11px] font-medium text-muted">DE</span>
+        </p>
+        <p className="mt-2 text-[11px] leading-snug text-muted sm:text-xs">{kpi.hint}</p>
+      </div>
+      <KpiSparkline series={kpi.series} color={kpi.stroke} />
+    </article>
+  )
+}
+
+function KpiStamp({ kpi, loading }: { kpi: StampKpi; loading: boolean }) {
+  const live = kpi.alert || kpi.value > 0
+  const idle = !live
+  return (
+    <article
+      className={cn('kpi-stamp', kpi.alert && 'is-alert', idle && 'is-idle')}
+      style={{ '--stamp-color': live ? kpi.stroke : 'color-mix(in srgb, var(--color-ink) 22%, transparent)' } as CSSProperties}
+      aria-label={`${kpi.label}: ${kpi.value}. ${kpi.hint}`}
+    >
+      <span className="kpi-stamp-cap" aria-hidden />
+      <p className="mt-3 text-[11px] font-medium text-muted sm:text-[12px]">{kpi.label}</p>
+      <p
+        className={cn(
+          'mt-1.5 text-[1.5rem] font-semibold leading-none tracking-tight tabular-nums lg:text-[1.85rem]',
+          idle ? 'text-ink/35' : 'text-ink',
+        )}
+      >
+        <KpiValue loading={loading} value={kpi.value} />
+      </p>
+      <p className={cn('mt-2 text-[10px] leading-snug text-muted sm:text-[11px]', idle && 'opacity-50')}>
+        {kpi.hint}
+      </p>
+    </article>
+  )
+}
+
+function StatusMix({ stamps }: { stamps: StampKpi[] }) {
+  const live = stamps.filter((s) => s.value > 0)
+  const total = stamps.reduce((acc, s) => acc + s.value, 0)
+  const label = stamps.map((s) => `${s.value} ${s.label.toLowerCase()}`).join(', ')
+
+  return (
+    <div className="kpi-mix" role="img" aria-label={total > 0 ? `Distribución: ${label}` : 'Sin emisiones'}>
+      {live.length === 0 ? (
+        <span className="kpi-mix-empty" />
+      ) : (
+        live.map((s) => (
+          <span
+            key={s.label}
+            className="kpi-mix-seg"
+            style={{ flexGrow: s.value, background: s.stroke }}
+          />
+        ))
+      )}
+    </div>
+  )
+}
+
+function KpiStampRail({ stamps, loading, delay }: { stamps: StampKpi[]; loading: boolean; delay: string }) {
+  return (
+    <div className={cn(panelClass, 'flex h-full flex-col overflow-hidden', delay, 'dash-rise')}>
+      <div className="grid min-h-0 flex-1 grid-cols-3">
+        {stamps.map((kpi) => (
+          <KpiStamp key={kpi.label} kpi={kpi} loading={loading} />
+        ))}
+      </div>
+      <StatusMix stamps={stamps} />
+    </div>
+  )
+}
 
 const DAY_MS = 86_400_000
 
@@ -144,11 +241,14 @@ interface TrendPoint {
   total: number
   aprobados: number
   rechazados: number
+  firmados: number
   sort: number
 }
 
-// Agrega por dia y RELLENA los dias intermedios sin emisiones con 0, para que la
-// linea/serie tenga contexto en lugar de mostrar un punto suelto.
+function emptyPoint(ts: number): TrendPoint {
+  return { dia: labelForDay(ts), total: 0, aprobados: 0, rechazados: 0, firmados: 0, sort: ts }
+}
+
 function buildTrend(items: DocumentListItem[]): TrendPoint[] {
   const map = new Map<number, TrendPoint>()
   for (const doc of items) {
@@ -156,10 +256,11 @@ function buildTrend(items: DocumentListItem[]): TrendPoint[] {
     const parsed = new Date(doc.fecha_emision)
     if (Number.isNaN(parsed.getTime())) continue
     const ts = parsed.setHours(0, 0, 0, 0)
-    const cur = map.get(ts) ?? { dia: labelForDay(ts), total: 0, aprobados: 0, rechazados: 0, sort: ts }
+    const cur = map.get(ts) ?? emptyPoint(ts)
     cur.total += 1
     if (doc.estado === 'APROBADO') cur.aprobados += 1
     if (doc.estado === 'RECHAZADO') cur.rechazados += 1
+    if (doc.estado === 'FIRMADO') cur.firmados += 1
     map.set(ts, cur)
   }
   if (map.size === 0) return []
@@ -169,11 +270,20 @@ function buildTrend(items: DocumentListItem[]): TrendPoint[] {
   const max = days[days.length - 1]
   const filled: TrendPoint[] = []
   for (let ts = min; ts <= max; ts += DAY_MS) {
-    filled.push(
-      map.get(ts) ?? { dia: labelForDay(ts), total: 0, aprobados: 0, rechazados: 0, sort: ts },
-    )
+    filled.push(map.get(ts) ?? emptyPoint(ts))
   }
   return filled.slice(-14)
+}
+
+function sparkSeries(trend: TrendPoint[]): SparkPoint[] {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const end = trend.length > 0 ? trend[trend.length - 1]!.sort : today.getTime()
+  const byDay = new Map(trend.map((p) => [p.sort, p.total]))
+  return Array.from({ length: 14 }, (_, i) => {
+    const ts = end - (13 - i) * DAY_MS
+    return { dia: labelForDay(ts), v: byDay.get(ts) ?? 0 }
+  })
 }
 
 function buildByTipo(items: DocumentListItem[]) {
@@ -186,9 +296,144 @@ function buildByTipo(items: DocumentListItem[]) {
     .sort((a, b) => b.value - a.value)
 }
 
+const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] as const
+
+function buildWeekdays(items: DocumentListItem[]) {
+  const counts = [0, 0, 0, 0, 0, 0, 0]
+  for (const doc of items) {
+    if (!doc.fecha_emision) continue
+    const parsed = new Date(doc.fecha_emision)
+    if (Number.isNaN(parsed.getTime())) continue
+    const jsDay = parsed.getDay()
+    const idx = jsDay === 0 ? 6 : jsDay - 1
+    counts[idx] += 1
+  }
+  return WEEKDAYS.map((dia, i) => ({ dia, value: counts[i] }))
+}
+
 function sumMontos(items: DocumentListItem[]) {
   return items.reduce((acc, d) => acc + (d.total_operacion ?? 0), 0)
 }
+
+function gsHint(n: number) {
+  return `Gs ${formatCompact(n)}`
+}
+
+function periodDelta(trend: TrendPoint[]) {
+  if (trend.length < 4) return null
+  const mid = Math.floor(trend.length / 2)
+  const prev = trend.slice(0, mid).reduce((acc, p) => acc + p.total, 0)
+  const curr = trend.slice(mid).reduce((acc, p) => acc + p.total, 0)
+  if (prev === 0) return curr > 0 ? { pct: 100, up: true } : { pct: 0, up: true }
+  const pct = Math.round(((curr - prev) / prev) * 1000) / 10
+  return { pct, up: pct >= 0 }
+}
+
+function formatCompact(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace('.', ',')}M`
+  if (n >= 10_000) return `${(n / 1_000).toFixed(1).replace('.', ',')}K`
+  return new Intl.NumberFormat('es-PY').format(n)
+}
+
+function EmptyChart({ label, hint }: { label: string; hint?: string }) {
+  return (
+    <div className="grid h-44 place-items-center rounded-2xl bg-cream-soft/80 px-4 text-center sm:h-48">
+      <div>
+        <p className="text-sm font-medium text-ink">{label}</p>
+        <p className="mt-1 max-w-[28ch] text-xs leading-relaxed text-muted">
+          {hint ?? 'Los datos aparecerán cuando emitas documentos'}
+        </p>
+      </div>
+    </div>
+  )
+}
+
+function RateGauge({ pct }: { pct: number | null }) {
+  const value = Math.min(100, Math.max(0, pct ?? 0))
+  const r = 58
+  const rot = 135
+
+  return (
+    <div className="relative mx-auto grid h-48 w-48 place-items-center sm:h-52 sm:w-52">
+      <svg viewBox="0 0 160 160" className="h-full w-full" aria-hidden>
+        <g transform={`rotate(${rot} 80 80)`}>
+          <circle
+            cx="80"
+            cy="80"
+            r={r}
+            fill="none"
+            stroke="var(--color-line)"
+            strokeWidth="10"
+            strokeDasharray="75 25"
+            pathLength={100}
+            strokeLinecap="round"
+          />
+          <circle
+            cx="80"
+            cy="80"
+            r={r}
+            fill="none"
+            stroke="var(--color-ok)"
+            strokeWidth="10"
+            strokeDasharray={`${(value / 100) * 75} 100`}
+            pathLength={100}
+            strokeLinecap="round"
+          />
+        </g>
+      </svg>
+      <div className="pointer-events-none absolute inset-0 grid place-items-center">
+        <div className="text-center">
+          <p className="text-[2.15rem] font-semibold leading-none tracking-tight tabular-nums text-ink">
+            {pct == null ? '—' : `${pct}%`}
+          </p>
+          <p className="mt-1.5 text-[11px] font-medium text-muted">tasa de aprobación</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function exportSample(items: DocumentListItem[]) {
+  const header = ['Número', 'Tipo', 'Receptor', 'Estado', 'Monto', 'Moneda', 'Fecha']
+  const lines = [
+    header.join(';'),
+    ...items.map((d) =>
+      [
+        d.num_documento,
+        tipoDeLabel(d.tipo_de),
+        `"${(d.receptor_nombre ?? '').replaceAll('"', '""')}"`,
+        d.estado,
+        d.total_operacion ?? '',
+        d.moneda,
+        d.fecha_emision ?? '',
+      ].join(';'),
+    ),
+  ]
+  const blob = new Blob([`\uFEFF${lines.join('\n')}`], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `etick-emisiones-${new Date().toISOString().slice(0, 10)}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+function estadoLabelCompact(estado: string): string {
+  if (estado === 'FIRMADO') return 'Pendiente'
+  return estadoMeta(estado).label
+}
+
+function RecentDocStatus({ estado }: { estado: string }) {
+  const m = estadoMeta(estado)
+  return (
+    <Badge className={cn(m.className, 'shrink-0 text-[10px] sm:text-[11px]')}>
+      <span className={cn('h-1.5 w-1.5 shrink-0 rounded-full', m.dot)} />
+      {estadoLabelCompact(estado)}
+    </Badge>
+  )
+}
+
+const CHART_HEIGHT = 'h-44 sm:h-48'
 
 export default function Dashboard() {
   const { session, environment } = useAuth()
@@ -219,296 +464,359 @@ export default function Dashboard() {
 
   const d = summary.data
   const trend = useMemo(() => buildTrend(d?.sample ?? []), [d?.sample])
-  // Con pocos dias, un area/linea pierde sentido: mostramos barras por dia.
   const trendAsBars = trend.length > 0 && trend.length <= 3
   const byTipo = useMemo(() => buildByTipo(d?.sample ?? []), [d?.sample])
+  const weekdays = useMemo(() => buildWeekdays(d?.sample ?? []), [d?.sample])
   const montoMuestra = useMemo(() => sumMontos(d?.sample ?? []), [d?.sample])
+  const delta = useMemo(() => periodDelta(trend), [trend])
+  const tipoMax = Math.max(...byTipo.map((t) => t.value), 1)
+  const weekdayMax = Math.max(...weekdays.map((w) => w.value), 1)
+  const weekdayPeak = weekdays.reduce((a, b) => (a.value >= b.value ? a : b), weekdays[0]!)
   const tasaAprob =
-    d && d.aprobado + d.rechazado > 0
-      ? Math.round((d.aprobado / (d.aprobado + d.rechazado)) * 100)
-      : null
-
-  const otros = d ? Math.max(0, d.total - d.aprobado - d.rechazado - d.firmado - d.cancelado) : 0
-  const donut = d
-    ? [
-        { name: 'Aprobados', value: d.aprobado, color: COLORS.APROBADO },
-        { name: 'Rechazados', value: d.rechazado, color: COLORS.RECHAZADO },
-        { name: 'Firmados', value: d.firmado, color: COLORS.FIRMADO },
-        { name: 'Cancelados', value: d.cancelado, color: COLORS.OTROS },
-        { name: 'Otros', value: otros, color: '#cbd5e1' },
-      ].filter((s) => s.value > 0)
-    : []
+    d && d.aprobado + d.rechazado > 0 ? Math.round((d.aprobado / (d.aprobado + d.rechazado)) * 100) : null
 
   const hayRechazos = (d?.rechazado ?? 0) > 0
   const hayPendientes = (d?.firmado ?? 0) > 0
-  const toneOk = isTest ? 'bg-brand-100 text-brand-600' : 'bg-ok/10 text-ok'
-  const kpis: Kpi[] = [
+  const totalDocs = d?.total ?? 0
+  const heroKpi: HeroKpi = {
+    label: 'Total emitido',
+    value: d?.total ?? 0,
+    stroke: 'var(--color-brand-600)',
+    series: sparkSeries(trend),
+    hint: delta
+      ? `${gsHint(montoMuestra)} · ${delta.up ? '+' : ''}${delta.pct}% vs. periodo`
+      : `${gsHint(montoMuestra)} · 14 días`,
+  }
+  const stampKpis: StampKpi[] = [
     {
       label: 'Aprobadas',
       value: d?.aprobado ?? 0,
-      icon: <IconCheck />,
-      iconWrap: toneOk,
-      delta: tasaAprob != null ? `${tasaAprob}%` : '100%',
-      deltaTone: 'up',
-      context: 'tasa de aprobación',
+      stroke: 'var(--color-ok)',
+      hint: totalDocs > 0 ? `${d?.aprobado ?? 0} de ${totalDocs}` : 'sin emisiones',
     },
     {
       label: 'Rechazadas',
       value: d?.rechazado ?? 0,
-      icon: <IconX />,
-      iconWrap: hayRechazos ? 'bg-danger/10 text-danger' : toneOk,
-      delta: hayRechazos ? 'Acción' : 'OK',
-      deltaTone: hayRechazos ? 'down' : 'up',
-      context: hayRechazos ? 'requieren reemisión' : 'sin rechazos',
+      stroke: 'var(--color-danger)',
+      hint: hayRechazos ? `${d?.rechazado} por reemitir` : 'sin rechazos',
+      alert: hayRechazos,
     },
     {
       label: 'Firmadas',
       value: d?.firmado ?? 0,
-      icon: <IconClock />,
-      iconWrap: hayPendientes ? 'bg-warn/10 text-warn' : toneOk,
-      delta: hayPendientes ? 'En cola' : 'OK',
-      deltaTone: hayPendientes ? 'warn' : 'up',
-      context: hayPendientes ? 'reintento automático' : 'todo enviado',
-    },
-    {
-      label: 'Total emitido',
-      value: d?.total ?? 0,
-      icon: <IconReceipt />,
-      iconWrap: 'bg-brand-100 text-brand-600',
-      delta: formatMoneda(montoMuestra, 'PYG'),
-      deltaTone: 'neutral',
-      context: 'en la muestra',
+      stroke: 'var(--color-warn)',
+      hint: hayPendientes ? `${d?.firmado} en cola SET` : 'todo enviado',
+      alert: hayPendientes,
     },
   ]
 
-  const recent = (d?.sample ?? []).slice(0, 8)
-  const fallidos = (d?.sample ?? []).filter((x) => x.estado === 'RECHAZADO' || x.estado === 'FIRMADO').slice(0, 5)
+  const recent = (d?.sample ?? []).slice(0, 7)
+  const fallidos = (d?.sample ?? []).filter((x) => x.estado === 'RECHAZADO' || x.estado === 'FIRMADO').slice(0, 4)
+  const rangeLabel =
+    trend.length > 0 ? `${trend[0]!.dia} – ${trend[trend.length - 1]!.dia}` : 'Sin emisiones en el rango'
 
   return (
     <AppShell title="Dashboard">
-      <div className="space-y-6">
-      {summary.isError && (
-        <Alert>
-          {summary.error instanceof ApiError ? summary.error.message : 'No se pudo cargar el resumen.'}
-        </Alert>
-      )}
+      <div className="dashboard-canvas space-y-3 sm:-m-6 sm:space-y-5 sm:p-6">
+        {summary.isError && (
+          <Alert>
+            {summary.error instanceof ApiError ? summary.error.message : 'No se pudo cargar el resumen.'}
+          </Alert>
+        )}
 
-      {/* KPIs: slider horizontal en mobile, panel con divisores en >=sm */}
-      <div className="flex snap-x snap-mandatory gap-3 overflow-x-auto px-0.5 py-1 [scrollbar-width:none] sm:hidden [&::-webkit-scrollbar]:hidden">
-        {kpis.map((kpi) => (
-          <div key={kpi.label} className={cn(CARD, 'w-[74%] shrink-0 snap-start p-5')}>
-            <KpiCell kpi={kpi} loading={summary.isLoading} />
+        <div className="dash-rise flex items-start justify-between gap-3">
+          <div className="min-w-0 select-none">
+            <p className="text-[11px] font-medium tracking-wide text-muted">Resumen de emisión</p>
+            <p className="mt-1 text-sm text-muted">
+              {rangeLabel}
+              <span className="mx-1.5 text-muted/40">·</span>
+              <span className={isTest ? 'text-brand-600' : 'text-ok-strong'}>{environment}</span>
+            </p>
           </div>
-        ))}
-        <div className="w-1 shrink-0" aria-hidden />
-      </div>
-      <div className={cn(CARD, 'hidden overflow-hidden sm:block')}>
-        <div className="grid gap-px bg-line sm:grid-cols-2 xl:grid-cols-4">
-          {kpis.map((kpi) => (
-            <div key={kpi.label} className="bg-white p-5">
-              <KpiCell kpi={kpi} loading={summary.isLoading} />
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Tendencia + tipos */}
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <div className={cn(CARD, 'p-6 xl:col-span-2')}>
-          <div className="mb-1 flex items-start justify-between gap-3">
-            <div>
-              <p className="font-semibold text-ink">Emisiones recientes</p>
-              <p className="text-xs text-muted">Últimos días (muestra de hasta 100 documentos)</p>
-            </div>
-            <span
-              className={cn(
-                'rounded-full px-2.5 py-1 text-[11px] font-bold',
-                isTest ? 'bg-brand-100 text-brand-700' : 'bg-ok/10 text-ok-strong',
-              )}
-            >
-              {environment}
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="hidden h-10 select-none items-center rounded-full bg-surface px-4 text-xs font-medium text-muted shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-ink)_8%,transparent)] sm:inline-flex">
+              Últimos 14 días
             </span>
-          </div>
-          {trend.length === 0 ? (
-            <div className="mt-4 grid h-64 place-items-center text-sm text-muted">Sin datos aún</div>
-          ) : trendAsBars ? (
-            <div className="mt-3 h-64">
-              <ResponsiveContainer width="100%" height="100%" debounce={250}>
-                <BarChart data={trend} margin={{ left: 0, right: 8, top: 8 }} barGap={4}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
-                  <XAxis dataKey="dia" tick={{ fontSize: 11, fill: AXIS_TICK }} axisLine={false} tickLine={false} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: AXIS_TICK }} axisLine={false} tickLine={false} width={28} />
-                  <Tooltip
-                    cursor={{ fill: 'rgba(0,0,0,0.04)' }}
-                    contentStyle={{ borderRadius: 12, borderColor: GRID_STROKE, fontSize: 12 }}
-                  />
-                  <Bar dataKey="total" name="Total" radius={[6, 6, 0, 0]} maxBarSize={40} fill={isTest ? COLORS.AREA : COLORS.BAR} />
-                  <Bar dataKey="aprobados" name="Aprobados" radius={[6, 6, 0, 0]} maxBarSize={40} fill={COLORS.APROBADO} fillOpacity={0.5} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          ) : (
-            <div className="mt-3 h-64">
-              <ResponsiveContainer width="100%" height="100%" debounce={250}>
-                <AreaChart data={trend} margin={{ left: 0, right: 8, top: 8 }}>
-                  <defs>
-                    <linearGradient id="fillTotal" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor={isTest ? COLORS.AREA : COLORS.BAR} stopOpacity={0.35} />
-                      <stop offset="100%" stopColor={isTest ? COLORS.AREA : COLORS.BAR} stopOpacity={0.02} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} vertical={false} />
-                  <XAxis dataKey="dia" tick={{ fontSize: 11, fill: AXIS_TICK }} axisLine={false} tickLine={false} />
-                  <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: AXIS_TICK }} axisLine={false} tickLine={false} width={28} />
-                  <Tooltip
-                    contentStyle={{ borderRadius: 12, borderColor: GRID_STROKE, fontSize: 12 }}
-                    formatter={(value, name) => [value as number, String(name)]}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="total"
-                    name="Total"
-                    stroke={isTest ? COLORS.AREA : COLORS.BAR}
-                    fill="url(#fillTotal)"
-                    strokeWidth={2.5}
-                    dot={{ r: 2.5, strokeWidth: 0, fill: isTest ? COLORS.AREA : COLORS.BAR }}
-                    activeDot={{ r: 4 }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="aprobados"
-                    name="Aprobados"
-                    stroke={COLORS.APROBADO}
-                    fill="transparent"
-                    strokeWidth={1.5}
-                    strokeDasharray="4 4"
-                    dot={false}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-
-        <div className={cn(CARD, 'p-6')}>
-          <p className="font-semibold text-ink">Por tipo de DE</p>
-          <p className="text-xs text-muted">Distribución en la muestra</p>
-          {byTipo.length === 0 ? (
-            <div className="mt-4 grid h-64 place-items-center text-sm text-muted">Sin datos aún</div>
-          ) : (
-            <div className="mt-3 h-64">
-              <ResponsiveContainer width="100%" height="100%" debounce={250}>
-                <BarChart data={byTipo} layout="vertical" margin={{ left: 8, right: 8 }} barCategoryGap="35%">
-                  <CartesianGrid strokeDasharray="3 3" stroke={GRID_STROKE} horizontal={false} />
-                  <XAxis type="number" allowDecimals={false} tick={{ fontSize: 11, fill: AXIS_TICK }} axisLine={false} tickLine={false} />
-                  <YAxis
-                    type="category"
-                    dataKey="tipo"
-                    width={88}
-                    tick={{ fontSize: 11, fill: AXIS_TICK }}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    cursor={{ fill: 'rgba(0,0,0,0.04)' }}
-                    contentStyle={{ borderRadius: 12, borderColor: GRID_STROKE, fontSize: 12 }}
-                  />
-                  <Bar dataKey="value" name="Cantidad" radius={[0, 6, 6, 0]} maxBarSize={26} fill={isTest ? COLORS.AREA : COLORS.BAR} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Donut + recientes + fallidos */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className={cn(CARD, 'p-6')}>
-          <p className="font-semibold text-ink">Distribución por estado</p>
-          {donut.length === 0 ? (
-            <div className="mt-4 grid h-56 place-items-center text-sm text-muted">Sin datos aún</div>
-          ) : (
-            <div className="mt-2 h-56">
-              <ResponsiveContainer width="100%" height="100%" debounce={250}>
-                <PieChart>
-                  <Pie data={donut} dataKey="value" nameKey="name" innerRadius={55} outerRadius={85} paddingAngle={2}>
-                    {donut.map((s) => (
-                      <Cell key={s.name} fill={s.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          )}
-          <div className="mt-3 flex flex-wrap gap-3 text-xs text-muted">
-            {donut.map((s) => (
-              <span key={s.name} className="inline-flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} />
-                {s.name}: {s.value}
+            <button
+              type="button"
+              onClick={() => exportSample(d?.sample ?? [])}
+              disabled={!d?.sample.length}
+              className="group inline-flex h-10 items-center gap-2 rounded-full bg-brand-400 pr-1.5 pl-4 text-sm font-semibold text-ink transition-[transform,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:bg-brand-500 active:scale-[0.98] disabled:opacity-50"
+            >
+              Exportar
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-ink/8 transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5 group-hover:-translate-y-px">
+                <IconExport />
               </span>
-            ))}
+            </button>
           </div>
         </div>
 
-        <div className={cn(CARD, 'p-6 lg:col-span-2')}>
-          <div className="mb-3 flex items-center justify-between">
-            <p className="font-semibold text-ink">Documentos recientes</p>
-            <Link to="/documentos" className="text-sm font-semibold text-brand-600 hover:text-brand-700">
-              Ver todos
-            </Link>
+        <div className="grid grid-cols-1 gap-2.5 sm:gap-4 lg:grid-cols-12 lg:items-stretch">
+          <div className="h-full lg:col-span-5">
+            <KpiHero kpi={heroKpi} loading={summary.isLoading} delay="dash-rise-1" />
           </div>
-          <div className="divide-y divide-line/60">
-            {summary.isLoading && <p className="py-6 text-center text-sm text-muted">Cargando…</p>}
-            {!summary.isLoading && recent.length === 0 && (
-              <p className="py-6 text-center text-sm text-muted">Aún no hay documentos en {environment}.</p>
-            )}
-            {recent.map((doc) => {
-              const m = estadoMeta(doc.estado)
-              return (
-                <div key={doc.cdc} className="flex items-center justify-between gap-3 py-3">
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium text-ink">
-                      {tipoDeLabel(doc.tipo_de)} · {doc.receptor_nombre || 'Sin nombre'}
-                    </p>
-                    <p className="text-xs text-muted">
-                      {doc.num_documento} · {formatFecha(doc.fecha_emision)}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="hidden text-sm tabular-nums text-muted sm:inline">
-                      {formatMoneda(doc.total_operacion, doc.moneda)}
+          <div className="h-full lg:col-span-7">
+            <KpiStampRail stamps={stampKpis} loading={summary.isLoading} delay="dash-rise-2" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 items-start gap-3 sm:gap-4 lg:grid-cols-12">
+          <div className={cn(panelClass, 'flex flex-col overflow-hidden dash-rise dash-rise-2 lg:col-span-8')}>
+            <div className="flex flex-col p-4 sm:p-5">
+              <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <h2 className="text-sm font-medium tracking-tight text-ink sm:text-[15px]">Volumen emitido</h2>
+                  <p className="mt-2 flex items-end gap-2">
+                    <span className="text-[1.85rem] font-semibold leading-none tracking-tight tabular-nums text-ink sm:text-[2.1rem]">
+                      {summary.isLoading ? '—' : formatCompact(montoMuestra)}
                     </span>
-                    <Badge className={m.className}>
-                      <span className={`h-1.5 w-1.5 rounded-full ${m.dot}`} />
-                      {m.label}
-                    </Badge>
-                  </div>
+                    <span className="pb-0.5 text-xs text-muted">PYG en la muestra</span>
+                  </p>
+                  {delta && (
+                    <p className={cn('mt-1.5 inline-flex items-center gap-1 text-xs font-medium', delta.up ? 'text-ok' : 'text-danger-strong')}>
+                      {delta.up ? <IconTrendUp /> : <IconTrendDown />}
+                      {delta.up ? '+' : ''}
+                      {delta.pct}% vs. primera mitad
+                    </p>
+                  )}
                 </div>
-              )
-            })}
+              </div>
+
+              {trend.length === 0 ? (
+                <EmptyChart
+                  label="Todavía no hay emisiones"
+                  hint="Cuando salga el primer documento, acá vas a ver el ritmo diario."
+                />
+              ) : trendAsBars ? (
+                <div className={CHART_HEIGHT}>
+                  <ResponsiveContainer width="100%" height="100%" debounce={250}>
+                    <BarChart data={trend} margin={{ left: -4, right: 4, top: 4, bottom: 0 }} barGap={4}>
+                      <CartesianGrid strokeDasharray="4 4" stroke={GRID_STROKE} vertical={false} />
+                      <XAxis dataKey="dia" tick={{ fontSize: 10, fill: AXIS_TICK }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: AXIS_TICK }} axisLine={false} tickLine={false} width={24} />
+                      <Tooltip cursor={{ fill: 'rgba(224, 125, 36, 0.06)' }} contentStyle={tooltipStyle} />
+                      <Bar dataKey="total" name="Total" radius={[6, 6, 0, 0]} maxBarSize={36} fill={COLORS.AREA} />
+                      <Bar dataKey="aprobados" name="Aprobados" radius={[6, 6, 0, 0]} maxBarSize={36} fill={COLORS.APROBADO} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : (
+                <div className={CHART_HEIGHT}>
+                  <ResponsiveContainer width="100%" height="100%" debounce={250}>
+                    <AreaChart data={trend} margin={{ left: -4, right: 4, top: 8, bottom: 0 }}>
+                      <defs>
+                        <linearGradient id="fillTotal" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={COLORS.AREA} stopOpacity={0.28} />
+                          <stop offset="100%" stopColor={COLORS.AREA} stopOpacity={0.02} />
+                        </linearGradient>
+                        <linearGradient id="fillAprob" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor={COLORS.APROBADO} stopOpacity={0.22} />
+                          <stop offset="100%" stopColor={COLORS.APROBADO} stopOpacity={0} />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid strokeDasharray="4 4" stroke={GRID_STROKE} vertical={false} />
+                      <XAxis dataKey="dia" tick={{ fontSize: 10, fill: AXIS_TICK }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+                      <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: AXIS_TICK }} axisLine={false} tickLine={false} width={24} />
+                      <Tooltip contentStyle={tooltipStyle} formatter={(value, name) => [value as number, String(name)]} />
+                      <Area
+                        type="monotone"
+                        dataKey="total"
+                        name="Total"
+                        stroke={COLORS.AREA}
+                        fill="url(#fillTotal)"
+                        strokeWidth={2.2}
+                        dot={false}
+                        activeDot={{ r: 4, stroke: 'var(--color-surface)', strokeWidth: 2 }}
+                      />
+                      <Area type="monotone" dataKey="aprobados" name="Aprobados" stroke={COLORS.APROBADO} fill="url(#fillAprob)" strokeWidth={2} dot={false} />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {byTipo.length > 0 && (
+                <div className="mt-4 grid gap-2.5 border-t border-line/50 pt-4 sm:grid-cols-3">
+                  {byTipo.slice(0, 3).map((row, i) => (
+                    <div key={row.tipo}>
+                      <div className="flex items-baseline justify-between gap-2">
+                        <p className="truncate text-xs text-muted">{row.tipo}</p>
+                        <p className="text-sm font-semibold tabular-nums text-ink">{row.value.toLocaleString('es-PY')}</p>
+                      </div>
+                      <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-cream">
+                        <div
+                          className="h-full origin-left rounded-full"
+                          style={{
+                            backgroundColor: TIPO_TONE[i] ?? TIPO_TONE[0],
+                            transform: `scaleX(${row.value / tipoMax})`,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
 
-          {fallidos.length > 0 && (
-            <div className="mt-5 rounded-xl border border-warn/30 bg-warn/5 p-4">
-              <p className="text-sm font-semibold text-warn">Atención: firmados / rechazados</p>
-              <ul className="mt-2 space-y-1.5 text-xs text-muted">
-                {fallidos.map((doc) => (
-                  <li key={`f-${doc.cdc}`} className="flex justify-between gap-2">
-                    <span className="truncate">
-                      {doc.num_documento} · {tipoDeLabel(doc.tipo_de)}
-                    </span>
-                    <span className="shrink-0 font-medium">{estadoMeta(doc.estado).label}</span>
+          <div className={cn(panelClass, 'flex h-full flex-col overflow-hidden dash-rise dash-rise-3 lg:col-span-4')}>
+            <div className="flex flex-1 flex-col p-4 sm:p-5">
+              <h2 className="text-sm font-medium tracking-tight text-ink sm:text-[15px]">Día más activo</h2>
+              <p className="mt-0.5 text-[11px] text-muted sm:text-xs">
+                {weekdayPeak.value > 0 ? `${weekdayPeak.dia} lidera la muestra` : 'Sin actividad por día'}
+              </p>
+              {weekdayPeak.value === 0 ? (
+                <EmptyChart label="Sin actividad semanal" />
+              ) : (
+                <div className="mt-4 flex min-h-0 flex-1 items-stretch gap-2">
+                  {weekdays.map((day) => {
+                    const live = day.value > 0
+                    const ratio = live ? Math.max(day.value / weekdayMax, 0.22) : 0.08
+                    const peak = live && day.dia === weekdayPeak.dia
+                    return (
+                      <div key={day.dia} className="flex min-h-0 min-w-0 flex-1 flex-col items-center gap-2">
+                        <p className={cn('text-[11px] font-medium tabular-nums', peak ? 'text-ink' : 'text-muted')}>
+                          {day.value}
+                        </p>
+                        <div className="weekday-track">
+                          <div
+                            className={cn('weekday-bar', peak && 'is-peak')}
+                            style={{ transform: `scaleY(${ratio})` }}
+                          />
+                        </div>
+                        <p className={cn('text-[11px]', peak ? 'font-semibold text-ink' : 'text-muted')}>{day.dia}</p>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-12">
+          <div className={cn(panelClass, 'flex h-full flex-col overflow-hidden dash-rise dash-rise-3 lg:col-span-8')}>
+            <div className="flex items-center justify-between gap-2 px-4 py-3.5 sm:px-5">
+              <div className="min-w-0">
+                <h2 className="text-sm font-medium tracking-tight text-ink sm:text-[15px]">Documentos recientes</h2>
+                <p className="text-[11px] text-muted sm:text-xs">Últimas emisiones en {environment}</p>
+              </div>
+              <Link
+                to="/documentos"
+                className="group inline-flex shrink-0 items-center gap-1.5 text-xs font-semibold text-brand-600 transition-colors hover:text-brand-700 sm:text-sm"
+              >
+                Ver todos
+                <span className="grid h-6 w-6 place-items-center rounded-full bg-brand-50 transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] group-hover:translate-x-0.5">
+                  <IconArrowRight />
+                </span>
+              </Link>
+            </div>
+
+            <div className="min-w-0 px-2 pb-3 sm:px-3">
+              <ul className="divide-y divide-line/40 sm:hidden">
+                {summary.isLoading && (
+                  <li className="px-2 py-8 text-center text-sm text-muted">Cargando</li>
+                )}
+                {!summary.isLoading && recent.length === 0 && (
+                  <li className="px-2 py-8 text-center text-sm text-muted">
+                    Aún no hay documentos en {environment}.
+                  </li>
+                )}
+                {recent.map((doc) => (
+                  <li key={doc.cdc} className="flex items-start gap-3 px-2 py-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold tabular-nums tracking-tight text-ink">
+                        {doc.num_documento}
+                      </p>
+                      <p className="mt-0.5 truncate text-xs text-muted">
+                        {doc.receptor_nombre || 'Sin nombre'}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                      <p className="whitespace-nowrap text-sm font-semibold tabular-nums text-ok-strong">
+                        {formatMoneda(doc.total_operacion, doc.moneda)}
+                      </p>
+                      <RecentDocStatus estado={doc.estado} />
+                    </div>
                   </li>
                 ))}
               </ul>
-              <Link to="/documentos" className="mt-3 inline-block text-xs font-semibold text-brand-600 hover:text-brand-700">
-                Revisar en Documentos →
-              </Link>
+
+              <table className="hidden w-full table-fixed text-left text-sm sm:table">
+                <thead>
+                  <tr className="text-[11px] font-medium tracking-wide text-muted">
+                    <th className="px-2 py-2 font-medium sm:px-3">Número</th>
+                    <th className="px-2 py-2 font-medium sm:px-3">Receptor</th>
+                    <th className="hidden px-3 py-2 font-medium sm:table-cell">Tipo</th>
+                    <th className="px-2 py-2 text-right font-medium sm:px-3">Monto</th>
+                    <th className="px-2 py-2 font-medium sm:px-3">Estado</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {summary.isLoading && (
+                    <tr>
+                      <td colSpan={5} className="px-3 py-8 text-center text-sm text-muted">
+                        Cargando
+                      </td>
+                    </tr>
+                  )}
+                  {!summary.isLoading && recent.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-3 py-8 text-center text-sm text-muted">
+                        Aún no hay documentos en {environment}.
+                      </td>
+                    </tr>
+                  )}
+                  {recent.map((doc) => (
+                    <tr key={doc.cdc} className="border-t border-line/40">
+                      <td className="truncate px-2 py-2.5 font-medium tabular-nums text-ink sm:px-3">
+                        {doc.num_documento}
+                      </td>
+                      <td className="truncate px-2 py-2.5 text-muted sm:px-3">
+                        {doc.receptor_nombre || 'Sin nombre'}
+                      </td>
+                      <td className="hidden truncate px-3 py-2.5 text-muted sm:table-cell">
+                        {tipoDeLabel(doc.tipo_de)}
+                      </td>
+                      <td className="truncate px-2 py-2.5 text-right font-medium tabular-nums text-ok-strong sm:px-3">
+                        {formatMoneda(doc.total_operacion, doc.moneda)}
+                      </td>
+                      <td className="px-2 py-2.5 sm:px-3">
+                        <RecentDocStatus estado={doc.estado} />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
-          )}
+          </div>
+
+          <div className={cn(panelClass, 'flex h-full flex-col overflow-hidden dash-rise dash-rise-4 lg:col-span-4')}>
+            <div className="flex flex-1 flex-col p-4 sm:p-5">
+              <h2 className="text-sm font-medium tracking-tight text-ink sm:text-[15px]">Tasa de aprobación</h2>
+              <p className="mt-0.5 text-[11px] text-muted sm:text-xs">Aprobados sobre resueltos en SIFEN</p>
+              <RateGauge pct={tasaAprob} />
+              {fallidos.length > 0 && (
+                <div className="mt-1 rounded-2xl bg-cream-soft p-3">
+                  <p className="text-xs font-medium text-ink">Pendientes de atención</p>
+                  <ul className="mt-2 space-y-1.5 text-xs text-muted">
+                    {fallidos.map((doc) => (
+                      <li key={`f-${doc.cdc}`} className="flex justify-between gap-2">
+                        <span className="truncate">
+                          {doc.num_documento} · {tipoDeLabel(doc.tipo_de)}
+                        </span>
+                        <span className="shrink-0 font-medium text-ink">{estadoMeta(doc.estado).label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  <Link to="/documentos" className="mt-2.5 inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700">
+                    Revisar en Documentos
+                    <IconArrowRight />
+                  </Link>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
       </div>
     </AppShell>
   )

@@ -8,7 +8,7 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "generate:api": "openapi-typescript ../../firmador/docs/openapi.yaml -o src/lib/api-schema.d.ts"
+    "generate:api": "openapi-typescript ../../firmador/docs/openapi-panel.yaml -o src/lib/api-schema.d.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.4",
