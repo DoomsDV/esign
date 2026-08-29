@@ -272,7 +272,7 @@ export default function Equipo() {
                   <p className="text-sm leading-relaxed text-muted">Sin invitaciones recientes.</p>
                 ) : (
                   <div className="space-y-3">
-                    <SuccessAlert>
+                    <SuccessAlert overlay={false}>
                       Invitación creada
                       {result.email ? ` · ${result.email}` : ''}
                     </SuccessAlert>
@@ -352,7 +352,7 @@ export default function Equipo() {
       >
         {result?.token && (
           <>
-            <SuccessAlert>
+            <SuccessAlert overlay={false}>
               Este token solo se muestra una vez. Compartilo por un canal seguro
               {result.email ? ` con ${result.email}` : ''}.
             </SuccessAlert>

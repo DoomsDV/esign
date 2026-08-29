@@ -355,6 +355,10 @@ interface StatusFlashProps {
   title?: string
   onClose?: () => void
   className?: string
+  /** false = el aviso ocupa flujo (banners dentro de un drawer). Default: toast overlay. */
+  overlay?: boolean
+  /** Ancla del overlay absoluto. Solo aplica si overlay es true. Default: top. */
+  placement?: 'top' | 'bottom'
 }
 
 function FlashGlyph({ tone }: { tone: FlashTone }) {
@@ -401,8 +405,22 @@ function Flash({
   onClose,
   className,
   dismissible,
+  overlay = false,
+  placement = 'top',
 }: StatusFlashProps & { tone: FlashTone; dismissible: boolean }) {
   const [hidden, setHidden] = useState(false)
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+
+  useEffect(() => {
+    if (!overlay) return
+    const timer = window.setTimeout(() => {
+      if (onCloseRef.current) onCloseRef.current()
+      else setHidden(true)
+    }, 4500)
+    return () => window.clearTimeout(timer)
+  }, [overlay])
+
   if (hidden) return null
 
   const heading = title ?? (tone === 'ok' ? 'Listo' : undefined)
@@ -414,7 +432,7 @@ function Flash({
     else setHidden(true)
   }
 
-  return (
+  const node = (
     <div
       role={tone === 'danger' ? 'alert' : 'status'}
       aria-live={tone === 'danger' ? 'assertive' : 'polite'}
@@ -443,19 +461,50 @@ function Flash({
       )}
     </div>
   )
+
+  if (!overlay) return node
+  return createPortal(
+    <div className={cn('flash-host', placement === 'bottom' && 'flash-host-bottom')}>
+      {node}
+    </div>,
+    document.body,
+  )
 }
 
-export function Alert({ children, title, onClose, className }: StatusFlashProps) {
+export function Alert({ children, title, onClose, className, overlay, placement }: StatusFlashProps) {
   return (
-    <Flash tone="danger" title={title} onClose={onClose} className={className} dismissible={!!onClose}>
+    <Flash
+      tone="danger"
+      title={title}
+      onClose={onClose}
+      className={className}
+      dismissible={!!onClose}
+      overlay={overlay ?? !!onClose}
+      placement={placement}
+    >
       {children}
     </Flash>
   )
 }
 
-export function SuccessAlert({ children, title, onClose, className }: StatusFlashProps) {
+export function SuccessAlert({
+  children,
+  title,
+  onClose,
+  className,
+  overlay = true,
+  placement,
+}: StatusFlashProps) {
   return (
-    <Flash tone="ok" title={title} onClose={onClose} className={className} dismissible>
+    <Flash
+      tone="ok"
+      title={title}
+      onClose={onClose}
+      className={className}
+      dismissible
+      overlay={overlay}
+      placement={placement}
+    >
       {children}
     </Flash>
   )

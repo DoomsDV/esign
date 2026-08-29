@@ -864,7 +864,7 @@ function DocumentDetailModal({
             </Alert>
           )}
           {retryMutation.isSuccess && (
-            <SuccessAlert>
+            <SuccessAlert overlay={false}>
               Documento marcado para reenvío. El servicio lo reintentará automáticamente.
             </SuccessAlert>
           )}

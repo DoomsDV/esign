@@ -339,7 +339,7 @@ export default function ApiKeys() {
       >
         {revealed && (
           <>
-            <SuccessAlert>
+            <SuccessAlert overlay={false}>
               Esta es la única vez que verás la key completa. Guardala en un gestor de secretos.
             </SuccessAlert>
             <p className="mt-4 break-all rounded-[1.05rem] bg-surface px-3.5 py-3 font-mono text-sm leading-snug text-ink">
