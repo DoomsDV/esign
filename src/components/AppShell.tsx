@@ -240,7 +240,7 @@ function HeaderSearch() {
 
   return (
     <form
-      className="header-search flex w-full"
+      className="header-search"
       role="search"
       onSubmit={(e) => {
         e.preventDefault()
@@ -263,7 +263,7 @@ function HeaderSearch() {
       <button type="submit" className="sr-only">
         Buscar
       </button>
-      <kbd className="hidden lg:inline" aria-hidden>
+      <kbd className="hidden xl:inline" aria-hidden>
         {modKey === '⌘' ? '⌘K' : 'Ctrl K'}
       </kbd>
     </form>
