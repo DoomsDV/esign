@@ -62,99 +62,25 @@ function IconExport() {
   )
 }
 
-function IconKpiCheck() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M20 7 10.5 17.5 4 11" className="stroke-current" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-function IconKpiX() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M7 7l10 10M17 7 7 17" className="stroke-current" strokeWidth="1.4" strokeLinecap="round" />
-    </svg>
-  )
-}
-function IconKpiClock() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="12" cy="12" r="8.25" className="stroke-current" strokeWidth="1.4" />
-      <path d="M12 8.5V12l2.6 1.8" className="stroke-current" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-function IconKpiStack() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M7 7.5h10M7 12h10M7 16.5h7" className="stroke-current" strokeWidth="1.4" strokeLinecap="round" />
-      <rect x="4.5" y="4.5" width="15" height="15" rx="3" className="stroke-current" strokeWidth="1.4" />
-    </svg>
-  )
-}
-
 interface SparkPoint {
   dia: string
   v: number
 }
 
-type KpiIcon = 'check' | 'x' | 'clock' | 'stack'
-
-interface Kpi {
+interface HeroKpi {
   label: string
   value: number
-  valueClass: string
   stroke: string
-  fillId: string
   series: SparkPoint[]
-  share: number
-  unit: string
   hint: string
-  featured?: boolean
-  icon: KpiIcon
 }
 
-function KpiGlyph({ icon }: { icon: KpiIcon }) {
-  if (icon === 'check') return <IconKpiCheck />
-  if (icon === 'x') return <IconKpiX />
-  if (icon === 'clock') return <IconKpiClock />
-  return <IconKpiStack />
-}
-
-function MiniRing({ pct, color }: { pct: number; color: string }) {
-  const v = Math.min(100, Math.max(0, Math.round(pct)))
-  const r = 16.4
-  const c = 2 * Math.PI * r
-  return (
-    <div className="relative h-11 w-11 shrink-0 select-none" aria-hidden>
-      <svg viewBox="0 0 44 44" className="h-11 w-11 -rotate-90">
-        <circle
-          cx="22"
-          cy="22"
-          r={r}
-          fill="none"
-          stroke="color-mix(in srgb, var(--color-ink) 18%, transparent)"
-          strokeWidth="2.4"
-        />
-        {v > 0 && (
-          <circle
-            cx="22"
-            cy="22"
-            r={r}
-            fill="none"
-            stroke={color}
-            strokeWidth="2.4"
-            strokeDasharray={c}
-            strokeDashoffset={c * (1 - v / 100)}
-            strokeLinecap="round"
-          />
-        )}
-      </svg>
-      <span className="absolute inset-0 grid place-items-center text-[9px] font-semibold tabular-nums text-ink">
-        {v}%
-      </span>
-    </div>
-  )
+interface StampKpi {
+  label: string
+  value: number
+  stroke: string
+  hint: string
+  alert?: boolean
 }
 
 const AXIS_TICK = 'var(--chart-tick)'
@@ -168,77 +94,78 @@ const tooltipStyle: CSSProperties = {
   fontSize: 12,
 }
 
-function KpiSpark({ series, stroke, fillId, name }: { series: SparkPoint[]; stroke: string; fillId: string; name: string }) {
-  const yMax = Math.max(...series.map((p) => p.v), 1)
+function KpiTicks({ series, color }: { series: SparkPoint[]; color: string }) {
+  const max = Math.max(...series.map((p) => p.v), 1)
   return (
-    <ResponsiveContainer width="100%" height="100%" debounce={200}>
-      <AreaChart data={series} margin={{ top: 8, right: 4, left: 4, bottom: 4 }}>
-        <defs>
-          <linearGradient id={fillId} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={stroke} stopOpacity={0.34} />
-            <stop offset="100%" stopColor={stroke} stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <YAxis hide domain={[0, yMax]} />
-        <Tooltip
-          cursor={{ stroke, strokeWidth: 1, strokeOpacity: 0.28 }}
-          contentStyle={tooltipStyle}
-          formatter={(value) => [value as number, name]}
-        />
-        <Area
-          type="monotone"
-          dataKey="v"
-          name={name}
-          stroke={stroke}
-          fill={`url(#${fillId})`}
-          strokeWidth={1.85}
-          dot={false}
-          activeDot={{ r: 3.5, stroke: 'var(--color-surface)', strokeWidth: 2, fill: stroke }}
-        />
-      </AreaChart>
-    </ResponsiveContainer>
+    <div className="kpi-ticks" style={{ '--tick-color': color } as CSSProperties} aria-hidden>
+      {series.map((p, i) => {
+        const live = p.v > 0
+        const ratio = live ? Math.max(p.v / max, 0.55) : 0.22
+        return (
+          <span
+            key={`${p.dia}-${i}`}
+            className={cn('kpi-tick', live && 'is-live')}
+            style={{ transform: `scaleY(${ratio})` }}
+          />
+        )
+      })}
+    </div>
   )
 }
 
-function KpiCell({ kpi, loading, delay }: { kpi: Kpi; loading: boolean; delay: string }) {
+function KpiValue({ loading, value }: { loading: boolean; value: number }) {
+  if (loading) {
+    return <span className="inline-block h-[0.85em] w-[1.2ch] animate-pulse rounded-md bg-cream align-middle" />
+  }
+  return <>{value}</>
+}
+
+function KpiHero({ kpi, loading, delay }: { kpi: HeroKpi; loading: boolean; delay: string }) {
   return (
     <article
-      className={cn(
-        'dash-rise overflow-hidden rounded-[1.35rem]',
-        'transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
-        'max-sm:transform-none sm:hover:-translate-y-px sm:active:scale-[0.99]',
-        kpi.featured ? 'kpi-featured' : panelClass,
-        delay,
-      )}
-      aria-label={`${kpi.label}: ${kpi.value} ${kpi.unit}. ${kpi.hint}`}
+      className={cn(panelClass, 'flex h-full flex-col overflow-hidden', delay, 'dash-rise')}
+      aria-label={`${kpi.label}: ${kpi.value} DE. ${kpi.hint}`}
     >
-      <div className="px-3 pt-3 sm:px-5 sm:pt-4">
-        <div className="flex items-start justify-between gap-2">
-          <span
-            className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-cream text-muted select-none"
-            aria-hidden
-          >
-            <KpiGlyph icon={kpi.icon} />
+      <div className="flex flex-col px-4 pt-4 sm:px-5 sm:pt-5 lg:flex-1">
+        <p className="text-[12px] font-medium text-muted sm:text-[13px]">{kpi.label}</p>
+        <p className="mt-2 flex items-baseline gap-2">
+          <span className="text-[2.55rem] font-semibold leading-none tracking-tight tabular-nums text-ink sm:text-[3rem]">
+            <KpiValue loading={loading} value={kpi.value} />
           </span>
-          <MiniRing pct={kpi.share} color={kpi.stroke} />
-        </div>
-        <p className="mt-3 text-[12px] font-medium text-muted sm:text-[13px]">{kpi.label}</p>
-        <p className="mt-1 flex items-baseline gap-1 whitespace-nowrap">
-          <span className={cn('text-[1.65rem] font-semibold leading-none tracking-tight tabular-nums sm:text-[2.05rem]', kpi.valueClass)}>
-            {loading ? (
-              <span className="inline-block h-[0.85em] w-[1.35ch] animate-pulse rounded-md bg-cream align-middle" />
-            ) : (
-              kpi.value
-            )}
-          </span>
-          <span className="text-[11px] font-medium text-muted sm:text-xs">{kpi.unit}</span>
+          <span className="text-[11px] font-medium text-muted">DE</span>
         </p>
-        <p className="mt-1.5 text-[10px] leading-snug text-muted sm:mt-2 sm:text-[11px]">{kpi.hint}</p>
+        <p className="mt-2 text-[11px] leading-snug text-muted sm:text-xs">{kpi.hint}</p>
       </div>
-      <div className="mt-1 h-[2.9rem] max-sm:pointer-events-none sm:mt-1.5 sm:h-[4.1rem]" aria-hidden>
-        <KpiSpark series={kpi.series} stroke={kpi.stroke} fillId={kpi.fillId} name={kpi.label} />
-      </div>
+      <KpiTicks series={kpi.series} color={kpi.stroke} />
     </article>
+  )
+}
+
+function KpiStamp({ kpi, loading }: { kpi: StampKpi; loading: boolean }) {
+  const live = kpi.alert || kpi.value > 0
+  return (
+    <article
+      className={cn('kpi-stamp', kpi.alert && 'is-alert')}
+      style={{ '--stamp-color': live ? kpi.stroke : 'color-mix(in srgb, var(--color-ink) 22%, transparent)' } as CSSProperties}
+      aria-label={`${kpi.label}: ${kpi.value}. ${kpi.hint}`}
+    >
+      <span className="kpi-stamp-cap" aria-hidden />
+      <p className="mt-3 truncate text-[11px] font-medium text-muted sm:text-[12px]">{kpi.label}</p>
+      <p className="mt-1.5 text-[1.5rem] font-semibold leading-none tracking-tight tabular-nums text-ink sm:mt-auto sm:text-[1.85rem]">
+        <KpiValue loading={loading} value={kpi.value} />
+      </p>
+      <p className="mt-2 truncate text-[10px] leading-snug text-muted sm:text-[11px]">{kpi.hint}</p>
+    </article>
+  )
+}
+
+function KpiStampRail({ stamps, loading, delay }: { stamps: StampKpi[]; loading: boolean; delay: string }) {
+  return (
+    <div className={cn(panelClass, 'grid h-full grid-cols-3 overflow-hidden', delay, 'dash-rise')}>
+      {stamps.map((kpi) => (
+        <KpiStamp key={kpi.label} kpi={kpi} loading={loading} />
+      ))}
+    </div>
   )
 }
 
@@ -287,23 +214,15 @@ function buildTrend(items: DocumentListItem[]): TrendPoint[] {
   return filled.slice(-14)
 }
 
-type SparkKey = 'aprobados' | 'rechazados' | 'firmados' | 'total'
-
-function sparkSeries(trend: TrendPoint[], key: SparkKey): SparkPoint[] {
-  if (trend.length === 0) {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-    const end = today.getTime()
-    return Array.from({ length: 14 }, (_, i) => ({
-      dia: labelForDay(end - (13 - i) * DAY_MS),
-      v: 0,
-    }))
-  }
-  const series = trend.map((p) => ({ dia: p.dia, v: p[key] }))
-  if (series.length === 1) {
-    return [{ dia: labelForDay(trend[0]!.sort - DAY_MS), v: 0 }, series[0]!]
-  }
-  return series
+function sparkSeries(trend: TrendPoint[]): SparkPoint[] {
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  const end = trend.length > 0 ? trend[trend.length - 1]!.sort : today.getTime()
+  const byDay = new Map(trend.map((p) => [p.sort, p.total]))
+  return Array.from({ length: 14 }, (_, i) => {
+    const ts = end - (13 - i) * DAY_MS
+    return { dia: labelForDay(ts), v: byDay.get(ts) ?? 0 }
+  })
 }
 
 function buildByTipo(items: DocumentListItem[]) {
@@ -333,15 +252,6 @@ function buildWeekdays(items: DocumentListItem[]) {
 
 function sumMontos(items: DocumentListItem[]) {
   return items.reduce((acc, d) => acc + (d.total_operacion ?? 0), 0)
-}
-
-function sumMontosByEstado(items: DocumentListItem[], estado: DocumentListItem['estado']) {
-  return sumMontos(items.filter((d) => d.estado === estado))
-}
-
-function sharePct(part: number, total: number) {
-  if (total <= 0) return 0
-  return Math.round((part / total) * 100)
 }
 
 function gsHint(n: number) {
@@ -463,7 +373,6 @@ function RecentDocStatus({ estado }: { estado: string }) {
 }
 
 const CHART_HEIGHT = 'h-[11.5rem] sm:h-60'
-const KPI_DELAY = ['dash-rise-1', 'dash-rise-2', 'dash-rise-3', 'dash-rise-4']
 
 export default function Dashboard() {
   const { session, environment } = useAuth()
@@ -508,58 +417,35 @@ export default function Dashboard() {
   const hayRechazos = (d?.rechazado ?? 0) > 0
   const hayPendientes = (d?.firmado ?? 0) > 0
   const totalDocs = d?.total ?? 0
-  const montoAprob = useMemo(() => sumMontosByEstado(d?.sample ?? [], 'APROBADO'), [d?.sample])
-  const kpis: Kpi[] = [
+  const heroKpi: HeroKpi = {
+    label: 'Total emitido',
+    value: d?.total ?? 0,
+    stroke: 'var(--color-brand-600)',
+    series: sparkSeries(trend),
+    hint: delta
+      ? `${gsHint(montoMuestra)} · ${delta.up ? '+' : ''}${delta.pct}% vs. periodo`
+      : `${gsHint(montoMuestra)} · 14 días`,
+  }
+  const stampKpis: StampKpi[] = [
     {
-      icon: 'check',
       label: 'Aprobadas',
       value: d?.aprobado ?? 0,
-      valueClass: 'text-ok-strong',
       stroke: 'var(--color-ok)',
-      fillId: 'kpiFillAprob',
-      series: sparkSeries(trend, 'aprobados'),
-      share: tasaAprob ?? sharePct(d?.aprobado ?? 0, totalDocs),
-      unit: '/DE',
-      hint: `${gsHint(montoAprob)} · ${d?.aprobado ?? 0} de ${totalDocs}`,
+      hint: totalDocs > 0 ? `${d?.aprobado ?? 0} de ${totalDocs}` : 'sin emisiones',
     },
     {
-      icon: 'x',
       label: 'Rechazadas',
       value: d?.rechazado ?? 0,
-      valueClass: 'text-danger-strong',
       stroke: 'var(--color-danger)',
-      fillId: 'kpiFillRech',
-      series: sparkSeries(trend, 'rechazados'),
-      share: sharePct(d?.rechazado ?? 0, totalDocs),
-      unit: '/DE',
-      hint: hayRechazos ? `${d?.rechazado} requieren reemisión` : 'sin rechazos',
+      hint: hayRechazos ? `${d?.rechazado} por reemitir` : 'sin rechazos',
+      alert: hayRechazos,
     },
     {
-      icon: 'clock',
       label: 'Firmadas',
       value: d?.firmado ?? 0,
-      valueClass: 'text-warn',
       stroke: 'var(--color-warn)',
-      fillId: 'kpiFillFirm',
-      series: sparkSeries(trend, 'firmados'),
-      share: sharePct(d?.firmado ?? 0, totalDocs),
-      unit: '/DE',
       hint: hayPendientes ? `${d?.firmado} en cola SET` : 'todo enviado',
-    },
-    {
-      icon: 'stack',
-      label: 'Total emitido',
-      value: d?.total ?? 0,
-      valueClass: 'text-brand-600',
-      stroke: 'var(--color-brand-600)',
-      fillId: 'kpiFillTotal',
-      series: sparkSeries(trend, 'total'),
-      share: totalDocs > 0 ? 100 : 0,
-      unit: '/DE',
-      hint: delta
-        ? `${gsHint(montoMuestra)} · ${delta.up ? '+' : ''}${delta.pct}% vs. periodo`
-        : `${gsHint(montoMuestra)} · 14 días`,
-      featured: true,
+      alert: hayPendientes,
     },
   ]
 
@@ -577,7 +463,7 @@ export default function Dashboard() {
           </Alert>
         )}
 
-        <div className="dash-rise flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+        <div className="dash-rise flex items-start justify-between gap-3">
           <div className="min-w-0 select-none">
             <p className="text-[11px] font-medium tracking-wide text-muted">Resumen de emisión</p>
             <p className="mt-1 text-sm text-muted">
@@ -586,7 +472,7 @@ export default function Dashboard() {
               <span className={isTest ? 'text-brand-600' : 'text-ok-strong'}>{environment}</span>
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <span className="hidden h-10 items-center rounded-full bg-surface px-4 text-xs font-medium text-muted shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-ink)_8%,transparent)] sm:inline-flex">
               Últimos 14 días
             </span>
@@ -604,10 +490,13 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2.5 sm:gap-4 lg:grid-cols-4">
-          {kpis.map((kpi, i) => (
-            <KpiCell key={kpi.label} kpi={kpi} loading={summary.isLoading} delay={KPI_DELAY[i] ?? 'dash-rise-1'} />
-          ))}
+        <div className="grid grid-cols-1 gap-2.5 sm:gap-4 lg:grid-cols-12 lg:items-stretch">
+          <div className="h-full lg:col-span-5">
+            <KpiHero kpi={heroKpi} loading={summary.isLoading} delay="dash-rise-1" />
+          </div>
+          <div className="h-full lg:col-span-7">
+            <KpiStampRail stamps={stampKpis} loading={summary.isLoading} delay="dash-rise-2" />
+          </div>
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-12">
@@ -719,15 +608,18 @@ export default function Dashboard() {
               ) : (
                 <div className="mt-5 flex min-h-[12rem] flex-1 items-end gap-2 sm:min-h-[14rem]">
                   {weekdays.map((day) => {
-                    const ratio = day.value / weekdayMax
-                    const peak = day.dia === weekdayPeak.dia
+                    const live = day.value > 0
+                    const ratio = live ? Math.max(day.value / weekdayMax, 0.22) : 0.08
+                    const peak = live && day.dia === weekdayPeak.dia
                     return (
                       <div key={day.dia} className="flex min-w-0 flex-1 flex-col items-center gap-2">
-                        <p className="text-[11px] font-medium tabular-nums text-muted">{day.value}</p>
-                        <div className="flex h-36 w-full items-end sm:h-40">
+                        <p className={cn('text-[11px] font-medium tabular-nums', peak ? 'text-ink' : 'text-muted')}>
+                          {day.value}
+                        </p>
+                        <div className="weekday-track">
                           <div
                             className={cn('weekday-bar', peak && 'is-peak')}
-                            style={{ transform: `scaleY(${Math.max(ratio, 0.06)})` }}
+                            style={{ transform: `scaleY(${ratio})` }}
                           />
                         </div>
                         <p className={cn('text-[11px]', peak ? 'font-semibold text-ink' : 'text-muted')}>{day.dia}</p>
