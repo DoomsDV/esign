@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type ReactNode, type RefObject } from 'rea
 import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '@/lib/auth'
 import { cn } from '@/lib/cn'
+import { Menu } from '@/components/ui'
 import { EnvToggle } from './EnvToggle'
 import { ThemeToggle } from './ThemeToggle'
 import { BrandLogo } from './BrandLogo'
@@ -141,9 +142,10 @@ const CONFIG_PATHS = new Set(CONFIG.map((item) => item.to))
 function IconMore() {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <circle cx="6" cy="12" r="1.6" className="fill-current" />
-      <circle cx="12" cy="12" r="1.6" className="fill-current" />
-      <circle cx="18" cy="12" r="1.6" className="fill-current" />
+      <rect x="4" y="4" width="6.5" height="6.5" rx="1.5" className="stroke-current" strokeWidth="1.8" />
+      <rect x="13.5" y="4" width="6.5" height="6.5" rx="1.5" className="stroke-current" strokeWidth="1.8" />
+      <rect x="4" y="13.5" width="6.5" height="6.5" rx="1.5" className="stroke-current" strokeWidth="1.8" />
+      <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1.5" className="stroke-current" strokeWidth="1.8" />
     </svg>
   )
 }
@@ -280,37 +282,58 @@ function MobileBottomNav({
   const { pathname } = useLocation()
   const onConfigRoute = CONFIG_PATHS.has(pathname)
 
+  const itemShell = (active: boolean) =>
+    cn(
+      'relative flex min-h-[3.1rem] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-[0.95rem] px-1.5 py-1',
+      'transition-[transform,color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/45 focus-visible:ring-offset-2 focus-visible:ring-offset-surface',
+      active ? 'text-brand-700' : 'text-muted active:scale-[0.96] active:text-ink',
+    )
+
+  const labelClass = (active: boolean) =>
+    cn(
+      'relative z-10 max-w-full truncate text-[10px] tracking-[0.02em]',
+      active ? 'font-semibold' : 'font-medium',
+    )
+
+  function NavItemContent({ active, icon, label }: { active: boolean; icon: ReactNode; label: string }) {
+    return (
+      <>
+        {active && (
+          <span
+            aria-hidden
+            className="absolute inset-x-1 inset-y-0.5 rounded-[0.9rem] bg-brand-50/95 dark:bg-brand-100/25"
+          />
+        )}
+        <span
+          className={cn(
+            'relative z-10 grid h-7 w-7 place-items-center transition-[transform,color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+            active ? 'scale-[1.08] text-brand-700' : 'text-muted',
+          )}
+        >
+          {icon}
+        </span>
+        <span className={cn(labelClass(active), !active && 'opacity-75')}>{label}</span>
+      </>
+    )
+  }
+
   return (
     <nav
       inert={menuOpen ? true : undefined}
       className={cn(
         'mobile-bottom-nav fixed inset-x-0 bottom-0 z-30 md:hidden',
-        'transition-transform duration-200 ease-out',
-        menuOpen && 'pointer-events-none translate-y-full',
+        'px-3 pb-[max(0.65rem,env(safe-area-inset-bottom,0px))]',
+        'transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+        menuOpen && 'pointer-events-none translate-y-[calc(100%+0.75rem)]',
       )}
       aria-label="Navegación principal"
       aria-hidden={menuOpen ? true : undefined}
     >
-      <div className="mobile-bottom-nav__surface border-t border-line/70 bg-surface/92 backdrop-blur-xl">
-        <ul className="mx-auto flex max-w-lg items-stretch justify-around px-1 pt-1.5">
+      <div className="mobile-bottom-nav__island mx-auto max-w-md">
+        <ul className="flex items-stretch justify-around gap-1 px-1.5 py-1.5">
           {MOBILE_NAV.map((item) => {
             const isMenu = item.action === 'menu'
-
-            const itemClass = (active: boolean) =>
-              cn(
-                'flex min-h-[3.25rem] min-w-0 flex-1 flex-col items-center justify-center gap-0.5 rounded-xl px-1 py-1',
-                'text-[10px] font-semibold tracking-wide transition-[color,transform,background-color] duration-200',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400/60 focus-visible:ring-offset-2',
-                active
-                  ? 'text-brand-700'
-                  : 'text-muted active:scale-[0.97] active:text-ink',
-              )
-
-            const iconWrap = (active: boolean) =>
-              cn(
-                'grid h-8 w-8 place-items-center rounded-xl transition-colors duration-200',
-                active && 'bg-brand-100 text-brand-700',
-              )
 
             if (isMenu) {
               const isHighlighted = onConfigRoute || menuOpen
@@ -320,12 +343,11 @@ function MobileBottomNav({
                     ref={moreButtonRef}
                     type="button"
                     onClick={onToggleMenu}
-                    className={itemClass(isHighlighted)}
+                    className={itemShell(isHighlighted)}
                     aria-expanded={menuOpen}
                     aria-label={menuOpen ? 'Cerrar menú de configuración' : 'Abrir menú de configuración'}
                   >
-                    <span className={iconWrap(isHighlighted)}>{item.icon}</span>
-                    <span className="truncate">{item.label}</span>
+                    <NavItemContent active={isHighlighted} icon={item.icon} label={item.label} />
                   </button>
                 </li>
               )
@@ -336,13 +358,10 @@ function MobileBottomNav({
                 <NavLink
                   to={item.to!}
                   end={item.to === '/'}
-                  className={({ isActive }) => itemClass(isActive)}
+                  className={({ isActive }) => itemShell(isActive)}
                 >
                   {({ isActive }) => (
-                    <>
-                      <span className={iconWrap(isActive)}>{item.icon}</span>
-                      <span className="truncate">{item.label}</span>
-                    </>
+                    <NavItemContent active={isActive} icon={item.icon} label={item.label} />
                   )}
                 </NavLink>
               </li>
@@ -423,6 +442,14 @@ export function AppShell({
   }
 
   const isTest = environment === 'TEST'
+
+  const accountInitials =
+    (session?.businessName ?? 'ES')
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((w) => w[0]?.toUpperCase() ?? '')
+      .join('') || 'E'
 
   usePageTitle(title)
 
@@ -554,20 +581,55 @@ export function AppShell({
       </div>
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-        {/* Franja de ambiente: cue visual sin ocupar una fila de contenido */}
         <div
-          className={cn('h-1 w-full shrink-0', isTest ? 'bg-brand-400' : 'bg-ok')}
+          className={cn('hidden h-1 w-full shrink-0 md:block', isTest ? 'bg-brand-400' : 'bg-ok')}
           aria-hidden
         />
-        <header className="shrink-0 bg-surface/90">
-          <div className="flex items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6">
-            <div className="flex min-w-0 flex-1 items-center gap-2 md:max-w-[11rem] md:flex-none md:shrink-0">
+        <header className="shrink-0 bg-surface md:bg-surface/90 md:backdrop-blur-xl">
+          {/* Mobile: logo + ambiente + cuenta en una sola fila */}
+          <div className="md:hidden">
+            <div
+              className={cn('h-0.5 w-full shrink-0', isTest ? 'bg-brand-400/90' : 'bg-ok/90')}
+              aria-hidden
+            />
+            <div className="flex items-center gap-2 px-3 py-2.5">
+              <BrandLogo asLink className="min-w-0 shrink-0 px-0" />
+              <h1 className="sr-only">{title}</h1>
+              <div className="ml-auto flex shrink-0 select-none items-center gap-1">
+                <EnvToggle />
+                <ThemeToggle className="shell-icon-btn grid bg-cream-soft ring-1 ring-line/70 hover:bg-cream" />
+                <Menu
+                  label={session?.businessName ? `Cuenta: ${session.businessName}` : 'Menú de cuenta'}
+                  align="right"
+                  trigger={accountInitials}
+                  triggerClassName={cn(
+                    'grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-[0.7rem]',
+                    'bg-brand-100 text-[11px] font-semibold tracking-wide text-brand-700',
+                    'transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+                    'hover:scale-[0.98] active:scale-95',
+                  )}
+                  items={[
+                    {
+                      label: 'Cerrar sesión',
+                      onClick: handleLogout,
+                      icon: <IconLogout />,
+                      danger: isTest,
+                    },
+                  ]}
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop */}
+          <div className="hidden items-center gap-2 px-4 py-3 sm:gap-3 sm:px-6 md:flex">
+            <div className="app-header-title flex min-w-0 flex-1 items-center gap-2">
               <button
                 ref={menuButtonRef}
                 type="button"
                 onClick={toggleDesktopSidebar}
                 className={cn(
-                  'shell-icon-btn hidden md:grid',
+                  'shell-icon-btn grid',
                   collapsed && 'bg-brand-50 text-brand-700',
                 )}
                 aria-label={collapsed ? 'Expandir menú' : 'Colapsar menú'}
@@ -575,47 +637,40 @@ export function AppShell({
               >
                 <IconMenu isX={false} />
               </button>
-              <div className="min-w-0 flex-1 md:flex-none">
-                <h1 className="truncate text-[15px] font-semibold tracking-tight text-ink sm:text-base">
-                  {title}
-                </h1>
-                <p className="truncate text-[11px] text-muted">{session?.businessName}</p>
-              </div>
+              <h1 className="min-w-0 flex-1 truncate text-[15px] font-semibold tracking-tight text-ink sm:text-base">
+                {title}
+              </h1>
             </div>
 
-            <div className="mx-4 hidden min-w-0 flex-1 justify-center md:flex">
-              <div className="w-full max-w-xl">
+            <div className="app-header-search flex flex-1 justify-center">
+              <div className="mx-auto w-full min-w-0 max-w-xl">
                 <HeaderSearch />
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-1 sm:gap-2">
+            <div className="flex shrink-0 select-none items-center gap-1 sm:gap-2">
               {actions && <div className="hidden sm:block">{actions}</div>}
-              <button
-                type="button"
-                className="shell-icon-btn md:hidden"
-                aria-label="Buscar documentos"
-                onClick={() => navigate('/documentos')}
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-                  <circle cx="11" cy="11" r="6.5" className="stroke-current" strokeWidth="1.6" />
-                  <path d="m20 20-3.4-3.4" className="stroke-current" strokeWidth="1.6" strokeLinecap="round" />
-                </svg>
-              </button>
               <EnvToggle />
-              <ThemeToggle className="shell-icon-btn" />
-              <div
-                className="grid h-9 w-9 shrink-0 place-items-center rounded-[0.7rem] bg-brand-100 text-[11px] font-semibold tracking-wide text-brand-700"
-                title={session?.businessName ?? 'Cuenta'}
-                aria-label={session?.businessName ? `Cuenta: ${session.businessName}` : 'Cuenta'}
-              >
-                {(session?.businessName ?? 'ES')
-                  .split(/\s+/)
-                  .filter(Boolean)
-                  .slice(0, 2)
-                  .map((w) => w[0]?.toUpperCase() ?? '')
-                  .join('') || 'E'}
-              </div>
+              <ThemeToggle className="shell-icon-btn grid bg-cream-soft ring-1 ring-line/70 hover:bg-cream" />
+              <Menu
+                label={session?.businessName ? `Cuenta: ${session.businessName}` : 'Menú de cuenta'}
+                align="right"
+                trigger={accountInitials}
+                triggerClassName={cn(
+                  'grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-[0.7rem]',
+                  'bg-brand-100 text-[11px] font-semibold tracking-wide text-brand-700',
+                  'transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+                  'hover:scale-[0.98] active:scale-95',
+                )}
+                items={[
+                  {
+                    label: 'Cerrar sesión',
+                    onClick: handleLogout,
+                    icon: <IconLogout />,
+                    danger: isTest,
+                  },
+                ]}
+              />
             </div>
           </div>
 
@@ -628,7 +683,7 @@ export function AppShell({
 
         <main
           id="contenido"
-          className="min-h-0 flex-1 overflow-auto bg-cream-soft p-4 pb-[calc(5.25rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:pt-6 md:pb-6"
+          className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-cream-soft p-3 pb-[calc(5.15rem+env(safe-area-inset-bottom,0px))] sm:p-4 sm:px-6 sm:pt-6 md:pb-6"
         >
           {children}
         </main>

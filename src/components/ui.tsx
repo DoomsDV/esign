@@ -50,7 +50,7 @@ export function Button({ variant = 'primary', loading, className, children, disa
   return (
     <button
       className={cn(
-        'inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300',
+        'inline-flex select-none items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-300',
         variantClasses[variant],
         className,
       )}
@@ -413,22 +413,25 @@ const sidePanelDesktopWidth: Record<SidePanelSize, string> = {
 }
 
 const sidePanelDesktopShell =
-  'sm:inset-x-auto sm:inset-y-0 sm:right-0 sm:top-0 sm:bottom-0 sm:h-full sm:max-h-none sm:rounded-none sm:pb-0 sm:translate-y-0'
+  'sm:inset-x-auto sm:inset-y-0 sm:right-0 sm:top-0 sm:bottom-0 sm:h-full sm:max-h-none sm:rounded-none sm:pb-0'
 
 export function Modal({
   open,
   onClose,
   title,
   children,
+  footer,
+  bodyClassName,
 }: {
   open: boolean
   onClose: () => void
   title?: ReactNode
   children: ReactNode
+  footer?: ReactNode
+  bodyClassName?: string
 }) {
-  if (!open) return null
   return (
-    <Drawer open onClose={onClose} title={title} size="default">
+    <Drawer open={open} onClose={onClose} title={title} size="default" footer={footer} bodyClassName={bodyClassName}>
       {children}
     </Drawer>
   )
@@ -442,6 +445,8 @@ export function Drawer({
   children,
   footer,
   size = 'default',
+  bodyClassName,
+  keepMounted = false,
 }: {
   open: boolean
   onClose: () => void
@@ -449,22 +454,46 @@ export function Drawer({
   children: ReactNode
   footer?: ReactNode
   size?: SidePanelSize
+  bodyClassName?: string
+  /** Deja el sheet en el DOM cerrado para que la 1ª apertura anime igual que las siguientes. */
+  keepMounted?: boolean
 }) {
   const panelRef = useRef<HTMLElement>(null)
   const titleId = useId()
   const onCloseRef = useRef(onClose)
   onCloseRef.current = onClose
+  const [mounted, setMounted] = useState(keepMounted)
+  const [visible, setVisible] = useState(false)
 
-  // Solo al abrir/cerrar: si onClose cambia en cada render del padre (inline arrow),
-  // re-ejecutar este efecto robaba el foco del input tras cada tecla.
   useEffect(() => {
-    if (!open) return
+    if (open) setMounted(true)
+    else setVisible(false)
+  }, [open])
+
+  useEffect(() => {
+    if (!open || !mounted) return
+    const node = panelRef.current
+    if (node) void node.offsetWidth
+    let cancelled = false
+    const id = requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        if (!cancelled) setVisible(true)
+      })
+    })
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(id)
+    }
+  }, [open, mounted])
+
+  useEffect(() => {
+    if (!visible) return
     const previousFocus = document.activeElement as HTMLElement | null
     panelRef.current?.focus()
     return () => {
       previousFocus?.focus()
     }
-  }, [open])
+  }, [visible])
 
   useEffect(() => {
     if (!open) return
@@ -480,37 +509,36 @@ export function Drawer({
     return () => document.removeEventListener('keydown', onKeyDown)
   }, [open])
 
+  if (!mounted) return null
+
   return (
     <div
-      className={cn('fixed inset-0 z-50', open ? 'pointer-events-auto' : 'pointer-events-none')}
+      className={cn('fixed inset-0 z-50', visible ? 'pointer-events-auto' : 'pointer-events-none')}
     >
       <div
-        className={cn(
-          'absolute inset-0 bg-ink/40 transition-opacity duration-200',
-          open ? 'opacity-100 backdrop-blur-sm' : 'opacity-0',
-        )}
+        className={cn('drawer-scrim absolute inset-0', visible && 'is-open')}
         onClick={onClose}
         aria-hidden
       />
       <aside
         ref={panelRef}
         role="dialog"
-        aria-modal={open}
+        aria-modal={visible}
         aria-labelledby={title ? titleId : undefined}
+        aria-hidden={!visible}
         tabIndex={-1}
-        inert={!open ? true : undefined}
+        inert={!visible ? true : undefined}
         className={cn(
-          'absolute z-10 flex w-full flex-col bg-surface shadow-2xl outline-none',
-          'inset-x-0 bottom-0 top-auto max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-bottom,0px)))] rounded-t-2xl pb-[max(0px,env(safe-area-inset-bottom))]',
-          'transition-transform duration-200 ease-out',
-          open ? 'translate-y-0' : 'translate-y-full',
+          'drawer-sheet absolute z-10 flex w-full flex-col outline-none',
+          visible && 'is-open',
+          'inset-x-0 bottom-0 top-auto max-h-[min(90dvh,calc(100dvh-env(safe-area-inset-bottom,0px)))] rounded-t-2xl',
+          !footer && 'pb-[max(0px,env(safe-area-inset-bottom))]',
           sidePanelDesktopShell,
           sidePanelDesktopWidth[size],
-          open ? 'sm:translate-x-0' : 'sm:translate-x-full',
         )}
       >
         <div className="mx-auto mt-2.5 h-1 w-10 shrink-0 rounded-full bg-line sm:hidden" aria-hidden />
-        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-5 py-4 sm:mt-0 sm:px-6">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-line px-4 py-3 sm:mt-0 sm:px-6 sm:py-4">
           <div id={titleId} className="text-lg font-bold text-ink">
             {title}
           </div>
@@ -523,9 +551,13 @@ export function Drawer({
             ✕
           </button>
         </div>
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5 sm:px-6">{children}</div>
+        <div className={cn('min-h-0 flex-1 overflow-y-auto', bodyClassName ?? 'px-4 py-3 sm:px-6 sm:py-5')}>
+          {children}
+        </div>
         {footer && (
-          <div className="shrink-0 border-t border-line bg-surface px-5 py-4 sm:px-6">{footer}</div>
+          <div className="shrink-0 border-t border-line px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:px-6 sm:py-4 sm:pb-4">
+            {footer}
+          </div>
         )}
       </aside>
     </div>
@@ -545,10 +577,15 @@ export function Menu({
   items,
   label = 'Más acciones',
   align = 'right',
+  trigger,
+  triggerClassName,
 }: {
   items: MenuItem[]
   label?: string
   align?: 'left' | 'right'
+  /** Contenido del botón disparador (p. ej. avatar). Si no se pasa, usa el ícono kebab. */
+  trigger?: ReactNode
+  triggerClassName?: string
 }) {
   const [open, setOpen] = useState(false)
   const [coords, setCoords] = useState<{ top: number; left: number } | null>(null)
@@ -623,15 +660,19 @@ export function Menu({
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
         className={cn(
-          'grid h-8 w-8 place-items-center rounded-lg text-muted transition-colors hover:bg-cream hover:text-ink',
-          open && 'bg-cream text-ink',
+          trigger
+            ? triggerClassName
+            : 'grid h-8 w-8 place-items-center rounded-lg text-muted transition-colors hover:bg-cream hover:text-ink',
+          open && (trigger ? 'ring-2 ring-brand-400/45 ring-offset-2 ring-offset-surface' : 'bg-cream text-ink'),
         )}
       >
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <circle cx="12" cy="5" r="1.6" className="fill-current" />
-          <circle cx="12" cy="12" r="1.6" className="fill-current" />
-          <circle cx="12" cy="19" r="1.6" className="fill-current" />
-        </svg>
+        {trigger ?? (
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <circle cx="12" cy="5" r="1.6" className="fill-current" />
+            <circle cx="12" cy="12" r="1.6" className="fill-current" />
+            <circle cx="12" cy="19" r="1.6" className="fill-current" />
+          </svg>
+        )}
       </button>
       {open &&
         coords &&

@@ -1,7 +1,8 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
-import { Alert, Badge, Button, Menu, Modal, PageHeader, SuccessAlert, panelClass } from '@/components/ui'
+import { Alert, Button, Drawer, Menu, SuccessAlert } from '@/components/ui'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
 import { listApiKeys, rotateApiKey, type ApiKeyMeta, type RotateKeyResult } from '@/lib/config'
@@ -74,18 +75,18 @@ function RotateIcon({ className }: { className?: string }) {
   )
 }
 
-function KeyIconSmall({ className }: { className?: string }) {
+function StatusChip({ status }: { status: string }) {
+  const active = status.toUpperCase() === 'ACTIVE'
   return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" className={className} aria-hidden>
-      <circle cx="8" cy="15" r="4" className="stroke-current" strokeWidth="1.7" />
-      <path
-        d="m11.5 12.5 8.5-8.5M16 4l4 4M19 7l-3 3"
-        className="stroke-current"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
+    <span
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-medium',
+        statusClass(status),
+      )}
+    >
+      <span className={cn('h-1.5 w-1.5 rounded-full', active ? 'bg-ok' : 'bg-neutral')} />
+      {formatKeyStatus(status)}
+    </span>
   )
 }
 
@@ -98,66 +99,52 @@ function ActiveKeyCard({
   canRotate: boolean
   onRotate: () => void
 }) {
-  const meta = [
-    `Creada ${formatFechaKey(keyMeta.created_at)}`,
-    keyMeta.label ?? null,
-  ]
-    .filter(Boolean)
-    .join(' · ')
+  const meta = `Creada ${formatFechaKey(keyMeta.created_at)}`
 
   return (
-    <article className={cn(panelClass, 'p-5 sm:p-6')}>
+    <article className="estab-card overflow-hidden rounded-[1.25rem] bg-surface px-4 py-4 sm:px-6 sm:py-5">
       <div className="flex items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-2.5">
-          <span className="mt-0.5 shrink-0 text-muted/60">
-            <KeyIconSmall />
-          </span>
-          <div className="min-w-0">
-            <p className="text-sm font-semibold text-ink">Secret key</p>
-            <p className="mt-0.5 text-xs leading-relaxed text-muted">{meta}</p>
-          </div>
+        <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted">Secret key</p>
+        <div className="flex shrink-0 items-center gap-1">
+          <StatusChip status={keyMeta.status} />
+          {canRotate && (
+            <div className="hidden sm:block">
+              <Menu
+                items={[
+                  {
+                    label: 'Rotar key',
+                    onClick: onRotate,
+                    icon: <RotateIcon />,
+                    danger: true,
+                  },
+                ]}
+              />
+            </div>
+          )}
         </div>
-        {canRotate && (
-          <Menu
-            items={[
-              {
-                label: 'Rotar key',
-                onClick: onRotate,
-                icon: <RotateIcon />,
-                danger: true,
-              },
-            ]}
-          />
-        )}
       </div>
-
-      <div className="mt-5">
-        <code className="block min-w-0 rounded-xl border border-line/80 bg-cream-soft/60 px-3.5 py-3 font-mono text-sm leading-none tracking-tight text-ink sm:text-[15px]">
-          {maskKeyPrefix(keyMeta.prefix)}
-        </code>
-        <p className="mt-2 text-xs leading-relaxed text-muted">
-          La key completa solo se muestra al generar o rotar. Si la perdiste, rotá para obtener una nueva.
-        </p>
-      </div>
-
-      <div className="mt-4">
-        <Badge className={statusClass(keyMeta.status)}>{formatKeyStatus(keyMeta.status)}</Badge>
-      </div>
+      <p className="mt-3 break-all font-mono text-[1.35rem] font-semibold leading-[1.15] tracking-tight text-ink select-none sm:text-lg">
+        {maskKeyPrefix(keyMeta.prefix)}
+      </p>
+      <p className="mt-2 text-[11px] text-muted">{meta}</p>
+      <p className="mt-3 text-xs leading-relaxed text-muted">
+        La key completa solo se muestra al generar o rotar. Si la perdiste, rotá para obtener una nueva.
+      </p>
     </article>
   )
 }
 
 function RevokedKeyRow({ keyMeta }: { keyMeta: ApiKeyMeta }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 sm:px-6">
+    <div className="flex items-center justify-between gap-3 border-t border-[color-mix(in_srgb,var(--color-ink)_8%,transparent)] py-3.5 first:border-t-0 first:pt-0 last:pb-0">
       <div className="min-w-0">
-        <p className="font-mono text-xs tabular-nums text-muted">{maskKeyPrefix(keyMeta.prefix)}</p>
-        <p className="mt-0.5 text-xs text-muted/80">
-          Revocada · {formatFechaKey(keyMeta.created_at)}
+        <p className="break-all font-mono text-xs tabular-nums text-ink">{maskKeyPrefix(keyMeta.prefix)}</p>
+        <p className="mt-0.5 text-[11px] text-muted">
+          {formatFechaKey(keyMeta.created_at)}
           {keyMeta.label ? ` · ${keyMeta.label}` : ''}
         </p>
       </div>
-      <Badge className={statusClass(keyMeta.status)}>{formatKeyStatus(keyMeta.status)}</Badge>
+      <StatusChip status={keyMeta.status} />
     </div>
   )
 }
@@ -210,62 +197,111 @@ export default function ApiKeys() {
   const activeKey = scoped.find((k) => k.status === 'ACTIVE')
   const revokedKeys = scoped.filter((k) => k.status === 'REVOKED')
 
+  const drawerOpen = confirmOpen || !!revealed
+  const fabLabel = activeKey ? 'Rotar' : 'Generar'
+
   return (
     <AppShell title="API keys">
-      <div className="dashboard-canvas -m-4 space-y-5 p-4 sm:-m-6 sm:space-y-6 sm:p-6">
-        <PageHeader compactOnMobile title="Keys de emisión" description={API_KEYS_TIP} />
-
-        {err && <Alert>{err}</Alert>}
-
-        {q.isLoading && <p className="text-sm text-muted">Cargando…</p>}
-        {q.error && <Alert>{(q.error as Error).message}</Alert>}
-
-        {!q.isLoading && !q.error && scoped.length === 0 && (
-          <div className={cn(panelClass, 'px-6 py-12 text-center')}>
-            <p className="text-base font-semibold text-ink">Todavía no hay keys</p>
-            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted">
-              Generá tu primera secret key para conectar tu sistema vía API.
-            </p>
+      <div className="dashboard-canvas space-y-4 sm:-m-6 sm:space-y-6 sm:p-6">
+        {!q.isLoading && (
+          <div className="hidden items-end justify-between gap-3 sm:flex">
+            <div className="min-w-0">
+              <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">Integración</p>
+              <h2 className="mt-1 text-xl font-semibold tracking-tight text-ink">Keys de emisión</h2>
+              <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted">{API_KEYS_TIP}</p>
+            </div>
             {canRotate && (
-              <Button className="mt-6 gap-1.5" variant="secondary" onClick={openRotateConfirm}>
+              <Button
+                variant={activeKey ? 'secondary' : 'primary'}
+                onClick={openRotateConfirm}
+                className="h-10 shrink-0 gap-1.5"
+              >
                 <RotateIcon />
-                Generar key
+                {activeKey ? 'Rotar key' : 'Generar key'}
               </Button>
             )}
           </div>
         )}
 
+        {err && <Alert>{err}</Alert>}
+        {q.isLoading && <p className="text-sm text-muted">Cargando…</p>}
+        {q.error && <Alert>{(q.error as Error).message}</Alert>}
+
+        {!q.isLoading && !q.error && scoped.length === 0 && (
+          <div className="rounded-[1.25rem] bg-surface px-5 py-10 text-center sm:px-6 sm:py-12">
+            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">Integración</p>
+            <p className="mt-2 text-xl font-semibold tracking-tight text-ink">Todavía no hay keys</p>
+            <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted">
+              Generá tu primera secret key para conectar tu sistema vía API.
+            </p>
+          </div>
+        )}
+
         {!q.isLoading && !q.error && activeKey && (
-          <ActiveKeyCard
-            keyMeta={activeKey}
-            canRotate={canRotate}
-            onRotate={openRotateConfirm}
-          />
+          <ActiveKeyCard keyMeta={activeKey} canRotate={canRotate} onRotate={openRotateConfirm} />
         )}
 
         {!q.isLoading && !q.error && revokedKeys.length > 0 && (
-          <div className={panelClass}>
-            <p className="border-b border-line/60 px-5 py-3 text-xs font-medium uppercase tracking-wide text-muted sm:px-6">
-              Revocadas
-            </p>
-            <div className="divide-y divide-line/40">
+          <section>
+            <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.16em] text-muted">Revocadas</h3>
+            <div className="overflow-hidden rounded-[1.25rem] bg-surface px-4 py-4 sm:px-6 sm:py-5">
               {revokedKeys.map((k) => (
                 <RevokedKeyRow key={`${k.environment}-${k.prefix}-${k.created_at}`} keyMeta={k} />
               ))}
             </div>
-          </div>
+          </section>
         )}
       </div>
 
-      <Modal
+      {canRotate &&
+        !q.isLoading &&
+        createPortal(
+          <button
+            type="button"
+            onClick={openRotateConfirm}
+            className={cn(
+              'fixed right-4 z-[35] inline-flex h-12 items-center gap-2 rounded-full bg-brand-400 pr-5 pl-1.5 text-sm font-semibold text-ink md:hidden',
+              'shadow-[0_10px_24px_-14px_color-mix(in_srgb,var(--color-ink)_22%,transparent)]',
+              'transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+              'active:scale-[0.96]',
+              'bottom-[calc(5.35rem+env(safe-area-inset-bottom,0px))]',
+              environment === 'PROD' && 'env-prod',
+              drawerOpen && 'pointer-events-none scale-95 opacity-0',
+            )}
+            aria-label={activeKey ? 'Rotar secret key' : 'Generar secret key'}
+          >
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-surface text-ink">
+              <RotateIcon />
+            </span>
+            {fabLabel}
+          </button>,
+          document.body,
+        )}
+
+      <Drawer
         open={confirmOpen}
         onClose={() => !rotate.isPending && setConfirmOpen(false)}
-        title="Rotar secret key"
+        title={activeKey ? 'Rotar secret key' : 'Generar secret key'}
+        keepMounted
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" disabled={rotate.isPending} onClick={() => setConfirmOpen(false)}>
+              Cancelar
+            </Button>
+            <Button
+              variant={isProd ? 'danger' : 'primary'}
+              loading={rotate.isPending}
+              onClick={() => rotate.mutate(environment)}
+            >
+              {activeKey ? 'Confirmar rotación' : 'Generar key'}
+            </Button>
+          </div>
+        }
       >
         <div
           className={cn(
-            'rounded-xl border px-4 py-3 text-sm',
-            isProd ? 'border-ok/30 bg-ok/5 text-ok-strong' : 'border-warn/30 bg-warn/5 text-warn',
+            'rounded-[1.05rem] px-3.5 py-3 text-sm leading-relaxed',
+            isProd ? 'bg-ok/10 text-ok-strong' : 'bg-warn/10 text-warn',
           )}
         >
           {isProd ? (
@@ -273,51 +309,48 @@ export default function ApiKeys() {
               Estás en <strong>producción</strong>. La key activa quedará <strong>revocada</strong> y las
               integraciones que la usen dejarán de autenticarse.
             </>
-          ) : (
+          ) : activeKey ? (
             <>
               La key activa quedará <strong>revocada</strong>. La nueva key se mostrará una sola vez.
             </>
+          ) : (
+            <>La key completa se mostrará una sola vez. Guardala en un gestor de secretos.</>
           )}
         </div>
-        <p className="mt-3 text-sm text-muted">
-          Actualizá el secreto en tus integraciones al guardar la key nueva; la anterior dejará de funcionar
-          de inmediato.
-        </p>
-        <div className="mt-5 flex justify-end gap-2">
-          <Button variant="secondary" disabled={rotate.isPending} onClick={() => setConfirmOpen(false)}>
-            Cancelar
-          </Button>
-          <Button
-            variant={isProd ? 'danger' : 'primary'}
-            loading={rotate.isPending}
-            onClick={() => rotate.mutate(environment)}
-          >
-            Confirmar rotación
-          </Button>
-        </div>
-      </Modal>
+        {activeKey && (
+          <p className="mt-3 text-sm leading-relaxed text-muted">
+            Actualizá el secreto en tus integraciones al guardar la key nueva; la anterior dejará de funcionar
+            de inmediato.
+          </p>
+        )}
+      </Drawer>
 
-      <Modal open={!!revealed} onClose={() => setRevealed(null)} title="Nueva API key — cópiala ahora">
+      <Drawer
+        open={!!revealed}
+        onClose={() => setRevealed(null)}
+        title="Nueva API key"
+        keepMounted
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant={copied ? 'success-outline' : 'secondary'} onClick={copyKey} className="gap-1.5">
+              <CopyIcon />
+              {copied ? 'Copiada' : 'Copiar'}
+            </Button>
+            <Button onClick={() => setRevealed(null)}>Listo</Button>
+          </div>
+        }
+      >
         {revealed && (
           <>
             <SuccessAlert>
               Esta es la única vez que verás la key completa. Guardala en un gestor de secretos.
             </SuccessAlert>
-            <div className="mt-4 flex flex-col gap-2 sm:flex-row sm:items-stretch">
-              <code className="block min-w-0 flex-1 rounded-xl border border-line bg-cream-soft/50 px-3.5 py-3 font-mono text-sm break-all text-ink">
-                {revealed.api_key}
-              </code>
-              <Button variant={copied ? 'success-outline' : 'secondary'} onClick={copyKey} className="shrink-0 gap-1.5">
-                <CopyIcon />
-                {copied ? 'Copiada' : 'Copiar'}
-              </Button>
-            </div>
-            <div className="mt-5 flex justify-end">
-              <Button onClick={() => setRevealed(null)}>Listo</Button>
-            </div>
+            <p className="mt-4 break-all rounded-[1.05rem] bg-surface px-3.5 py-3 font-mono text-sm leading-snug text-ink">
+              {revealed.api_key}
+            </p>
           </>
         )}
-      </Modal>
+      </Drawer>
     </AppShell>
   )
 }

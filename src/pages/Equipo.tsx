@@ -1,17 +1,8 @@
 import { useState, useRef, useEffect, type FormEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { useMutation } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
-import {
-  Alert,
-  Button,
-  InfoTip,
-  Modal,
-  PageHeader,
-  SectionHint,
-  SuccessAlert,
-  TextField,
-  panelClass,
-} from '@/components/ui'
+import { Alert, Button, Drawer, SuccessAlert, TextField } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
@@ -31,28 +22,24 @@ const ROLES: Array<{
   label: string
   short: string
   desc: string
-  tip: string
 }> = [
   {
     value: 'analyst',
     label: 'Analista',
     short: 'Solo lectura',
-    desc: 'Solo lectura de documentos. Sin acceso a certificado ni keys.',
-    tip: 'Para contabilidad o auditoría: consulta DE emitidos sin tocar secretos.',
+    desc: 'Consulta DE emitidos. Sin acceso a certificado ni keys.',
   },
   {
     value: 'developer',
     label: 'Desarrollador',
     short: 'Keys, emisión y config',
-    desc: 'Ve y rota API keys, emite documentos y consulta configuración.',
-    tip: 'Ideal para quien integra tu backend o emite por API. No puede subir certificado ni timbrado.',
+    desc: 'Rota keys, emite documentos y consulta configuración.',
   },
   {
     value: 'owner',
     label: 'Propietario',
     short: 'Acceso total',
-    desc: 'Acceso total: equipo, certificado, ambientes y facturación.',
-    tip: 'Mismo poder que vos: gestionar secretos, invitar personas y configurar el negocio.',
+    desc: 'Equipo, certificado, ambientes y facturación.',
   },
 ]
 
@@ -84,8 +71,22 @@ function CopyIcon({ className }: { className?: string }) {
   )
 }
 
+function IconInvite() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="9" cy="8" r="3" className="stroke-current" strokeWidth="1.7" />
+      <path
+        d="M3.5 19c.6-3 2.8-4.5 5.5-4.5S14 16 14.5 19M16 8h5M18.5 5.5v5"
+        className="stroke-current"
+        strokeWidth="1.7"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
 export default function Equipo() {
-  const { session } = useAuth()
+  const { session, environment } = useAuth()
   const token = session!.accessToken
   const canInvite = session!.role === 'owner'
 
@@ -108,6 +109,7 @@ export default function Equipo() {
     mutationFn: () => createInvitation(token, email.trim(), role),
     onSuccess: (data) => {
       setErr(null)
+      setConfirmOwnerOpen(false)
       setResult(data)
       setCopied(false)
       setEmail('')
@@ -115,12 +117,15 @@ export default function Equipo() {
     },
     onError: (e: Error) => {
       setResult(null)
+      setConfirmOwnerOpen(false)
       setErr(e instanceof ApiError ? e.message : e.message)
     },
   })
 
   const inviting = invite.isPending
   const emailValid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+  const canSubmit = canInvite && emailValid && !inviting
+  const drawerOpen = confirmOwnerOpen || tokenModalOpen
 
   async function copyToken() {
     if (!result?.token) return
@@ -134,14 +139,18 @@ export default function Equipo() {
     }
   }
 
-  function handleSubmit(e: FormEvent) {
-    e.preventDefault()
-    if (!emailValid || inviting) return
+  function requestInvite() {
+    if (!canSubmit) return
     if (role === 'owner') {
       setConfirmOwnerOpen(true)
       return
     }
     invite.mutate()
+  }
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault()
+    requestInvite()
   }
 
   function inviteExpiryLabel(data: InviteResult): string | null {
@@ -155,34 +164,25 @@ export default function Equipo() {
 
   return (
     <AppShell title="Equipo">
-      <div className="dashboard-canvas -m-4 space-y-5 p-4 sm:-m-6 sm:space-y-6 sm:p-6">
-        <PageHeader
-          compactOnMobile
-          title={
-            <span className="inline-flex items-center gap-1.5">
-              Equipo
-              <InfoTip text={PAGE_TIP} className="sm:hidden" />
-            </span>
-          }
-          description={PAGE_TIP}
-        />
+      <div className="dashboard-canvas space-y-4 sm:-m-6 sm:space-y-6 sm:p-6">
+        <div className="hidden items-end justify-between gap-3 sm:flex">
+          <div className="min-w-0">
+            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">Cuenta</p>
+            <h2 className="mt-1 text-xl font-semibold tracking-tight text-ink">Equipo</h2>
+            <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted">{PAGE_TIP}</p>
+          </div>
+        </div>
 
-        <div
-          className={cn(
-            'grid w-full gap-5 lg:items-stretch',
-            canInvite ? 'lg:grid-cols-2' : 'lg:grid-cols-1',
-          )}
-        >
-          <div className={cn(panelClass, 'order-1 flex h-full min-h-0 flex-col overflow-hidden lg:order-1')}>
-            <div className="border-b border-line/60 px-5 py-4 sm:px-6">
-              <SectionHint title="Invitar miembro" tip={INVITE_TIP} />
-            </div>
+        <div className={cn('grid w-full gap-4 lg:items-start', canInvite ? 'lg:grid-cols-2 lg:gap-6' : 'lg:grid-cols-1')}>
+          <section className="order-1">
+            <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.16em] text-muted">Invitar</h3>
+            <div className="rounded-[1.25rem] bg-surface px-4 py-4 sm:px-6 sm:py-5">
+              <p className="mb-3 hidden text-sm leading-relaxed text-muted sm:block">{INVITE_TIP}</p>
 
-            <div className="flex flex-1 flex-col px-5 py-5 sm:px-6">
               {!canInvite ? (
                 <Alert>Solo el propietario de la cuenta puede invitar miembros.</Alert>
               ) : (
-                <form onSubmit={handleSubmit} className="flex flex-1 flex-col gap-5">
+                <form id="equipo-invite-form" onSubmit={handleSubmit} className="flex flex-col gap-3 sm:gap-4">
                   <TextField
                     label="Email"
                     name="invite-email"
@@ -203,9 +203,10 @@ export default function Equipo() {
                     <p className="mb-1.5 text-sm font-medium text-ink">
                       Rol <span className="text-danger/45">*</span>
                     </p>
-                    <div className="flex flex-col gap-1" role="radiogroup" aria-label="Rol del invitado">
+                    <div className="flex flex-col gap-1.5" role="radiogroup" aria-label="Rol del invitado">
                       {ROLES.map((r) => {
                         const active = role === r.value
+                        const owner = r.value === 'owner'
                         return (
                           <div
                             key={r.value}
@@ -221,42 +222,26 @@ export default function Equipo() {
                               }
                             }}
                             className={cn(
-                              'flex w-full cursor-pointer items-center gap-2 rounded-lg border px-2.5 py-2 text-left transition-colors disabled:opacity-60 sm:gap-2.5 sm:px-3',
+                              'flex w-full cursor-pointer items-start gap-3 rounded-[1.05rem] px-3.5 py-2.5 text-left',
+                              'transition-[transform,opacity,background-color] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+                              'active:scale-[0.99]',
                               inviting && 'pointer-events-none opacity-60',
-                              active && r.value === 'owner'
-                                ? 'border-warn/50 bg-warn/5 ring-1 ring-warn/25'
-                                : active
-                                  ? 'border-brand-400 bg-brand-50/60 ring-1 ring-brand-200'
-                                  : 'border-line hover:border-ink/25 hover:bg-cream',
+                              active && owner && 'bg-warn/10',
+                              active && !owner && 'bg-brand-50',
+                              !active && 'bg-cream-soft',
                             )}
                           >
                             <span
                               aria-hidden
                               className={cn(
-                                'flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-full border transition-colors',
-                                active
-                                  ? r.value === 'owner'
-                                    ? 'border-warn bg-warn'
-                                    : 'border-brand-500 bg-brand-500'
-                                  : 'border-line bg-surface',
+                                'mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full',
+                                active ? (owner ? 'bg-warn' : 'bg-brand-500') : 'bg-muted/35',
                               )}
-                            >
-                              {active ? (
-                                <span className="h-1.5 w-1.5 rounded-full bg-white" />
-                              ) : null}
-                            </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="inline-flex flex-wrap items-center gap-x-1 gap-y-0">
-                                <span className="text-sm font-medium text-ink">{r.label}</span>
-                                <span className="text-xs text-muted">· {r.short}</span>
-                                <InfoTip
-                                  text={r.tip}
-                                  className="-my-1 [&_button]:h-5 [&_button]:w-5 [&_svg]:h-3 [&_svg]:w-3"
-                                />
-                              </span>
-                              <p className="mt-0.5 hidden text-xs leading-snug text-muted sm:block">
-                                {r.desc}
-                              </p>
+                            />
+                            <span className="min-w-0">
+                              <span className="text-sm font-medium text-ink">{r.label}</span>
+                              <span className="text-xs text-muted"> · {r.short}</span>
+                              <p className="mt-0.5 text-[11px] leading-snug text-muted sm:text-xs">{r.desc}</p>
                             </span>
                           </div>
                         )
@@ -266,155 +251,149 @@ export default function Equipo() {
 
                   {err && <Alert>{err}</Alert>}
 
-                  <div className="mt-auto flex justify-end pt-1">
-                    <Button
-                      type="submit"
-                      className="max-sm:w-full"
-                      loading={inviting}
-                      disabled={!emailValid || inviting}
-                    >
+                  <div className="hidden justify-end pt-1 sm:flex">
+                    <Button type="submit" loading={inviting} disabled={!canSubmit}>
                       Crear invitación
                     </Button>
                   </div>
                 </form>
               )}
             </div>
-          </div>
+          </section>
 
           {canInvite && (
-          <div className={cn(panelClass, 'order-2 flex h-full min-h-0 flex-col overflow-hidden lg:order-2')}>
-            <div className="border-b border-line/60 px-5 py-4 sm:px-6">
-              <SectionHint title="Última invitación" tip={LAST_INVITE_TIP} />
-            </div>
-
-            <div className="flex flex-1 flex-col px-5 py-5 sm:px-6">
-              {!result ? (
-                <div className="flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-line px-5 py-12 text-center">
-                  <p className="text-sm font-semibold text-ink">Sin invitaciones recientes</p>
-                  <p className="mx-auto mt-2 max-w-xs text-sm text-muted">
-                    Cuando crees una, el token aparecerá en un diálogo para copiarlo.
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <SuccessAlert>
-                    Invitación creada
-                    {result.email ? ` · ${result.email}` : ''}
-                  </SuccessAlert>
-
-                  <div className="grid gap-3 sm:grid-cols-2">
-                    <div className="rounded-xl bg-cream-soft/80 px-4 py-3">
-                      <p className="text-xs font-medium text-muted">Rol</p>
-                      <p className="mt-1 text-sm font-semibold text-ink">
-                        {formatRoleLabel(result.role ?? role)}
+            <section className="order-2">
+              <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.16em] text-muted">
+                Última invitación
+              </h3>
+              <article className="rounded-[1.25rem] bg-surface px-4 py-4 sm:px-6 sm:py-5">
+                <p className="mb-3 hidden text-sm leading-relaxed text-muted sm:block">{LAST_INVITE_TIP}</p>
+                {!result ? (
+                  <p className="text-sm leading-relaxed text-muted">Sin invitaciones recientes.</p>
+                ) : (
+                  <div className="space-y-3">
+                    <SuccessAlert>
+                      Invitación creada
+                      {result.email ? ` · ${result.email}` : ''}
+                    </SuccessAlert>
+                    <p className="break-all text-[1.15rem] font-semibold leading-snug tracking-tight text-ink">
+                      {result.email || 'Invitado'}
+                    </p>
+                    <p className="text-[11px] text-muted">
+                      {formatRoleLabel(result.role ?? role)}
+                      {inviteExpiryLabel(result) ? ` · Expira ${inviteExpiryLabel(result)}` : ''}
+                    </p>
+                    {result.token && (
+                      <p className="text-xs leading-relaxed text-muted">
+                        El token ya se mostró. Si no lo copiaste, creá una nueva invitación para el mismo email.
                       </p>
-                    </div>
-                    {inviteExpiryLabel(result) && (
-                      <div className="rounded-xl bg-cream-soft/80 px-4 py-3">
-                        <p className="text-xs font-medium text-muted">Expira</p>
-                        <p className="mt-1 text-sm font-semibold tabular-nums text-ink">
-                          {inviteExpiryLabel(result)}
-                        </p>
-                      </div>
                     )}
                   </div>
-
-                  {result.token && (
-                    <p className="text-sm text-muted">
-                      El token de invitación ya se mostró en el diálogo. Si no lo copiaste, creá una
-                      nueva invitación para el mismo email.
-                    </p>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
+                )}
+              </article>
+            </section>
           )}
         </div>
       </div>
 
-      <Modal
+      {canInvite &&
+        createPortal(
+          <button
+            type="button"
+            onClick={requestInvite}
+            disabled={!canSubmit}
+            className={cn(
+              'fixed right-4 z-[35] inline-flex h-12 items-center gap-2 rounded-full bg-brand-400 pr-5 pl-1.5 text-sm font-semibold text-ink md:hidden',
+              'shadow-[0_10px_24px_-14px_color-mix(in_srgb,var(--color-ink)_22%,transparent)]',
+              'transition-[transform,opacity] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
+              'active:scale-[0.96] disabled:opacity-50',
+              'bottom-[calc(5.35rem+env(safe-area-inset-bottom,0px))]',
+              environment === 'PROD' && 'env-prod',
+              drawerOpen && 'pointer-events-none scale-95 opacity-0',
+            )}
+            aria-label="Crear invitación"
+          >
+            <span className="grid h-9 w-9 place-items-center rounded-full bg-surface text-ink">
+              {inviting ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+              ) : (
+                <IconInvite />
+              )}
+            </span>
+            Invitar
+          </button>,
+          document.body,
+        )}
+
+      <Drawer
         open={tokenModalOpen && !!result?.token}
         onClose={() => {
           setTokenModalOpen(false)
           setCopied(false)
         }}
-        title="Token de invitación — cópialo ahora"
+        title="Token de invitación"
+        keepMounted
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant={copied ? 'success-outline' : 'secondary'} onClick={copyToken} className="gap-1.5">
+              <CopyIcon />
+              {copied ? 'Copiado' : 'Copiar'}
+            </Button>
+            <Button
+              onClick={() => {
+                setTokenModalOpen(false)
+                setCopied(false)
+              }}
+            >
+              Listo
+            </Button>
+          </div>
+        }
       >
         {result?.token && (
           <>
             <SuccessAlert>
-              Este token solo se muestra una vez. Compartilo por un canal seguro con{' '}
-              {result.email ? result.email : 'el invitado'}.
+              Este token solo se muestra una vez. Compartilo por un canal seguro
+              {result.email ? ` con ${result.email}` : ''}.
             </SuccessAlert>
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl bg-cream-soft/80 px-4 py-3">
-                <p className="text-xs font-medium text-muted">Rol</p>
-                <p className="mt-1 text-sm font-semibold text-ink">
-                  {formatRoleLabel(result.role ?? role)}
-                </p>
-              </div>
-              {inviteExpiryLabel(result) && (
-                <div className="rounded-xl bg-cream-soft/80 px-4 py-3">
-                  <p className="text-xs font-medium text-muted">Expira</p>
-                  <p className="mt-1 text-sm font-semibold tabular-nums text-ink">
-                    {inviteExpiryLabel(result)}
-                  </p>
-                </div>
-              )}
-            </div>
-            <div className="mt-4 rounded-xl border border-warn/30 bg-warn/5 px-4 py-3 text-sm text-warn">
-              Copiá el token antes de cerrar este diálogo.
-            </div>
-            <div className="mt-4 rounded-xl border border-line bg-cream-soft/50 p-4 font-mono text-sm break-all text-ink">
+            <p className="mt-4 text-[11px] text-muted">
+              {formatRoleLabel(result.role ?? role)}
+              {inviteExpiryLabel(result) ? ` · Expira ${inviteExpiryLabel(result)}` : ''}
+            </p>
+            <p className="mt-3 break-all rounded-[1.05rem] bg-surface px-3.5 py-3 font-mono text-sm leading-snug text-ink">
               {result.token}
-            </div>
-            <div className="mt-5 flex justify-end gap-2">
-              <Button variant="secondary" onClick={copyToken} className="gap-1.5">
-                <CopyIcon />
-                {copied ? 'Copiado' : 'Copiar'}
-              </Button>
-              <Button
-                onClick={() => {
-                  setTokenModalOpen(false)
-                  setCopied(false)
-                }}
-              >
-                Listo
-              </Button>
-            </div>
+            </p>
+            <p className="mt-3 rounded-[1.05rem] bg-warn/10 px-3.5 py-2.5 text-sm leading-relaxed text-warn">
+              Copiá el token antes de cerrar.
+            </p>
           </>
         )}
-      </Modal>
+      </Drawer>
 
-      <Modal
+      <Drawer
         open={confirmOwnerOpen}
         onClose={() => !inviting && setConfirmOwnerOpen(false)}
         title="Invitar como propietario"
+        keepMounted
+        footer={
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" disabled={inviting} onClick={() => setConfirmOwnerOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="danger" loading={inviting} onClick={() => invite.mutate()}>
+              Confirmar invitación
+            </Button>
+          </div>
+        }
       >
-        <div className="rounded-xl border border-warn/30 bg-warn/5 px-4 py-3 text-sm text-warn">
-          Esta persona tendrá el <strong>mismo control</strong> que vos: certificado, timbrado, CSC,
-          API keys y gestión del equipo.
-        </div>
-        <p className="mt-3 text-sm text-muted">
+        <p className="rounded-[1.05rem] bg-warn/10 px-3.5 py-3 text-sm leading-relaxed text-warn">
+          Esta persona tendrá el <strong>mismo control</strong> que vos: certificado, timbrado, CSC, API keys y
+          gestión del equipo.
+        </p>
+        <p className="mt-3 text-sm leading-relaxed text-muted">
           ¿Confirmás invitar a <strong>{email.trim()}</strong> como propietario?
         </p>
-        <div className="mt-5 flex justify-end gap-2">
-          <Button variant="secondary" disabled={inviting} onClick={() => setConfirmOwnerOpen(false)}>
-            Cancelar
-          </Button>
-          <Button
-            variant="danger-outline"
-            loading={inviting}
-            onClick={() => {
-              invite.mutate()
-              setConfirmOwnerOpen(false)
-            }}
-          >
-            Confirmar invitación
-          </Button>
-        </div>
-      </Modal>
+      </Drawer>
     </AppShell>
   )
 }
