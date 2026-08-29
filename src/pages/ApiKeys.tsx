@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
@@ -165,6 +165,12 @@ export default function ApiKeys() {
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
+  const confirmRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!confirmOpen) return
+    confirmRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [confirmOpen])
 
   const rotate = useMutation({
     mutationFn: (env: Environment) => rotateApiKey(token, env.toLowerCase() as Lowercase<Environment>),
@@ -197,7 +203,7 @@ export default function ApiKeys() {
   const activeKey = scoped.find((k) => k.status === 'ACTIVE')
   const revokedKeys = scoped.filter((k) => k.status === 'REVOKED')
 
-  const drawerOpen = confirmOpen || !!revealed
+  const revealOpen = !!revealed
   const fabLabel = activeKey ? 'Rotar' : 'Generar'
 
   return (
@@ -223,6 +229,44 @@ export default function ApiKeys() {
           </div>
         )}
 
+        {confirmOpen && (
+          <div ref={confirmRef}>
+            <Alert title={activeKey ? 'Rotar secret key' : 'Generar secret key'}>
+              <p>
+                {isProd ? (
+                  <>
+                    Estás en <strong>producción</strong>. La key activa quedará <strong>revocada</strong> y las
+                    integraciones que la usen dejarán de autenticarse.
+                  </>
+                ) : activeKey ? (
+                  <>
+                    La key activa quedará <strong>revocada</strong>. La nueva key se mostrará una sola vez.
+                  </>
+                ) : (
+                  <>La key completa se mostrará una sola vez. Guardala en un gestor de secretos.</>
+                )}
+              </p>
+              {activeKey && (
+                <p className="mt-1.5">
+                  Actualizá el secreto en tus integraciones al guardar la key nueva; la anterior dejará de funcionar
+                  de inmediato.
+                </p>
+              )}
+              <div className="mt-3 flex flex-wrap justify-end gap-2">
+                <Button variant="ghost" disabled={rotate.isPending} onClick={() => setConfirmOpen(false)}>
+                  Cancelar
+                </Button>
+                <Button
+                  variant={isProd ? 'danger' : 'primary'}
+                  loading={rotate.isPending}
+                  onClick={() => rotate.mutate(environment)}
+                >
+                  {activeKey ? 'Confirmar rotación' : 'Generar key'}
+                </Button>
+              </div>
+            </Alert>
+          </div>
+        )}
         {err && <Alert>{err}</Alert>}
         {q.isLoading && <p className="text-sm text-muted">Cargando…</p>}
         {q.error && <Alert>{(q.error as Error).message}</Alert>}
@@ -266,7 +310,7 @@ export default function ApiKeys() {
               'active:scale-[0.96]',
               'bottom-[calc(5.35rem+env(safe-area-inset-bottom,0px))]',
               environment === 'PROD' && 'env-prod',
-              drawerOpen && 'pointer-events-none scale-95 opacity-0',
+              revealOpen && 'pointer-events-none scale-95 opacity-0',
             )}
             aria-label={activeKey ? 'Rotar secret key' : 'Generar secret key'}
           >
@@ -277,53 +321,6 @@ export default function ApiKeys() {
           </button>,
           document.body,
         )}
-
-      <Drawer
-        open={confirmOpen}
-        onClose={() => !rotate.isPending && setConfirmOpen(false)}
-        title={activeKey ? 'Rotar secret key' : 'Generar secret key'}
-        keepMounted
-        footer={
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" disabled={rotate.isPending} onClick={() => setConfirmOpen(false)}>
-              Cancelar
-            </Button>
-            <Button
-              variant={isProd ? 'danger' : 'primary'}
-              loading={rotate.isPending}
-              onClick={() => rotate.mutate(environment)}
-            >
-              {activeKey ? 'Confirmar rotación' : 'Generar key'}
-            </Button>
-          </div>
-        }
-      >
-        <div
-          className={cn(
-            'rounded-[1.05rem] px-3.5 py-3 text-sm leading-relaxed',
-            isProd ? 'bg-ok/10 text-ok-strong' : 'bg-warn/10 text-warn',
-          )}
-        >
-          {isProd ? (
-            <>
-              Estás en <strong>producción</strong>. La key activa quedará <strong>revocada</strong> y las
-              integraciones que la usen dejarán de autenticarse.
-            </>
-          ) : activeKey ? (
-            <>
-              La key activa quedará <strong>revocada</strong>. La nueva key se mostrará una sola vez.
-            </>
-          ) : (
-            <>La key completa se mostrará una sola vez. Guardala en un gestor de secretos.</>
-          )}
-        </div>
-        {activeKey && (
-          <p className="mt-3 text-sm leading-relaxed text-muted">
-            Actualizá el secreto en tus integraciones al guardar la key nueva; la anterior dejará de funcionar
-            de inmediato.
-          </p>
-        )}
-      </Drawer>
 
       <Drawer
         open={!!revealed}

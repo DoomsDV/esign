@@ -156,13 +156,6 @@ export default function Empresa() {
               )}
             </div>
 
-            {(err || msg) && (
-              <div className="space-y-3">
-                {err && <Alert>{err}</Alert>}
-                {msg && <SuccessAlert>{msg}</SuccessAlert>}
-              </div>
-            )}
-
             <section>
               <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.16em] text-muted">
                 Identidad del negocio
@@ -188,6 +181,12 @@ export default function Empresa() {
               <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.16em] text-muted">
                 Emisor SIFEN
               </h3>
+              {(err || msg) && (
+                <div className="mb-3 space-y-3">
+                  {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
+                  {msg && <SuccessAlert onClose={() => setMsg(null)}>{msg}</SuccessAlert>}
+                </div>
+              )}
               <div className="rounded-[1.25rem] bg-surface px-4 py-4 sm:px-6 sm:py-5">
                 <p className="mb-3 hidden text-sm text-muted sm:block">{EMISOR_TIP}</p>
                 <div className="grid gap-3 sm:grid-cols-2 sm:gap-4">

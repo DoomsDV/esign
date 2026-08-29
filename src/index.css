@@ -37,6 +37,7 @@
   --color-warn: #d97706;
   --color-danger: #dc2626;
   --color-danger-strong: #b91c1c;
+  --color-info: #2563eb;
   --color-neutral: #6b7280;
 
   --radius-xl: 1rem;
@@ -84,6 +85,7 @@ html.dark {
   --color-warn: #d4a054;
   --color-danger: #d46a6a;
   --color-danger-strong: #e08080;
+  --color-info: #7aa8d4;
   --chart-grid: #252830;
   --chart-tick: #8f8a82;
   --chart-tooltip-bg: #151920;
@@ -670,7 +672,7 @@ html.dark .panel-bezel-inner {
   display: flex;
   min-width: 0;
   flex-direction: column;
-  padding: 0.9rem 0.7rem 1rem;
+  padding: 0.9rem 0.7rem 0.85rem;
   transition: background-color 0.5s var(--ease-premium);
 }
 
@@ -690,51 +692,71 @@ html.dark .panel-bezel-inner {
   background: color-mix(in srgb, var(--stamp-color) 9%, transparent);
 }
 
-.kpi-ticks {
+.kpi-mix {
   display: flex;
-  align-items: flex-end;
-  gap: 3px;
+  gap: 2px;
+  height: 4px;
+  margin: 0 0.9rem 0.95rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-ink) 8%, transparent);
+}
+
+.kpi-mix-seg {
+  min-width: 0;
+  border-radius: 999px;
+}
+
+.kpi-mix-empty {
+  display: block;
+  width: 100%;
+}
+
+.kpi-sparkline {
   height: 2.85rem;
-  padding: 0.15rem 1rem 0.9rem;
+  padding: 0.15rem 1rem 0.55rem;
 }
 
-@media (min-width: 640px) {
-  .kpi-ticks {
-    height: 3.5rem;
-    padding: 0.25rem 1.15rem 1.05rem;
-  }
-}
-
-@media (min-width: 1024px) {
-  .kpi-ticks {
-    height: 4.35rem;
-  }
-}
-
-.kpi-tick {
-  flex: 1;
+.kpi-sparkline svg {
+  display: block;
+  width: 100%;
   height: 100%;
-  border-radius: 3px 3px 1px 1px;
-  background: color-mix(in srgb, var(--color-ink) 9%, transparent);
-  transform-origin: bottom center;
-  transition: transform 0.7s var(--ease-premium);
 }
 
-.kpi-tick.is-live {
-  background: var(--tick-color);
+.kpi-sparkline-fill {
+  fill: color-mix(in srgb, var(--spark-color) 18%, transparent);
 }
 
-html.dark .kpi-tick {
+.kpi-sparkline-line {
+  stroke: color-mix(in srgb, var(--color-ink) 22%, transparent);
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.kpi-sparkline-line.is-live {
+  stroke: var(--spark-color);
+}
+
+html.dark .kpi-mix {
   background: rgb(255 255 255 / 0.08);
 }
 
-html.dark .kpi-tick.is-live {
-  background: var(--tick-color);
+html.dark .kpi-sparkline-fill {
+  fill: color-mix(in srgb, var(--spark-color) 22%, transparent);
+}
+
+html.dark .kpi-sparkline-line {
+  stroke: rgb(255 255 255 / 0.18);
+}
+
+html.dark .kpi-sparkline-line.is-live {
+  stroke: var(--spark-color);
 }
 
 @media (min-width: 640px) {
   .kpi-stamp {
-    padding: 1.15rem 1.05rem 1.2rem;
+    padding: 1.15rem 1.05rem 0.9rem;
   }
 
   .kpi-stamp:hover {
@@ -744,6 +766,22 @@ html.dark .kpi-tick.is-live {
   .kpi-stamp.is-alert:hover {
     background: color-mix(in srgb, var(--stamp-color) 13%, transparent);
   }
+
+  .kpi-mix {
+    height: 5px;
+    margin: 0 1.15rem 1.1rem;
+  }
+
+  .kpi-sparkline {
+    height: 3.35rem;
+    padding: 0.2rem 1.15rem 0.7rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .kpi-sparkline {
+    height: 3.85rem;
+  }
 }
 
 html.dark .kpi-stamp + .kpi-stamp {
@@ -752,7 +790,6 @@ html.dark .kpi-stamp + .kpi-stamp {
 
 @media (prefers-reduced-motion: reduce) {
   .kpi-stamp,
-  .kpi-tick,
   .weekday-bar {
     transition: none;
   }
@@ -783,7 +820,7 @@ html.dark .kpi-stamp + .kpi-stamp {
   align-items: center;
   gap: 0.65rem;
   height: 2.65rem;
-  padding: 0 0.45rem 0 0.95rem;
+  padding: 0 0.9rem 0 0.95rem;
   border-radius: 9999px;
   background: var(--color-cream-soft);
   box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-ink) 6%, transparent);
@@ -800,6 +837,7 @@ html.dark .kpi-stamp + .kpi-stamp {
 }
 
 .header-search kbd {
+  margin-right: 0.1rem;
   border-radius: 0.45rem;
   background: var(--color-surface);
   padding: 0.12rem 0.4rem;
@@ -887,7 +925,8 @@ html.dark .kpi-stamp + .kpi-stamp {
   display: flex;
   align-items: flex-end;
   width: 100%;
-  height: 9rem;
+  flex: 1 1 auto;
+  min-height: 6.5rem;
 }
 
 .weekday-bar {
@@ -912,9 +951,159 @@ html.dark .weekday-bar.is-peak {
   background: var(--color-brand-400);
 }
 
+/* Flash: tarjeta de estado. Un solo hairline teñido — sin doble borde ni bandeja. */
+@keyframes flash-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.flash {
+  --flash-bg: var(--color-surface);
+  --flash-ring: color-mix(in srgb, var(--color-ink) 10%, transparent);
+  --flash-icon: var(--color-ink);
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  width: 100%;
+  padding: 0.95rem 1rem;
+  border: 0;
+  border-radius: 1.15rem;
+  background: var(--flash-bg);
+  box-shadow: inset 0 0 0 1px var(--flash-ring);
+  color: var(--color-ink);
+  animation: flash-in 0.5s var(--ease-premium) both;
+}
+
+.flash-ok {
+  --flash-icon: var(--color-ok);
+  --flash-bg: color-mix(in srgb, var(--color-ok) 9%, var(--color-surface));
+  --flash-ring: color-mix(in srgb, var(--color-ok) 42%, transparent);
+}
+
+.flash-danger {
+  --flash-icon: var(--color-danger);
+  --flash-bg: color-mix(in srgb, var(--color-danger) 9%, var(--color-surface));
+  --flash-ring: color-mix(in srgb, var(--color-danger) 42%, transparent);
+}
+
+.flash-warn {
+  --flash-icon: var(--color-warn);
+  --flash-bg: color-mix(in srgb, var(--color-warn) 10%, var(--color-surface));
+  --flash-ring: color-mix(in srgb, var(--color-warn) 42%, transparent);
+}
+
+.flash-info {
+  --flash-icon: var(--color-info);
+  --flash-bg: color-mix(in srgb, var(--color-info) 9%, var(--color-surface));
+  --flash-ring: color-mix(in srgb, var(--color-info) 40%, transparent);
+}
+
+html.dark .flash-ok {
+  --flash-bg: color-mix(in srgb, var(--color-ok) 15%, var(--color-surface));
+  --flash-ring: color-mix(in srgb, var(--color-ok) 40%, transparent);
+}
+
+html.dark .flash-danger {
+  --flash-bg: color-mix(in srgb, var(--color-danger) 15%, var(--color-surface));
+  --flash-ring: color-mix(in srgb, var(--color-danger) 40%, transparent);
+}
+
+html.dark .flash-warn {
+  --flash-bg: color-mix(in srgb, var(--color-warn) 14%, var(--color-surface));
+  --flash-ring: color-mix(in srgb, var(--color-warn) 40%, transparent);
+}
+
+html.dark .flash-info {
+  --flash-bg: color-mix(in srgb, var(--color-info) 14%, var(--color-surface));
+  --flash-ring: color-mix(in srgb, var(--color-info) 38%, transparent);
+}
+
+.flash-icon {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-top: 0.05rem;
+  border-radius: 999px;
+  background: var(--flash-icon);
+  color: #fff;
+}
+
+.flash-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding-top: 0.12rem;
+}
+
+.flash-title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: -0.018em;
+  line-height: 1.3;
+  color: var(--color-ink);
+}
+
+.flash-desc {
+  margin: 0.2rem 0 0;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  line-height: 1.45;
+  color: var(--color-muted);
+}
+
+.flash-copy {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--color-ink);
+}
+
+.flash-copy > :first-child {
+  margin-top: 0;
+}
+
+.flash-dismiss {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 1.85rem;
+  height: 1.85rem;
+  margin: -0.2rem -0.3rem 0 auto;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-muted);
+  cursor: pointer;
+  opacity: 0.7;
+  transition:
+    transform 0.45s var(--ease-premium),
+    opacity 0.45s var(--ease-premium),
+    color 0.45s var(--ease-premium),
+    background-color 0.45s var(--ease-premium);
+}
+
+.flash-dismiss:hover {
+  color: var(--color-ink);
+  background: color-mix(in srgb, var(--color-ink) 6%, transparent);
+  opacity: 1;
+  transform: scale(1.06);
+}
+
+.flash-dismiss:active {
+  transform: scale(0.94);
+}
+
 @media (min-width: 640px) {
   .weekday-track {
-    height: 10rem;
+    min-height: 7.5rem;
   }
 }
 
@@ -945,6 +1134,17 @@ html.dark .weekday-bar.is-peak {
   animation: sheet-slide-up 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
+/* Chromium pinta el hueco de <input type="date"> como mm/dd/yyyy (no ::placeholder).
+   text-transform en datetime-edit pasa las letras a mayúsculas (MM/DD/YYYY o DD/MM/AAAA). */
+input[type="date"].uppercase::-webkit-datetime-edit,
+input[type="date"].uppercase::-webkit-datetime-edit-fields-wrapper,
+input[type="date"].uppercase::-webkit-datetime-edit-text,
+input[type="date"].uppercase::-webkit-datetime-edit-month-field,
+input[type="date"].uppercase::-webkit-datetime-edit-day-field,
+input[type="date"].uppercase::-webkit-datetime-edit-year-field {
+  text-transform: uppercase;
+}
+
 @media (min-width: 640px) {
   .modal-sheet-enter {
     animation: none;
@@ -958,7 +1158,8 @@ html.dark .weekday-bar.is-peak {
 
   .modal-backdrop-enter,
   .modal-sheet-enter,
-  .dash-rise {
+  .dash-rise,
+  .flash {
     animation: none !important;
   }
 

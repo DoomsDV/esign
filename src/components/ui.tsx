@@ -348,11 +348,116 @@ export function InfoTip({
   )
 }
 
-export function Alert({ children }: { children: ReactNode }) {
+type FlashTone = 'ok' | 'danger' | 'warn' | 'info'
+
+interface StatusFlashProps {
+  children?: ReactNode
+  title?: string
+  onClose?: () => void
+  className?: string
+}
+
+function FlashGlyph({ tone }: { tone: FlashTone }) {
+  if (tone === 'ok') {
+    return (
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path
+          d="M5 12.5l5 5L19 7"
+          stroke="currentColor"
+          strokeWidth="2.2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </svg>
+    )
+  }
+  if (tone === 'danger') {
+    return (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path d="M7 7l10 10M17 7L7 17" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      </svg>
+    )
+  }
+  if (tone === 'warn') {
+    return (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
+        <path d="M12 7.25v6.1" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+        <circle cx="12" cy="16.9" r="1.2" fill="currentColor" />
+      </svg>
+    )
+  }
   return (
-    <div role="alert" className="rounded-xl border border-danger/30 bg-danger/5 px-4 py-3 text-sm text-danger">
-      {children}
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <circle cx="12" cy="8" r="1.2" fill="currentColor" />
+      <path d="M12 11.4v6.2" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+    </svg>
+  )
+}
+
+function Flash({
+  tone,
+  title,
+  children,
+  onClose,
+  className,
+  dismissible,
+}: StatusFlashProps & { tone: FlashTone; dismissible: boolean }) {
+  const [hidden, setHidden] = useState(false)
+  if (hidden) return null
+
+  const heading = title ?? (tone === 'ok' ? 'Listo' : undefined)
+  const hasHeading = Boolean(heading)
+  const hasBody = children != null && children !== false
+
+  function handleClose() {
+    if (onClose) onClose()
+    else setHidden(true)
+  }
+
+  return (
+    <div
+      role={tone === 'danger' ? 'alert' : 'status'}
+      aria-live={tone === 'danger' ? 'assertive' : 'polite'}
+      className={cn('flash', `flash-${tone}`, className)}
+    >
+      <span className="flash-icon">
+        <FlashGlyph tone={tone} />
+      </span>
+      <div className="flash-text">
+        {hasHeading && <p className="flash-title">{heading}</p>}
+        {hasBody &&
+          (hasHeading ? (
+            <div className="flash-desc">{children}</div>
+          ) : typeof children === 'string' ? (
+            <p className="flash-title">{children}</p>
+          ) : (
+            <div className="flash-copy">{children}</div>
+          ))}
+      </div>
+      {dismissible && (
+        <button type="button" className="flash-dismiss" aria-label="Cerrar aviso" onClick={handleClose}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden>
+            <path d="M6 6l12 12M18 6L6 18" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+          </svg>
+        </button>
+      )}
     </div>
+  )
+}
+
+export function Alert({ children, title, onClose, className }: StatusFlashProps) {
+  return (
+    <Flash tone="danger" title={title} onClose={onClose} className={className} dismissible={!!onClose}>
+      {children}
+    </Flash>
+  )
+}
+
+export function SuccessAlert({ children, title, onClose, className }: StatusFlashProps) {
+  return (
+    <Flash tone="ok" title={title} onClose={onClose} className={className} dismissible>
+      {children}
+    </Flash>
   )
 }
 
@@ -387,18 +492,6 @@ export function Select({ label, className, children, id, ...rest }: SelectProps)
       >
         {children}
       </select>
-    </div>
-  )
-}
-
-export function SuccessAlert({ children }: { children: ReactNode }) {
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="rounded-xl border border-ok/30 bg-ok/5 px-4 py-3 text-sm text-ok"
-    >
-      {children}
     </div>
   )
 }

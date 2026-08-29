@@ -57,7 +57,13 @@ function IconArrowRight() {
 function IconExport() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path d="M12 20V9M8 12l4 4 4-4M5 16v3a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3" className="stroke-current" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+      <path
+        d="M12 4.5v10.25M8.4 11.1 12 14.7l3.6-3.6M6 19h12"
+        className="stroke-current"
+        strokeWidth="1.55"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
     </svg>
   )
 }
@@ -94,21 +100,43 @@ const tooltipStyle: CSSProperties = {
   fontSize: 12,
 }
 
-function KpiTicks({ series, color }: { series: SparkPoint[]; color: string }) {
-  const max = Math.max(...series.map((p) => p.v), 1)
+function sparkLine(pts: { x: number; y: number }[]): string {
+  if (pts.length === 0) return ''
+  if (pts.length === 1) return `M ${pts[0].x} ${pts[0].y}`
+  let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`
+  for (let i = 1; i < pts.length; i++) {
+    const prev = pts[i - 1]!
+    const cur = pts[i]!
+    const cx = (prev.x + cur.x) / 2
+    d += ` C ${cx.toFixed(2)} ${prev.y.toFixed(2)}, ${cx.toFixed(2)} ${cur.y.toFixed(2)}, ${cur.x.toFixed(2)} ${cur.y.toFixed(2)}`
+  }
+  return d
+}
+
+function KpiSparkline({ series, color }: { series: SparkPoint[]; color: string }) {
+  const w = 280
+  const h = 48
+  const vals = series.map((p) => p.v)
+  const max = Math.max(...vals, 1)
+  const live = vals.some((v) => v > 0)
+  const pts = vals.map((v, i) => ({
+    x: vals.length === 1 ? w / 2 : (i / (vals.length - 1)) * w,
+    y: h - 3 - (v / max) * (h - 8),
+  }))
+  const line = sparkLine(pts)
+  const area = `${line} L ${w} ${h} L 0 ${h} Z`
+
   return (
-    <div className="kpi-ticks" style={{ '--tick-color': color } as CSSProperties} aria-hidden>
-      {series.map((p, i) => {
-        const live = p.v > 0
-        const ratio = live ? Math.max(p.v / max, 0.55) : 0.22
-        return (
-          <span
-            key={`${p.dia}-${i}`}
-            className={cn('kpi-tick', live && 'is-live')}
-            style={{ transform: `scaleY(${ratio})` }}
-          />
-        )
-      })}
+    <div className="kpi-sparkline">
+      <svg
+        viewBox={`0 0 ${w} ${h}`}
+        preserveAspectRatio="none"
+        aria-hidden
+        style={{ '--spark-color': color } as CSSProperties}
+      >
+        <path d={area} className="kpi-sparkline-fill" />
+        <path d={line} className={cn('kpi-sparkline-line', live && 'is-live')} fill="none" />
+      </svg>
     </div>
   )
 }
@@ -136,35 +164,68 @@ function KpiHero({ kpi, loading, delay }: { kpi: HeroKpi; loading: boolean; dela
         </p>
         <p className="mt-2 text-[11px] leading-snug text-muted sm:text-xs">{kpi.hint}</p>
       </div>
-      <KpiTicks series={kpi.series} color={kpi.stroke} />
+      <KpiSparkline series={kpi.series} color={kpi.stroke} />
     </article>
   )
 }
 
 function KpiStamp({ kpi, loading }: { kpi: StampKpi; loading: boolean }) {
   const live = kpi.alert || kpi.value > 0
+  const idle = !live
   return (
     <article
-      className={cn('kpi-stamp', kpi.alert && 'is-alert')}
+      className={cn('kpi-stamp', kpi.alert && 'is-alert', idle && 'is-idle')}
       style={{ '--stamp-color': live ? kpi.stroke : 'color-mix(in srgb, var(--color-ink) 22%, transparent)' } as CSSProperties}
       aria-label={`${kpi.label}: ${kpi.value}. ${kpi.hint}`}
     >
       <span className="kpi-stamp-cap" aria-hidden />
-      <p className="mt-3 truncate text-[11px] font-medium text-muted sm:text-[12px]">{kpi.label}</p>
-      <p className="mt-1.5 text-[1.5rem] font-semibold leading-none tracking-tight tabular-nums text-ink sm:mt-auto sm:text-[1.85rem]">
+      <p className="mt-3 text-[11px] font-medium text-muted sm:text-[12px]">{kpi.label}</p>
+      <p
+        className={cn(
+          'mt-1.5 text-[1.5rem] font-semibold leading-none tracking-tight tabular-nums lg:text-[1.85rem]',
+          idle ? 'text-ink/35' : 'text-ink',
+        )}
+      >
         <KpiValue loading={loading} value={kpi.value} />
       </p>
-      <p className="mt-2 truncate text-[10px] leading-snug text-muted sm:text-[11px]">{kpi.hint}</p>
+      <p className={cn('mt-2 text-[10px] leading-snug text-muted sm:text-[11px]', idle && 'opacity-50')}>
+        {kpi.hint}
+      </p>
     </article>
+  )
+}
+
+function StatusMix({ stamps }: { stamps: StampKpi[] }) {
+  const live = stamps.filter((s) => s.value > 0)
+  const total = stamps.reduce((acc, s) => acc + s.value, 0)
+  const label = stamps.map((s) => `${s.value} ${s.label.toLowerCase()}`).join(', ')
+
+  return (
+    <div className="kpi-mix" role="img" aria-label={total > 0 ? `Distribución: ${label}` : 'Sin emisiones'}>
+      {live.length === 0 ? (
+        <span className="kpi-mix-empty" />
+      ) : (
+        live.map((s) => (
+          <span
+            key={s.label}
+            className="kpi-mix-seg"
+            style={{ flexGrow: s.value, background: s.stroke }}
+          />
+        ))
+      )}
+    </div>
   )
 }
 
 function KpiStampRail({ stamps, loading, delay }: { stamps: StampKpi[]; loading: boolean; delay: string }) {
   return (
-    <div className={cn(panelClass, 'grid h-full grid-cols-3 overflow-hidden', delay, 'dash-rise')}>
-      {stamps.map((kpi) => (
-        <KpiStamp key={kpi.label} kpi={kpi} loading={loading} />
-      ))}
+    <div className={cn(panelClass, 'flex h-full flex-col overflow-hidden', delay, 'dash-rise')}>
+      <div className="grid min-h-0 flex-1 grid-cols-3">
+        {stamps.map((kpi) => (
+          <KpiStamp key={kpi.label} kpi={kpi} loading={loading} />
+        ))}
+      </div>
+      <StatusMix stamps={stamps} />
     </div>
   )
 }
@@ -276,7 +337,7 @@ function formatCompact(n: number): string {
 
 function EmptyChart({ label, hint }: { label: string; hint?: string }) {
   return (
-    <div className="grid min-h-[11rem] flex-1 place-items-center rounded-2xl bg-cream-soft/80 px-4 text-center sm:min-h-[14rem]">
+    <div className="grid h-44 place-items-center rounded-2xl bg-cream-soft/80 px-4 text-center sm:h-48">
       <div>
         <p className="text-sm font-medium text-ink">{label}</p>
         <p className="mt-1 max-w-[28ch] text-xs leading-relaxed text-muted">
@@ -372,7 +433,7 @@ function RecentDocStatus({ estado }: { estado: string }) {
   )
 }
 
-const CHART_HEIGHT = 'h-[11.5rem] sm:h-60'
+const CHART_HEIGHT = 'h-44 sm:h-48'
 
 export default function Dashboard() {
   const { session, environment } = useAuth()
@@ -473,7 +534,7 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2">
-            <span className="hidden h-10 items-center rounded-full bg-surface px-4 text-xs font-medium text-muted shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-ink)_8%,transparent)] sm:inline-flex">
+            <span className="hidden h-10 select-none items-center rounded-full bg-surface px-4 text-xs font-medium text-muted shadow-[inset_0_0_0_1px_color-mix(in_srgb,var(--color-ink)_8%,transparent)] sm:inline-flex">
               Últimos 14 días
             </span>
             <button
@@ -499,9 +560,9 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-12">
-          <div className={cn(panelClass, 'flex h-full flex-col overflow-hidden dash-rise dash-rise-2 lg:col-span-8')}>
-            <div className="flex flex-1 flex-col p-4 sm:p-5">
+        <div className="grid grid-cols-1 items-start gap-3 sm:gap-4 lg:grid-cols-12">
+          <div className={cn(panelClass, 'flex flex-col overflow-hidden dash-rise dash-rise-2 lg:col-span-8')}>
+            <div className="flex flex-col p-4 sm:p-5">
               <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <h2 className="text-sm font-medium tracking-tight text-ink sm:text-[15px]">Volumen emitido</h2>
@@ -606,13 +667,13 @@ export default function Dashboard() {
               {weekdayPeak.value === 0 ? (
                 <EmptyChart label="Sin actividad semanal" />
               ) : (
-                <div className="mt-5 flex min-h-[12rem] flex-1 items-end gap-2 sm:min-h-[14rem]">
+                <div className="mt-4 flex min-h-0 flex-1 items-stretch gap-2">
                   {weekdays.map((day) => {
                     const live = day.value > 0
                     const ratio = live ? Math.max(day.value / weekdayMax, 0.22) : 0.08
                     const peak = live && day.dia === weekdayPeak.dia
                     return (
-                      <div key={day.dia} className="flex min-w-0 flex-1 flex-col items-center gap-2">
+                      <div key={day.dia} className="flex min-h-0 min-w-0 flex-1 flex-col items-center gap-2">
                         <p className={cn('text-[11px] font-medium tabular-nums', peak ? 'text-ink' : 'text-muted')}>
                           {day.value}
                         </p>

@@ -516,6 +516,7 @@ export default function DisenoKude() {
 
   return (
     <AppShell title="Diseño del KuDE">
+      <div className="dashboard-canvas sm:-m-6 sm:p-6">
       {q.isLoading && <p className="text-sm text-muted">Cargando…</p>}
       {q.error && <Alert>{(q.error as Error).message}</Alert>}
 
@@ -727,8 +728,8 @@ export default function DisenoKude() {
 
               {(err || msg) && (
                 <div className="space-y-3">
-                  {err && <Alert>{err}</Alert>}
-                  {msg && <SuccessAlert>{msg}</SuccessAlert>}
+                  {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
+                  {msg && <SuccessAlert onClose={() => setMsg(null)}>{msg}</SuccessAlert>}
                 </div>
               )}
             </div>
@@ -764,6 +765,7 @@ export default function DisenoKude() {
           </div>
         </div>
       )}
+      </div>
     </AppShell>
   )
 }

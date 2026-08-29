@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { AppShell } from '@/components/AppShell'
-import { Alert, Badge, Button, Drawer, panelClass } from '@/components/ui'
+import { Alert, Badge, Button, Drawer, SuccessAlert, panelClass } from '@/components/ui'
 import { cn } from '@/lib/cn'
 import { useAuth } from '@/lib/auth'
 import { ApiError } from '@/lib/api'
@@ -33,6 +33,9 @@ const TIPOS: Array<{ value: string; label: string }> = [
   { value: '7', label: 'Nota de remisión' },
 ]
 const PAGE_SIZE = 15
+
+const DOCS_PAGE_TIP =
+  'Facturas, notas y remisiones de este ambiente. Cada DE trae estado SIFEN, CDC, XML y KuDE.'
 
 /* ---------- Iconos ---------- */
 function IconSearch({ className }: { className?: string }) {
@@ -436,7 +439,7 @@ export default function Documentos() {
   }
 
   const dateInput =
-    'w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm text-ink shadow-sm transition-colors hover:border-brand-300 focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-200'
+    'w-full rounded-xl border border-line bg-surface px-3 py-2.5 text-sm uppercase text-ink shadow-sm transition-colors hover:border-brand-300 focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-200'
 
   const activeChips: Array<{ key: string; label: string; onClear: () => void }> = []
   if (estado) {
@@ -462,7 +465,15 @@ export default function Documentos() {
 
   return (
     <AppShell title="Documentos">
-      <div className="space-y-3 sm:space-y-5">
+      <div className="dashboard-canvas space-y-3 sm:-m-6 sm:space-y-5 sm:p-6">
+        <div className="hidden items-end justify-between gap-3 sm:flex">
+          <div className="min-w-0">
+            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">Emisión</p>
+            <h2 className="mt-1 text-xl font-semibold tracking-tight text-ink">Documentos</h2>
+            <p className="mt-1 max-w-xl text-sm leading-relaxed text-muted">{DOCS_PAGE_TIP}</p>
+          </div>
+        </div>
+
         {/* Toolbar: búsqueda + filtros */}
         <div className={cn(SECTION, 'p-2 sm:p-2.5')}>
           <div className="flex items-center gap-2.5">
@@ -853,9 +864,9 @@ function DocumentDetailModal({
             </Alert>
           )}
           {retryMutation.isSuccess && (
-            <div className="rounded-[1.15rem] border border-ok/30 bg-ok/5 px-4 py-3 text-sm text-ok">
+            <SuccessAlert>
               Documento marcado para reenvío. El servicio lo reintentará automáticamente.
-            </div>
+            </SuccessAlert>
           )}
         </div>
       )}

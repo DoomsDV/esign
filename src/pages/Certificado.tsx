@@ -279,11 +279,11 @@ export default function Certificado() {
             </section>
 
             <section className="order-2 lg:order-1">
-              <h3 className="mb-2 text-[10px] font-medium uppercase tracking-[0.16em] text-muted">
-                {hasCert ? 'Actualizar' : 'Subir'}
-              </h3>
               <div className="rounded-[1.25rem] bg-surface px-4 py-4 sm:px-6 sm:py-5">
-                <p className="mb-3 hidden text-sm leading-relaxed text-muted sm:block">
+                <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-muted">
+                  {hasCert ? 'Actualizar' : 'Subir'}
+                </p>
+                <p className="mb-3 mt-3 hidden text-sm leading-relaxed text-muted sm:block">
                   {uploadTitle}. {uploadTip}
                 </p>
 
@@ -301,8 +301,8 @@ export default function Certificado() {
 
                     {(err || msg) && (
                       <div className="space-y-3">
-                        {err && <Alert>{err}</Alert>}
-                        {msg && <SuccessAlert>{msg}</SuccessAlert>}
+                        {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
+                        {msg && <SuccessAlert onClose={() => setMsg(null)}>{msg}</SuccessAlert>}
                       </div>
                     )}
 

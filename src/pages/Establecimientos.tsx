@@ -282,7 +282,7 @@ export default function Establecimientos() {
   return (
     <AppShell title="Establecimientos">
       <div className="dashboard-canvas space-y-4 sm:-m-6 sm:space-y-6 sm:p-6">
-        {msg && <SuccessAlert>{msg}</SuccessAlert>}
+        {msg && <SuccessAlert onClose={() => setMsg(null)}>{msg}</SuccessAlert>}
         {err && !editOpen && !puntoOpen && <Alert>{err}</Alert>}
         {q.isLoading && <p className="text-sm text-muted">Cargando…</p>}
         {q.error && <Alert>{(q.error as Error).message}</Alert>}

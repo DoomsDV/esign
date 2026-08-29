@@ -142,7 +142,7 @@ export default function Ambientes() {
       <div className="dashboard-canvas space-y-4 sm:-m-6 sm:space-y-6 sm:p-6">
         <div className="hidden items-end justify-between gap-3 sm:flex">
           <div className="min-w-0">
-            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">SET</p>
+            <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-muted">DNIT</p>
             <h2 className="mt-1 flex flex-wrap items-baseline gap-2 text-xl font-semibold tracking-tight text-ink">
               Timbrado y CSC
               <span className={cn('text-[11px] font-medium', isProd ? 'text-ok-strong' : 'text-brand-700')}>
@@ -173,15 +173,15 @@ export default function Ambientes() {
             {loadingEnv && <p className="text-sm text-muted">Cargando configuración guardada…</p>}
 
             {!loadingEnv && envQuery.data && (
-              <p className="rounded-[1.25rem] bg-surface px-4 py-3.5 text-sm leading-relaxed text-muted">
+              <p className="rounded-[1.25rem] bg-surface px-4 py-4 text-sm leading-relaxed text-muted sm:px-6 sm:py-5">
                 {CONFIGURED_HINT}
               </p>
             )}
 
             {(err || msg) && (
               <div className="space-y-3">
-                {err && <Alert>{err}</Alert>}
-                {msg && <SuccessAlert>{msg}</SuccessAlert>}
+                {err && <Alert onClose={() => setErr(null)}>{err}</Alert>}
+                {msg && <SuccessAlert onClose={() => setMsg(null)}>{msg}</SuccessAlert>}
               </div>
             )}
 

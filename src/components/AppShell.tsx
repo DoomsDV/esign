@@ -174,7 +174,7 @@ function NavList({
   onNavigate?: () => void
 }) {
   return (
-    <nav className={cn('flex flex-col gap-0.5', collapsed && 'items-center')}>
+    <nav className="flex flex-col gap-0.5">
       {items.map((item) => (
         <NavLink
           key={item.to}
@@ -391,8 +391,10 @@ export function AppShell({
     () => localStorage.getItem('esign.sidebarCollapsed') === '1',
   )
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [sidebarAnimating, setSidebarAnimating] = useState(false)
   const menuButtonRef = useRef<HTMLButtonElement>(null)
   const mobileMoreButtonRef = useRef<HTMLButtonElement>(null)
+  const sidebarAnimTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     localStorage.setItem('esign.sidebarCollapsed', collapsed ? '1' : '0')
@@ -418,6 +420,13 @@ export function AppShell({
     }
   }, [mobileOpen])
 
+  useEffect(
+    () => () => {
+      if (sidebarAnimTimer.current) window.clearTimeout(sidebarAnimTimer.current)
+    },
+    [],
+  )
+
   function handleLogout() {
     logout()
     navigate('/login', { replace: true })
@@ -438,10 +447,16 @@ export function AppShell({
   }
 
   function toggleDesktopSidebar() {
+    setSidebarAnimating(true)
     setCollapsed((v) => !v)
+    if (sidebarAnimTimer.current) window.clearTimeout(sidebarAnimTimer.current)
+    sidebarAnimTimer.current = window.setTimeout(() => setSidebarAnimating(false), 520)
   }
 
   const isTest = environment === 'TEST'
+
+  const accountTriggerClassName =
+    'grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full bg-brand-100 text-[11px] font-semibold tracking-wide text-brand-700 transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)] hover:scale-[0.98] active:scale-95'
 
   const accountInitials =
     (session?.businessName ?? 'ES')
@@ -453,10 +468,20 @@ export function AppShell({
 
   usePageTitle(title)
 
-  // Contenido del sidebar desktop (ancho fijo 16rem).
+  // Contenido del sidebar desktop (ancho fijo 16rem). overflow-x-hidden evita
+  // la barra horizontal durante la animación de width del <aside>.
   const sidebarContent = (isCollapsed: boolean, includePrimary = true) => (
-    <div className="flex h-full w-full flex-col overflow-y-auto px-3 py-5">
-      <BrandLogo asLink collapsed={isCollapsed} className="mb-6" />
+    <div
+      className={cn(
+        'flex h-full w-64 shrink-0 flex-col px-3 py-5',
+        sidebarAnimating ? 'overflow-hidden' : 'overflow-x-hidden overflow-y-auto',
+      )}
+    >
+      <BrandLogo
+        asLink
+        collapsed={isCollapsed}
+        className={cn('mb-6', isCollapsed && 'w-10 justify-center')}
+      />
 
       {includePrimary && (
         <div className="mb-5">
@@ -465,7 +490,7 @@ export function AppShell({
       )}
 
       {includePrimary && isCollapsed ? (
-        <div className="mx-auto mb-2 h-px w-8 bg-line" />
+        <div className="mb-2 ml-1 h-px w-8 bg-line" />
       ) : (
         !isCollapsed && (
           <p className="mb-1.5 h-4 whitespace-nowrap px-3 text-[11px] font-medium tracking-wide text-muted">
@@ -475,7 +500,7 @@ export function AppShell({
       )}
       <NavList items={CONFIG} collapsed={isCollapsed} onNavigate={closeMobileMenu} />
 
-      <div className={cn('mt-auto flex pt-4', isCollapsed && 'justify-center')}>
+      <div className="mt-auto flex pt-4">
         <button
           onClick={handleLogout}
           className={cn(
@@ -519,7 +544,7 @@ export function AppShell({
   const desktopSidebar = (
     <aside
       className={cn(
-        'hidden h-full shrink-0 overflow-hidden bg-surface md:block',
+        'hidden h-full shrink-0 overflow-hidden border-r border-line bg-surface dark:bg-cream-soft md:block',
         'transition-[width] duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
         collapsed ? 'w-[4.5rem]' : 'w-64',
       )}
@@ -585,7 +610,7 @@ export function AppShell({
           className={cn('hidden h-1 w-full shrink-0 md:block', isTest ? 'bg-brand-400' : 'bg-ok')}
           aria-hidden
         />
-        <header className="shrink-0 bg-surface md:bg-surface/90 md:backdrop-blur-xl">
+        <header className="shrink-0 bg-surface md:bg-surface/90 md:backdrop-blur-xl dark:bg-cream-soft dark:md:bg-cream-soft dark:backdrop-blur-none">
           {/* Mobile: logo + ambiente + cuenta en una sola fila */}
           <div className="md:hidden">
             <div
@@ -602,12 +627,7 @@ export function AppShell({
                   label={session?.businessName ? `Cuenta: ${session.businessName}` : 'Menú de cuenta'}
                   align="right"
                   trigger={accountInitials}
-                  triggerClassName={cn(
-                    'grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-[0.7rem]',
-                    'bg-brand-100 text-[11px] font-semibold tracking-wide text-brand-700',
-                    'transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
-                    'hover:scale-[0.98] active:scale-95',
-                  )}
+                  triggerClassName={accountTriggerClassName}
                   items={[
                     {
                       label: 'Cerrar sesión',
@@ -656,12 +676,7 @@ export function AppShell({
                 label={session?.businessName ? `Cuenta: ${session.businessName}` : 'Menú de cuenta'}
                 align="right"
                 trigger={accountInitials}
-                triggerClassName={cn(
-                  'grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-[0.7rem]',
-                  'bg-brand-100 text-[11px] font-semibold tracking-wide text-brand-700',
-                  'transition-transform duration-500 ease-[cubic-bezier(0.32,0.72,0,1)]',
-                  'hover:scale-[0.98] active:scale-95',
-                )}
+                triggerClassName={accountTriggerClassName}
                 items={[
                   {
                     label: 'Cerrar sesión',
@@ -683,7 +698,7 @@ export function AppShell({
 
         <main
           id="contenido"
-          className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-cream-soft p-3 pb-[calc(5.15rem+env(safe-area-inset-bottom,0px))] sm:p-4 sm:px-6 sm:pt-6 md:pb-6"
+          className="dashboard-canvas min-h-0 flex-1 overflow-x-hidden overflow-y-auto bg-cream-soft p-3 pb-[calc(5.15rem+env(safe-area-inset-bottom,0px))] sm:p-4 sm:px-6 sm:pt-6 md:pb-6"
         >
           {children}
         </main>
