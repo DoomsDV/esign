@@ -664,6 +664,13 @@ html.dark .dashboard-canvas {
   html.dark .dashboard-canvas {
     background-image: none;
   }
+
+  /* iOS Safari zooms focused form controls under 16px. !important beats Tailwind text-sm. */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]):not([type="hidden"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
 }
 
 /* Double-bezel: placa interior sentada en una bandeja. */
