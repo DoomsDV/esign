@@ -918,7 +918,7 @@ export default function DisenoKude() {
           </Card>
 
           {/* Preview en vivo (desktop). En mobile se abre por el ojito a pantalla completa. */}
-          <div className="hidden lg:sticky lg:top-6 lg:block">
+          <div className="hidden lg:sticky lg:-top-6 lg:block">
             <div className="mb-3 flex items-end justify-between gap-4 px-1">
               <div>
                 <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">Documento</p>
