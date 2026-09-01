@@ -105,7 +105,7 @@ export const TextField = forwardRef<HTMLInputElement, FieldProps>(function TextF
       ref={ref}
       id={inputId}
       className={cn(
-        'w-full rounded-xl border border-line bg-surface px-4 py-3 text-sm text-ink placeholder:text-muted/55 placeholder:italic shadow-sm transition-colors focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-300/50',
+        'w-full rounded-xl border border-line bg-surface px-4 py-3 text-base text-ink placeholder:text-muted/55 placeholder:italic shadow-sm transition-colors focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-300/50 md:text-sm',
         trailing ? 'pr-12' : undefined,
         error && 'border-danger focus:border-danger focus:ring-danger/20',
         className,
@@ -534,7 +534,7 @@ export function Select({ label, className, children, id, ...rest }: SelectProps)
       <select
         id={selectId}
         className={cn(
-          'rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink shadow-sm transition-colors focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-300/50',
+          'rounded-xl border border-line bg-surface px-3 py-2 text-base text-ink shadow-sm transition-colors focus:border-brand-300 focus:outline-none focus:ring-2 focus:ring-brand-300/50 md:text-sm',
           className,
         )}
         {...rest}
@@ -1023,7 +1023,7 @@ export function SearchSelect({
                   onChange={(e) => setQ(e.target.value)}
                   placeholder="Buscar…"
                   autoFocus
-                  className="w-full bg-transparent text-sm text-ink outline-none placeholder:text-muted/70"
+                  className="w-full bg-transparent text-base text-ink outline-none placeholder:text-muted/70 md:text-sm"
                 />
               </div>
             )}
