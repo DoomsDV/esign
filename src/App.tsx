@@ -11,6 +11,7 @@ import Establecimientos from '@/pages/Establecimientos'
 import ApiKeys from '@/pages/ApiKeys'
 import Certificado from '@/pages/Certificado'
 import Ambientes from '@/pages/Ambientes'
+import Webhooks from '@/pages/Webhooks'
 import Equipo from '@/pages/Equipo'
 
 export default function App() {
@@ -80,6 +81,14 @@ export default function App() {
         element={
           <ProtectedRoute>
             <Ambientes />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/webhooks"
+        element={
+          <ProtectedRoute>
+            <Webhooks />
           </ProtectedRoute>
         }
       />
