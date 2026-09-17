@@ -27,3 +27,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Codebase memory (índice local del MCP; el global vive fuera del repo)
+.codebase-memory/
