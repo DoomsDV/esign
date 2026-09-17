@@ -2,7 +2,7 @@
 // presentacion (estado, tipo de DE, moneda). El XML se descarga con fetch autenticado
 // (el endpoint devuelve XML crudo, no el envelope JSON).
 import { apiData, apiFetch, ApiError, refreshSession, isTokenExpired } from './api'
-import { ORDS_BASE, type Environment } from './env'
+import { GO_BASE, ORDS_BASE, type Environment } from './env'
 
 export type DocEstado = 'BORRADOR' | 'FIRMADO' | 'ENVIADO' | 'APROBADO' | 'RECHAZADO' | 'CANCELADO'
 
@@ -17,6 +17,7 @@ export interface DocumentListItem {
   receptor_nombre: string | null
   moneda: string
   total_operacion: number | null
+  recovery_required: boolean
   fecha_emision: string | null
 }
 
@@ -25,6 +26,19 @@ export interface DocumentDetail extends DocumentListItem {
   punto_expedicion: string
   mensaje_res: string | null
   receptor_doc: string | null
+  recovery_reason: string | null
+}
+
+export interface ReconciliationResult {
+  cdc: string
+  estado: DocEstado
+  ambiente: Environment
+  found: boolean
+  cancelado: boolean
+  codRes: string
+  protAut?: string
+  mensaje?: string
+  requiresReconciliation: boolean
 }
 
 export interface DocumentListParams {
@@ -71,6 +85,17 @@ export async function getDocument(token: string, cdc: string): Promise<DocumentD
 
 export async function requestRetry(token: string, cdc: string): Promise<void> {
   await apiFetch(`/documents/${cdc}/retry`, { token, method: 'POST' })
+}
+
+// La consulta SIFEN se media por Go porque requiere el certificado mTLS del
+// tenant. El navegador usa su JWT, nunca una API key ni material sensible.
+export async function reconcileDocument(token: string, cdc: string): Promise<ReconciliationResult> {
+  return apiData<ReconciliationResult>(`/panel/documents/${cdc}/reconcile`, {
+    token,
+    method: 'POST',
+    base: GO_BASE,
+    prefix: '/v1',
+  })
 }
 
 export interface KudeStatus {

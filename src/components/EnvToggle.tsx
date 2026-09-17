@@ -8,7 +8,7 @@ const OPTIONS: Environment[] = ['TEST', 'PROD']
 
 const META: Record<Environment, { title: string }> = {
   TEST: { title: 'Ambiente de pruebas (sifen-test · sin valor fiscal)' },
-  PROD: { title: 'Producción (emisión real bloqueada en el motor)' },
+  PROD: { title: 'Producción (emisión fiscal real)' },
 }
 
 export function EnvToggle() {
