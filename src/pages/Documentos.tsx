@@ -15,6 +15,7 @@ import {
   getDocument,
   getKude,
   listDocuments,
+  reconcileDocument,
   requestRetry,
   tipoDeLabel,
   type DocumentListItem,
@@ -650,6 +651,7 @@ export default function Documentos() {
                       {formatMoneda(doc.total_operacion, doc.moneda)}
                     </p>
                     <EstadoBadge estado={doc.estado} />
+                    {doc.recovery_required && <span className="text-[11px] font-medium text-danger">Conciliación pendiente</span>}
                   </div>
                 </button>
                 <div className="mt-2 flex justify-end">
@@ -714,7 +716,10 @@ export default function Documentos() {
                     <td className="px-4 py-4 font-mono text-xs text-muted">{doc.num_documento}</td>
                     <td className="max-w-[16rem] truncate px-4 py-4 text-ink">{doc.receptor_nombre || 'Sin nombre'}</td>
                     <td className="px-4 py-4">
-                      <EstadoBadge estado={doc.estado} />
+                      <div className="flex flex-col items-start gap-1">
+                        <EstadoBadge estado={doc.estado} />
+                        {doc.recovery_required && <span className="text-[11px] font-medium text-danger">Conciliación pendiente</span>}
+                      </div>
                     </td>
                     <td className="whitespace-nowrap px-4 py-4 text-right font-semibold tabular-nums text-ink">
                       {formatMoneda(doc.total_operacion, doc.moneda)}
@@ -762,6 +767,7 @@ export default function Documentos() {
         token={token}
         onClose={() => setSelected(null)}
         onRetried={() => queryClient.invalidateQueries({ queryKey: ['documents'] })}
+        onReconciled={() => queryClient.invalidateQueries({ queryKey: ['documents'] })}
       />
     </AppShell>
   )
@@ -772,11 +778,13 @@ function DocumentDetailModal({
   token,
   onClose,
   onRetried,
+  onReconciled,
 }: {
   cdc: string | null
   token: string
   onClose: () => void
   onRetried: () => void
+  onReconciled: () => void
 }) {
   const detailQuery = useQuery({
     queryKey: ['document', cdc],
@@ -787,6 +795,14 @@ function DocumentDetailModal({
   const retryMutation = useMutation({
     mutationFn: () => requestRetry(token, cdc!),
     onSuccess: onRetried,
+  })
+
+  const reconcileMutation = useMutation({
+    mutationFn: () => reconcileDocument(token, cdc!),
+    onSuccess: () => {
+      onReconciled()
+      void detailQuery.refetch()
+    },
   })
 
   const doc = detailQuery.data
@@ -808,6 +824,16 @@ function DocumentDetailModal({
               onClick={() => retryMutation.mutate()}
             >
               Reenviar a SIFEN
+            </Button>
+          )}
+          {doc.recovery_required && (
+            <Button
+              variant="secondary"
+              loading={reconcileMutation.isPending}
+              className="w-full sm:w-auto"
+              onClick={() => reconcileMutation.mutate()}
+            >
+              Reconciliar
             </Button>
           )}
         </>
@@ -856,6 +882,13 @@ function DocumentDetailModal({
             </DetailSection>
           )}
 
+          {doc.recovery_required && (
+            <Alert>
+              Este documento requiere conciliación con SIFEN.
+              {doc.recovery_reason ? ` ${decodeEntities(doc.recovery_reason)}` : ''}
+            </Alert>
+          )}
+
           {retryMutation.isError && (
             <Alert>
               {retryMutation.error instanceof ApiError
@@ -866,6 +899,18 @@ function DocumentDetailModal({
           {retryMutation.isSuccess && (
             <SuccessAlert overlay={false}>
               Documento marcado para reenvío. El servicio lo reintentará automáticamente.
+            </SuccessAlert>
+          )}
+          {reconcileMutation.isError && (
+            <Alert>
+              {reconcileMutation.error instanceof ApiError
+                ? reconcileMutation.error.message
+                : 'No se pudo conciliar el documento.'}
+            </Alert>
+          )}
+          {reconcileMutation.isSuccess && (
+            <SuccessAlert overlay={false}>
+              Consulta SIFEN completada. El estado local fue actualizado cuando SIFEN confirmó el CDC.
             </SuccessAlert>
           )}
         </div>

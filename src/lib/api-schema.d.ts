@@ -904,7 +904,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["Envelope"];
+                        "application/json": components["schemas"]["DocumentDetailEnvelope"];
                     };
                 };
                 404: components["responses"]["NotFound"];
@@ -912,6 +912,49 @@ export interface paths {
         };
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/panel/documents/{cdc}/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Conciliar un documento con SIFEN
+         * @description Consulta el CDC vía el servicio Go y actualiza ORDS solo con una respuesta autoritativa de SIFEN.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    cdc: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Consulta completada */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["ReconcileResponseEnvelope"];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+                502: components["responses"]["BadGateway"];
+            };
+        };
         delete?: never;
         options?: never;
         head?: never;
@@ -1089,6 +1132,35 @@ export interface components {
              */
             not_after?: string;
         };
+        DocumentDetailEnvelope: components["schemas"]["Envelope"] & {
+            data?: {
+                cdc?: string;
+                /** @enum {string} */
+                environment?: "TEST" | "PROD";
+                /** @enum {string} */
+                estado?: "FIRMADO" | "APROBADO" | "RECHAZADO" | "CANCELADO";
+                cod_res?: string | null;
+                prot_aut?: string | null;
+                mensaje_res?: string | null;
+                recovery_required?: boolean;
+                recovery_reason?: string | null;
+            };
+        };
+        ReconcileResponseEnvelope: components["schemas"]["Envelope"] & {
+            data?: {
+                cdc?: string;
+                /** @enum {string} */
+                estado?: "FIRMADO" | "APROBADO" | "RECHAZADO" | "CANCELADO";
+                /** @enum {string} */
+                ambiente?: "TEST" | "PROD";
+                found?: boolean;
+                cancelado?: boolean;
+                codRes?: string;
+                protAut?: string;
+                mensaje?: string;
+                requiresReconciliation?: boolean;
+            };
+        };
         /** @description Payload del panel hacia Go. Go cifra el CSC antes de persistir. */
         PanelEnvironmentUpsertRequest: {
             /** @enum {string} */
@@ -1228,6 +1300,15 @@ export interface components {
         };
         /** @description Payload válido pero inconsistente (validación de negocio) */
         Unprocessable: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorEnvelope"];
+            };
+        };
+        /** @description No se pudo completar una operación contra ORDS o SIFEN. */
+        BadGateway: {
             headers: {
                 [name: string]: unknown;
             };
