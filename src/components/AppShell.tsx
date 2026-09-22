@@ -92,6 +92,19 @@ function IconEnv() {
     </svg>
   )
 }
+function IconWebhook() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M12 3v4M8.5 5.5 6 3M15.5 5.5 18 3M5 12H3M21 12h-2M7.5 18.5 6 21M16.5 18.5 18 21"
+        className="stroke-current"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+      />
+      <circle cx="12" cy="12" r="4" className="stroke-current" strokeWidth="1.8" />
+    </svg>
+  )
+}
 function IconTeam() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
@@ -134,6 +147,7 @@ const CONFIG: NavItem[] = [
   { label: 'API keys', to: '/api-keys', icon: <IconKey /> },
   { label: 'Certificado', to: '/certificado', icon: <IconCert /> },
   { label: 'Ambientes', to: '/ambientes', icon: <IconEnv /> },
+  { label: 'Webhook', to: '/webhooks', icon: <IconWebhook /> },
   { label: 'Equipo', to: '/equipo', icon: <IconTeam /> },
 ]
 
