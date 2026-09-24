@@ -30,3 +30,8 @@ dist-ssr
 
 # Codebase memory (índice local del MCP; el global vive fuera del repo)
 .codebase-memory/
+
+# IDE / agentes locales (reglas, planes, configs MCP)
+.cursor/
+.claude/
+.mcp.json
