@@ -243,8 +243,12 @@ export default function Establecimientos() {
     !editingCodigo &&
     !!codigoNorm &&
     establecimientos.some((e) => e.codigo === codigoNorm || e.codigo === codigoNorm.padStart(3, '0'))
+  // SIFEN exige el email del emisor (dEmailE): sin él rechaza el DE con 0160.
+  const emailNorm = (form.email ?? '').trim()
+  const emailValido = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNorm)
   const formValido =
     !!codigoNorm &&
+    emailValido &&
     !!form.direccion.trim() &&
     !!form.dep.cod &&
     !!form.dis?.cod &&
@@ -560,6 +564,16 @@ export default function Establecimientos() {
                 placeholder="021…"
               />
             </div>
+            <TextField
+              label="Email"
+              type="email"
+              requiredMark
+              value={form.email ?? ''}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              placeholder="facturacion@tuempresa.com"
+              error={emailNorm && !emailValido ? 'Email inválido' : undefined}
+              hint={!emailNorm ? 'Obligatorio en SIFEN: va como email del emisor en cada documento' : undefined}
+            />
             <TextField
               label="Denominación"
               value={form.denominacion ?? ''}
