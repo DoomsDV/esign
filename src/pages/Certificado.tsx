@@ -246,7 +246,9 @@ export default function Certificado() {
                   <StatusChip status={displayStatus} />
                 </div>
                 <p className="mt-3 font-semibold tabular-nums tracking-tight text-ink text-[1.35rem] leading-[1.15] sm:text-lg">
-                  {hasCert ? formatVigencia(meta?.not_after ?? null) : '—'}
+                  {hasCert
+                    ? `${isExpired ? 'Venció el' : 'Vence el'} ${formatVigencia(meta?.not_after ?? null)}`
+                    : '—'}
                 </p>
                 <p className="mt-2 text-[11px] leading-relaxed text-muted sm:text-sm">
                   {hasCert ? (
